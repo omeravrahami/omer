@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Clock, BarChart3, Settings } from 'lucide-react-native';
+import { Home, Clock, BarChart3, SlidersHorizontal } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
 export default function TabLayout() {
@@ -8,19 +8,19 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#60A5FA',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.28)',
         tabBarStyle: {
-          backgroundColor: '#0F172A',
-          borderTopColor: '#1E293B',
+          backgroundColor: '#0B1020',
+          borderTopColor: 'rgba(255,255,255,0.06)',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          height: Platform.OS === 'ios' ? 80 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '500',
         },
       }}
     >
@@ -56,7 +56,7 @@ export default function TabLayout() {
         options={{
           title: '\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Settings size={size} color={color} />
+            <SlidersHorizontal size={size} color={color} />
           ),
         }}
       />
