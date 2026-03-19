@@ -27,7 +27,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { X, Plus, Trash2, ChevronDown, Check } from 'lucide-react-native';
+import { X, Plus, Trash2, ChevronDown, Check, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useCreateSession } from '@/lib/api/workclock-api';
@@ -169,6 +169,234 @@ function IOSPickerSheet({
           style={{ height: 200 }}
         />
       </View>
+    </Modal>
+  );
+}
+
+// ─── Calendar Picker Sheet (iOS date mode) ────────────────────────────────────
+
+const HEBREW_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+// RTL order: index 0 = Sunday (rightmost when direction is RTL)
+const HEBREW_DAYS = ['א','ב','ג','ד','ה','ו','ש'];
+
+function buildCalendarGrid(year: number, month: number): (Date | null)[][] {
+  // month is 0-based
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  // Sunday = 0, so firstDay.getDay() tells us how many blanks at the start
+  const startBlank = firstDay.getDay(); // 0=Sun ... 6=Sat
+  const totalDays = lastDay.getDate();
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < startBlank; i++) cells.push(null);
+  for (let d = 1; d <= totalDays; d++) cells.push(new Date(year, month, d));
+  // Pad to full rows of 7
+  while (cells.length % 7 !== 0) cells.push(null);
+  const rows: (Date | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  return rows;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+}
+
+function CalendarPickerSheet({
+  visible,
+  value,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  value: Date;
+  onConfirm: (d: Date) => void;
+  onCancel: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const today = useMemo(() => new Date(), []);
+
+  const [viewYear, setViewYear] = useState(value.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value.getMonth());
+
+  // Reset view when sheet opens
+  React.useEffect(() => {
+    if (visible) {
+      setViewYear(value.getFullYear());
+      setViewMonth(value.getMonth());
+    }
+  }, [visible, value]);
+
+  const grid = useMemo(() => buildCalendarGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  const goPrev = useCallback(() => {
+    setViewMonth((m) => {
+      if (m === 0) { setViewYear((y) => y - 1); return 11; }
+      return m - 1;
+    });
+  }, []);
+
+  const goNext = useCallback(() => {
+    setViewMonth((m) => {
+      if (m === 11) { setViewYear((y) => y + 1); return 0; }
+      return m + 1;
+    });
+  }, []);
+
+  const handleDayPress = useCallback((day: Date) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Preserve the time component of the original value
+    const result = new Date(day);
+    result.setHours(value.getHours(), value.getMinutes(), value.getSeconds(), 0);
+    onConfirm(result);
+  }, [value, onConfirm]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal transparent animationType="slide" visible={visible} onRequestClose={onCancel}>
+      <Pressable
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
+        onPress={onCancel}
+      />
+      <Animated.View
+        entering={FadeInDown.duration(280)}
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          paddingBottom: insets.bottom + 12,
+          paddingHorizontal: 16,
+        }}
+      >
+        {/* Handle bar */}
+        <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0' }} />
+        </View>
+
+        {/* Month navigation header — RTL: right arrow = next, left arrow = prev */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 4,
+            marginBottom: 16,
+          }}
+        >
+          {/* Left arrow = PREVIOUS month */}
+          <Pressable
+            onPress={goPrev}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: '#F1F5F9',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            testID="calendar-prev-month"
+          >
+            <ChevronLeft size={20} color="#0F172A" />
+          </Pressable>
+
+          {/* Month + Year centered */}
+          <Text style={{ fontSize: 17, fontWeight: '700', color: '#0F172A' }}>
+            {`${HEBREW_MONTHS[viewMonth]} ${viewYear}`}
+          </Text>
+
+          {/* Right arrow = NEXT month */}
+          <Pressable
+            onPress={goNext}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: '#F1F5F9',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            testID="calendar-next-month"
+          >
+            <ChevronRight size={20} color="#0F172A" />
+          </Pressable>
+        </View>
+
+        {/* Day-of-week row — RTL, Sun first so Sunday appears on the right */}
+        <View style={{ flexDirection: 'row-reverse', marginBottom: 6 }}>
+          {HEBREW_DAYS.map((name) => (
+            <View key={name} style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#94A3B8' }}>{name}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Calendar grid rows */}
+        {grid.map((row, rowIdx) => (
+          <View key={rowIdx} style={{ flexDirection: 'row-reverse', marginBottom: 2 }}>
+            {row.map((day, colIdx) => {
+              if (!day) {
+                return <View key={colIdx} style={{ flex: 1, height: 40 }} />;
+              }
+              const isSelected = isSameDay(day, value);
+              const isToday = isSameDay(day, today);
+              const isOtherMonth = day.getMonth() !== viewMonth;
+
+              return (
+                <Pressable
+                  key={colIdx}
+                  onPress={() => handleDayPress(day)}
+                  style={{ flex: 1, height: 40, alignItems: 'center', justifyContent: 'center' }}
+                  testID={`calendar-day-${day.getDate()}`}
+                >
+                  <View
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isSelected ? '#2563EB' : 'transparent',
+                      borderWidth: !isSelected && isToday ? 1.5 : 0,
+                      borderColor: '#2563EB',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        fontWeight: isSelected || isToday ? '700' : '400',
+                        color: isSelected
+                          ? '#FFFFFF'
+                          : isOtherMonth
+                          ? '#CBD5E1'
+                          : '#0F172A',
+                      }}
+                    >
+                      {day.getDate()}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
+
+        {/* Cancel button */}
+        <Pressable
+          onPress={onCancel}
+          style={{
+            marginTop: 12,
+            alignSelf: 'center',
+            paddingHorizontal: 28,
+            paddingVertical: 10,
+            borderRadius: 12,
+            backgroundColor: '#F1F5F9',
+          }}
+          testID="calendar-cancel"
+        >
+          <Text style={{ color: '#64748B', fontWeight: '600', fontSize: 15 }}>{'ביטול'}</Text>
+        </Pressable>
+      </Animated.View>
     </Modal>
   );
 }
@@ -749,21 +977,31 @@ export default function AddEditSessionScreen() {
       {/* ── Time Picker ──────────────────────────────────────────────────────── */}
 
       {Platform.OS === 'ios' ? (
-        /* iOS: bottom sheet modal with Done button */
-        <IOSPickerSheet
-          visible={pickerTarget !== null}
-          label={pickerLabel}
-          mode={pickerMode}
-          value={pickerValue}
-          onConfirm={handleIOSConfirm}
-          onCancel={() => setPickerTarget(null)}
-        />
+        pickerTarget === 'date' ? (
+          /* iOS date: custom calendar grid */
+          <CalendarPickerSheet
+            visible={true}
+            value={pickerValue}
+            onConfirm={handleIOSConfirm}
+            onCancel={() => setPickerTarget(null)}
+          />
+        ) : (
+          /* iOS time: spinner bottom sheet */
+          <IOSPickerSheet
+            visible={pickerTarget !== null}
+            label={pickerLabel}
+            mode={pickerMode}
+            value={pickerValue}
+            onConfirm={handleIOSConfirm}
+            onCancel={() => setPickerTarget(null)}
+          />
+        )
       ) : pickerTarget !== null ? (
         /* Android: native dialog, auto-closes */
         <DateTimePicker
           value={pickerValue}
           mode={pickerMode}
-          display="default"
+          display={pickerTarget === 'date' ? 'calendar' : 'default'}
           onChange={handleAndroidChange}
           testID="android-date-picker"
         />
