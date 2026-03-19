@@ -36,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: '\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4',
+          title: '\u05D7\u05D5\u05D3\u05E9\u05D9',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Clock size={size} color={color} />
           ),
