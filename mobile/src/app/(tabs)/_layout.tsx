@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Clock, BarChart3, SlidersHorizontal } from 'lucide-react-native';
+import { Home, Clock, BarChart3, SlidersHorizontal, BookOpen } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
 export default function TabLayout() {
@@ -39,6 +39,15 @@ export default function TabLayout() {
           title: '\u05D7\u05D5\u05D3\u05E9\u05D9',
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Clock size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="journal"
+        options={{
+          title: '\u05D9\u05D5\u05DE\u05DF',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <BookOpen size={size} color={color} />
           ),
         }}
       />
