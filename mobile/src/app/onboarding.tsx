@@ -80,8 +80,8 @@ export default function OnboardingScreen() {
       {/* Logo */}
       <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 4 }}>
         <Image
-          source={require('@/assets/logo.png')}
-          style={{ width: 140, height: 42, resizeMode: 'contain' }}
+          source={require('@/assets/logo_transparent.png')}
+          style={{ width: 150, height: 50, resizeMode: 'contain' }}
         />
       </View>
       <PagerView

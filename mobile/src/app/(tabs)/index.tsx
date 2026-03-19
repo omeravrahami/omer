@@ -576,11 +576,21 @@ export default function DashboardScreen() {
           }}
         >
           <View style={{ alignItems: 'flex-end' }}>
-            <Image
-              source={require('@/assets/logo.png')}
-              style={{ width: 120, height: 36, resizeMode: 'contain' }}
-            />
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 }}>
+            <View
+              style={{
+                shadowColor: '#38BDF8',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.55,
+                shadowRadius: 12,
+                elevation: 8,
+              }}
+            >
+              <Image
+                source={require('@/assets/logo_transparent.png')}
+                style={{ width: 130, height: 40, resizeMode: 'contain' }}
+              />
+            </View>
+            <Text style={{ color: 'rgba(255,255,255,0.38)', fontSize: 11, marginTop: 2, letterSpacing: 0.3 }}>
               {hebrewDate}
             </Text>
           </View>
