@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Settings {
+  id                    String  @id @default(cuid())
+  deviceId              String  @unique
+  hourlyRate            Float   @default(50)
+  currency              String  @default("ILS")
+  dailyGoalHours        Float   @default(8)
+  weeklyGoalHours       Float   @default(40)
+  defaultBreakMinutes   Int     @default(30)
+  showSalaryOnDashboard Boolean @default(true)
+  themeMode             String  @default("light")
+  isPro                 Boolean @default(false)
+  onboardingCompleted   Boolean @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model WorkSession {
+  id            String   @id @default(cuid())
+  deviceId      String
+  date          String   // YYYY-MM-DD
+  startTime     DateTime
+  endTime       DateTime?
+  grossMinutes  Float    @default(0)
+  breakMinutes  Float    @default(0)
+  netMinutes    Float    @default(0)
+  totalPay      Float    @default(0)
+  notes         String   @default("")
+  workplaceName String   @default("")
+  status        String   @default("active") // active | completed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  breaks        BreakSession[]
+
+  @@index([deviceId, date])
+  @@index([deviceId, status])
+}
+
+model BreakSession {
+  id              String   @id @default(cuid())
+  workSessionId   String
+  startTime       DateTime
+  endTime         DateTime?
+  durationMinutes Float    @default(0)
+  workSession     WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+
+  @@index([workSessionId])
+}

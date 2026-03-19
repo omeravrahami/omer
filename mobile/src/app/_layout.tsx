@@ -1,0 +1,83 @@
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useColorScheme } from '@/lib/useColorScheme';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { useEffect } from 'react';
+import { I18nManager } from 'react-native';
+import { useDeviceStore } from '@/lib/state/device-store';
+import { useSettingsStore } from '@/lib/state/settings-store';
+import { Toast } from '@/components/Toast';
+
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+};
+
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+
+function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null | undefined }) {
+  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack initialRouteName={onboardingCompleted ? '(tabs)' : 'onboarding'}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="session-detail/[id]"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="add-edit-session"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="premium"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+      </Stack>
+      <Toast />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const initDevice = useDeviceStore((s) => s.initDevice);
+
+  useEffect(() => {
+    if (!I18nManager.isRTL) {
+      I18nManager.forceRTL(true);
+    }
+    initDevice();
+    SplashScreen.hideAsync();
+  }, [initDevice]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardProvider>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <RootLayoutNav colorScheme={colorScheme} />
+        </KeyboardProvider>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
+  );
+}
