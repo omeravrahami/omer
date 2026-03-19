@@ -10,13 +10,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown, SlideInRight } from 'react-native-reanimated';
-import { ChevronLeft, ChevronRight, Trash2, Clock, Calendar } from 'lucide-react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { ChevronLeft, ChevronRight, Clock, Calendar, TrendingDown } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDeviceId } from '@/lib/state/device-store';
-import { useSettingsStore } from '@/lib/state/settings-store';
+import { useSettingsStore, calcDeductions } from '@/lib/state/settings-store';
 import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
-import { formatTime, formatCurrency, formatHours, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
+import { formatTime, formatCurrency, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
 import type { WorkSession } from '@/lib/types';
 
 export default function HistoryScreen() {
@@ -25,6 +26,7 @@ export default function HistoryScreen() {
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
   const isPro = useSettingsStore((s) => s.isPro);
+  const deductions = useSettingsStore((s) => s.deductions);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
@@ -41,13 +43,25 @@ export default function HistoryScreen() {
     });
   };
 
+  // Monthly totals from sessions
+  const totals = useMemo(() => {
+    if (!sessions) return { hours: 0, grossPay: 0, netPay: 0, deductionsTotal: 0, days: 0 };
+    const completed = sessions.filter((s) => s.status === 'completed');
+    const hours = completed.reduce((sum, s) => sum + s.netMinutes / 60, 0);
+    const grossPay = completed.reduce((sum, s) => sum + s.totalPay, 0);
+    const deductionsTotal = calcDeductions(grossPay, deductions);
+    const netPay = Math.max(0, grossPay - deductionsTotal);
+    const days = new Set(completed.map((s) => s.date)).size;
+    return { hours, grossPay, netPay, deductionsTotal, days };
+  }, [sessions, deductions]);
+
   const grouped = useMemo(() => {
-    if (!sessions) return {};
+    if (!sessions) return {} as Record<string, WorkSession[]>;
     const groups: Record<string, WorkSession[]> = {};
     for (const s of sessions) {
       const dateKey = s.date ?? new Date(s.startTime).toISOString().split('T')[0];
       if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(s);
+      groups[dateKey]!.push(s);
     }
     return groups;
   }, [sessions]);
@@ -57,51 +71,225 @@ export default function HistoryScreen() {
     [grouped]
   );
 
-  const handleDelete = (sessionId: string) => {
+  const confirmDelete = (sessionId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    deleteSession.mutate(sessionId, {
-      onSuccess: () => showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05E0\u05DE\u05D7\u05E7\u05D4'),
-      onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05D4', 'error'),
-    });
+    Alert.alert(
+      'מחיקת משמרת',
+      'האם למחוק את המשמרת הזו?',
+      [
+        { text: 'ביטול', style: 'cancel' },
+        {
+          text: 'מחק',
+          style: 'destructive',
+          onPress: () =>
+            deleteSession.mutate(sessionId, {
+              onSuccess: () => showToast('המשמרת נמחקה'),
+              onError: () => showToast('שגיאה במחיקה', 'error'),
+            }),
+        },
+      ]
+    );
   };
 
+  const hasDeductions = deductions.length > 0;
+
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8FAFC' }} testID="history-screen">
-      {/* Month Selector */}
-      <View className="flex-row items-center justify-between px-5 py-4">
-        <Pressable onPress={() => navigateMonth(1)} testID="month-next">
-          <ChevronLeft size={24} color="#0F172A" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F1F5F9' }} testID="history-screen">
+      {/* Month selector */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingVertical: 14,
+        }}
+      >
+        <Pressable onPress={() => navigateMonth(1)} testID="month-next" style={{ padding: 4 }}>
+          <ChevronLeft size={22} color="#0F172A" />
         </Pressable>
-        <Text className="text-lg font-bold" style={{ color: '#0F172A' }}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>
           {getHebrewMonthYear(currentDate)}
         </Text>
-        <Pressable onPress={() => navigateMonth(-1)} testID="month-prev">
-          <ChevronRight size={24} color="#0F172A" />
+        <Pressable onPress={() => navigateMonth(-1)} testID="month-prev" style={{ padding: 4 }}>
+          <ChevronRight size={22} color="#0F172A" />
         </Pressable>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* ── Monthly Summary Card ────────────────────────────────────────── */}
+        {!isLoading && (
+          <Animated.View entering={FadeInDown.duration(350)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
+            <View
+              style={{
+                borderRadius: 24,
+                overflow: 'hidden',
+                shadowColor: '#0B1020',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.12,
+                shadowRadius: 16,
+                elevation: 6,
+              }}
+            >
+              <LinearGradient
+                colors={['#0B1020', '#1E3A5F']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 24 }}
+              >
+                {/* Top row — hours + days */}
+                <View
+                  style={{
+                    flexDirection: 'row-reverse',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    marginBottom: 20,
+                  }}
+                >
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5, marginBottom: 4 }}>
+                      {'סה״כ שעות'}
+                    </Text>
+                    <Text
+                      style={{
+                        color: '#FFFFFF',
+                        fontSize: 40,
+                        fontWeight: '800',
+                        fontVariant: ['tabular-nums'],
+                        lineHeight: 44,
+                      }}
+                    >
+                      {totals.hours.toFixed(1)}
+                      <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>h</Text>
+                    </Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
+                      {`${totals.days} ימי עבודה`}
+                    </Text>
+                  </View>
+
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5, marginBottom: 4 }}>
+                      {hasDeductions ? 'שכר ברוטו' : 'סה״כ שכר'}
+                    </Text>
+                    <Text
+                      style={{
+                        color: '#60A5FA',
+                        fontSize: 32,
+                        fontWeight: '800',
+                        fontVariant: ['tabular-nums'],
+                        lineHeight: 36,
+                      }}
+                    >
+                      {formatCurrency(totals.grossPay, currency)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Deductions breakdown — only if user has deductions configured */}
+                {hasDeductions === true && (
+                  <>
+                    {/* Divider */}
+                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 16 }} />
+
+                    <View
+                      style={{
+                        flexDirection: 'row-reverse',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 8,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                        <TrendingDown size={14} color="rgba(255,255,255,0.45)" />
+                        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+                          {'ניכויים'}
+                        </Text>
+                      </View>
+                      <Text style={{ color: '#FCA5A5', fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
+                        {`- ${formatCurrency(totals.deductionsTotal, currency)}`}
+                      </Text>
+                    </View>
+
+                    {/* Net pay — the star */}
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.06)',
+                        borderRadius: 14,
+                        padding: 14,
+                        flexDirection: 'row-reverse',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}>
+                        {'נטו לקבלה'}
+                      </Text>
+                      <Text
+                        style={{
+                          color: '#4ADE80',
+                          fontSize: 24,
+                          fontWeight: '800',
+                          fontVariant: ['tabular-nums'],
+                        }}
+                      >
+                        {formatCurrency(totals.netPay, currency)}
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </LinearGradient>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* ── Session List ────────────────────────────────────────────────── */}
         {isLoading ? (
-          <View className="p-12 items-center">
+          <View style={{ paddingVertical: 48, alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#2563EB" testID="loading-indicator" />
           </View>
         ) : sortedDates.length === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} className="items-center py-20 px-8">
-            <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
-              <Calendar size={32} color="#94A3B8" />
+          <Animated.View
+            entering={FadeInDown.duration(400)}
+            style={{ alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 }}
+          >
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#F1F5F9',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Calendar size={28} color="#94A3B8" />
             </View>
-            <Text className="text-lg font-semibold mb-2" style={{ color: '#64748B', textAlign: 'center' }}>
-              {'\u05D0\u05D9\u05DF \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DC\u05D7\u05D5\u05D3\u05E9 \u05D6\u05D4'}
+            <Text style={{ fontSize: 16, fontWeight: '600', color: '#64748B', textAlign: 'center', marginBottom: 6 }}>
+              {'אין רשומות לחודש זה'}
             </Text>
-            <Text className="text-sm" style={{ color: '#94A3B8', textAlign: 'center' }}>
-              {'\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u05DC\u05E2\u05D1\u05D5\u05D3 \u05D5\u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF'}
+            <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
+              {'התחילו לעבוד והרשומות יופיעו כאן'}
             </Text>
           </Animated.View>
         ) : (
           sortedDates.map((dateKey, idx) => (
-            <Animated.View key={dateKey} entering={FadeInDown.delay(idx * 50).duration(300)}>
-              {/* Date Header */}
-              <Text className="text-sm font-semibold px-5 py-2 mt-2" style={{ color: '#64748B', textAlign: 'right' }}>
+            <Animated.View key={dateKey} entering={FadeInUp.delay(idx * 40).duration(280)}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: '#64748B',
+                  textAlign: 'right',
+                  paddingHorizontal: 20,
+                  paddingTop: 12,
+                  paddingBottom: 6,
+                  letterSpacing: 0.3,
+                }}
+              >
                 {new Date(dateKey + 'T12:00:00').toLocaleDateString('he-IL', {
                   weekday: 'long',
                   day: 'numeric',
@@ -119,7 +307,7 @@ export default function HistoryScreen() {
                       params: { id: session.id },
                     } as never)
                   }
-                  onDelete={() => handleDelete(session.id)}
+                  onDelete={() => confirmDelete(session.id)}
                 />
               ))}
             </Animated.View>
@@ -130,12 +318,20 @@ export default function HistoryScreen() {
         {!isPro ? (
           <Pressable
             onPress={() => router.push('/premium' as never)}
-            className="mx-4 mt-4 rounded-2xl py-3 px-4"
-            style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#DBEAFE' }}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 12,
+              borderRadius: 16,
+              backgroundColor: '#EFF6FF',
+              borderWidth: 1,
+              borderColor: '#DBEAFE',
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+            }}
             testID="history-ad-banner"
           >
-            <Text className="text-center text-sm font-medium" style={{ color: '#2563EB' }}>
-              {'\u2B50 \u05E9\u05D3\u05E8\u05D2\u05D5 \u05DC-PRO \u05DC\u05D4\u05E1\u05E8\u05EA \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA'}
+            <Text style={{ textAlign: 'center', fontSize: 13, fontWeight: '600', color: '#2563EB' }}>
+              {'⭐ שדרגו ל-PRO להסרת פרסומות'}
             </Text>
           </Pressable>
         ) : null}
@@ -156,40 +352,63 @@ function SessionRow({
   onDelete: () => void;
 }) {
   const netHrs = (session.netMinutes / 60).toFixed(1);
+
   return (
     <Pressable
       onPress={onPress}
       onLongPress={onDelete}
-      className="mx-4 mb-2 rounded-2xl p-4"
       style={{
+        marginHorizontal: 16,
+        marginBottom: 8,
+        borderRadius: 18,
         backgroundColor: '#FFFFFF',
-        shadowColor: '#000',
+        padding: 16,
+        shadowColor: '#0B1020',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
         elevation: 2,
       }}
       testID={`session-row-${session.id}`}
     >
-      <View className="flex-row-reverse items-center justify-between">
-        <View className="flex-row-reverse items-center gap-2">
-          <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: session.status === 'active' ? '#DCFCE7' : '#EFF6FF' }}>
-            <Clock size={18} color={session.status === 'active' ? '#059669' : '#2563EB'} />
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Left: icon + time */}
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: session.status === 'active' ? '#DCFCE7' : '#EFF6FF',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Clock size={17} color={session.status === 'active' ? '#059669' : '#2563EB'} />
           </View>
           <View>
-            <Text className="text-base font-semibold" style={{ color: '#0F172A', textAlign: 'right' }}>
-              {formatTime(session.startTime)} - {session.endTime ? formatTime(session.endTime) : '\u05E4\u05E2\u05D9\u05DC'}
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A', textAlign: 'right' }}>
+              {formatTime(session.startTime)}
+              {' – '}
+              {session.endTime ? formatTime(session.endTime) : 'פעיל'}
             </Text>
-            <Text className="text-xs mt-0.5" style={{ color: '#94A3B8', textAlign: 'right' }}>
-              {netHrs} {'\u05E9\u05E2\u05D5\u05EA \u05E0\u05D8\u05D5'}
+            <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'right', marginTop: 2 }}>
+              {`${netHrs} שעות נטו${(session.breaks?.length ?? 0) > 0 ? ` · ${session.breaks!.length} הפסקות` : ''}`}
             </Text>
           </View>
         </View>
-        <View className="items-start">
-          <Text className="text-lg font-bold" style={{ color: '#059669', fontVariant: ['tabular-nums'] }}>
-            {formatCurrency(session.totalPay, currency)}
-          </Text>
-        </View>
+
+        {/* Right: pay */}
+        <Text
+          style={{
+            fontSize: 17,
+            fontWeight: '700',
+            color: '#059669',
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          {formatCurrency(session.totalPay, currency)}
+        </Text>
       </View>
     </Pressable>
   );
