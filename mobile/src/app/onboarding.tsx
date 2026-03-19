@@ -6,6 +6,7 @@ import {
   Dimensions,
   TextInput,
   Switch,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -76,6 +77,13 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8FAFC' }} testID="onboarding-screen">
+      {/* Logo */}
+      <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 4 }}>
+        <Image
+          source={require('@/assets/logo.png')}
+          style={{ width: 140, height: 42, resizeMode: 'contain' }}
+        />
+      </View>
       <PagerView
         ref={pagerRef}
         className="flex-1"

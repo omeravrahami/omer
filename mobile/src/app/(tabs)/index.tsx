@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -575,17 +576,10 @@ export default function DashboardScreen() {
           }}
         >
           <View style={{ alignItems: 'flex-end' }}>
-            <Text
-              style={{
-                color: '#FFFFFF',
-                fontSize: 18,
-                fontWeight: '700',
-                letterSpacing: 2.5,
-                textTransform: 'uppercase',
-              }}
-            >
-              WorkClock
-            </Text>
+            <Image
+              source={require('@/assets/logo.png')}
+              style={{ width: 120, height: 36, resizeMode: 'contain' }}
+            />
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 3 }}>
               {hebrewDate}
             </Text>
