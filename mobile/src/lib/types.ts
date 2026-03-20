@@ -33,6 +33,7 @@ export interface WorkSession {
   notes: string;
   workplaceName: string;
   status: 'active' | 'completed';
+  sessionType: 'shift' | 'sick' | 'vacation';
   breaks: BreakSession[];
 }
 

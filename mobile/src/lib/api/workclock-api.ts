@@ -139,8 +139,26 @@ export function useCreateSession(deviceId: string) {
       date: string;
       startTime: string;
       endTime: string;
+      sessionType?: 'shift' | 'sick' | 'vacation';
       notes?: string;
       breaks?: { startTime: string; endTime: string }[];
+    }) => api.post<WorkSession>(`/api/sessions/${deviceId}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+      qc.invalidateQueries({ queryKey: ['stats', deviceId] });
+    },
+  });
+}
+
+export function useCreateDayRecord(deviceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      date: string;
+      sessionType: 'shift' | 'sick' | 'vacation';
+      startTime?: string;
+      endTime?: string;
+      notes?: string;
     }) => api.post<WorkSession>(`/api/sessions/${deviceId}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sessions', deviceId] });

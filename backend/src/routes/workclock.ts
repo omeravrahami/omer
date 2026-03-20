@@ -27,6 +27,7 @@ const createSessionSchema = z.object({
   date: z.string().optional(),                 // YYYY-MM-DD override
   workplaceName: z.string().optional(),
   notes: z.string().optional(),
+  sessionType: z.enum(["shift", "sick", "vacation"]).optional().default("shift"),
   breaks: z.array(z.object({
     startTime: z.string().datetime(),
     endTime: z.string().datetime(),
@@ -45,6 +46,7 @@ const editSessionSchema = z.object({
   endTime: z.string().datetime(),
   date: z.string().optional(),
   notes: z.string().optional(),
+  sessionType: z.enum(["shift", "sick", "vacation"]).optional(),
   breaks: z.array(z.object({
     startTime: z.string().datetime(),
     endTime: z.string().datetime(),
@@ -180,6 +182,33 @@ workclockRoutes.post(
 
     const startTime = body.startTime ? new Date(body.startTime) : new Date();
     const date = body.date ?? startTime.toISOString().slice(0, 10);
+    const sessionType = body.sessionType ?? "shift";
+
+    // ── Sick / Vacation days (no real times needed) ───────────────────────
+    if (sessionType === "sick" || sessionType === "vacation") {
+      // Use date at 09:00 / 09:01 as placeholder times
+      const placeholderStart = new Date(`${date}T09:00:00.000Z`);
+      const placeholderEnd   = new Date(`${date}T09:01:00.000Z`);
+
+      const session = await db.workSession.create({
+        data: {
+          deviceId,
+          date,
+          startTime: placeholderStart,
+          endTime: placeholderEnd,
+          workplaceName: body.workplaceName ?? "",
+          notes: body.notes ?? "",
+          sessionType,
+          grossMinutes: 0,
+          breakMinutes: 0,
+          netMinutes: 0,
+          totalPay: 0,
+          status: "completed",
+        },
+        include: { breaks: true },
+      });
+      return c.json({ data: session }, 201);
+    }
 
     // ── Manual completed entry (endTime provided) ──────────────────────────
     if (body.endTime) {
@@ -200,6 +229,7 @@ workclockRoutes.post(
           endTime,
           workplaceName: body.workplaceName ?? "",
           notes: body.notes ?? "",
+          sessionType,
           status: "completed",
         },
       });
@@ -255,6 +285,7 @@ workclockRoutes.post(
         startTime,
         workplaceName: body.workplaceName ?? "",
         notes: body.notes ?? "",
+        sessionType,
         status: "active",
       },
       include: { breaks: true },
@@ -362,6 +393,7 @@ workclockRoutes.patch(
         endTime,
         date,
         notes: body.notes ?? session.notes,
+        ...(body.sessionType !== undefined ? { sessionType: body.sessionType } : {}),
         status: "completed",
       },
     });

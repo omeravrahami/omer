@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil, Plus, Heart, Sun } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
@@ -190,7 +190,7 @@ export default function HistoryScreen() {
 
   const totals = useMemo(() => {
     if (!sessions) return { hours: 0, days: 0 };
-    const completed = sessions.filter((s) => s.status === 'completed');
+    const completed = sessions.filter((s) => s.status === 'completed' && (s.sessionType === 'shift' || !s.sessionType));
     const hours = completed.reduce((sum, s) => sum + s.netMinutes / 60, 0);
     const days = new Set(completed.map((s) => s.date)).size;
     return { hours, days };
@@ -260,7 +260,7 @@ export default function HistoryScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Monthly Tax Summary Card */}
         {!isLoading && (
           <Animated.View entering={FadeInDown.duration(350)} style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 12 }}>
@@ -304,6 +304,7 @@ export default function HistoryScreen() {
                   key={session.id}
                   session={session}
                   currency={currency}
+                  hourlyRate={hourlyRate}
                   onPress={() => router.push({ pathname: '/session-detail/[id]' as never, params: { id: session.id } } as never)}
                   onDelete={() => confirmDelete(session.id)}
                   onEdit={() => handleEdit(session)}
@@ -326,6 +327,25 @@ export default function HistoryScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+
+      {/* FAB */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push(`/add-day-record?month=${monthKey}` as never);
+        }}
+        style={{
+          position: 'absolute', right: 20, bottom: 30,
+          width: 56, height: 56, borderRadius: 28,
+          backgroundColor: ACCENT_BLUE,
+          alignItems: 'center', justifyContent: 'center',
+          shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3, shadowRadius: 8, elevation: 8,
+        }}
+        testID="add-day-record-fab"
+      >
+        <Plus size={24} color="#fff" />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -333,16 +353,39 @@ export default function HistoryScreen() {
 function SessionRow({
   session,
   currency,
+  hourlyRate,
   onPress,
   onDelete,
   onEdit,
 }: {
   session: WorkSession;
   currency: string;
+  hourlyRate: number;
   onPress: () => void;
   onDelete: () => void;
   onEdit: () => void;
 }) {
+  const isSick = session.sessionType === 'sick';
+  const isVacation = session.sessionType === 'vacation';
+  const isSpecial = isSick || isVacation;
+
+  const iconBg = isSick
+    ? 'rgba(248,113,113,0.15)'
+    : isVacation
+    ? 'rgba(251,191,36,0.15)'
+    : session.status === 'active'
+    ? 'rgba(34,197,94,0.15)'
+    : 'rgba(59,130,246,0.12)';
+
+  const iconColor = isSick
+    ? COLOR_RED
+    : isVacation
+    ? COLOR_AMBER
+    : session.status === 'active'
+    ? ACCENT_GREEN
+    : ACCENT_BLUE;
+
+  const dynamicPay = (session.netMinutes / 60) * hourlyRate;
   const netHrs = (session.netMinutes / 60).toFixed(1);
 
   return (
@@ -357,43 +400,77 @@ function SessionRow({
       testID={`session-row-${session.id}`}
     >
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
-        {/* Icon + time info */}
+        {/* Icon + info */}
         <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12, flex: 1 }}>
           <View style={{
             width: 40, height: 40, borderRadius: 20,
-            backgroundColor: session.status === 'active' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.12)',
+            backgroundColor: iconBg,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <Clock size={17} color={session.status === 'active' ? ACCENT_GREEN : ACCENT_BLUE} />
+            {isSick ? (
+              <Heart size={17} color={iconColor} />
+            ) : isVacation ? (
+              <Sun size={17} color={iconColor} />
+            ) : (
+              <Clock size={17} color={iconColor} />
+            )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>
-              {formatTime(session.startTime)}
-              {' – '}
-              {session.endTime ? formatTime(session.endTime) : 'פעיל'}
-            </Text>
-            <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-              {`${netHrs} שעות נטו${(session.breaks?.length ?? 0) > 0 ? ` · ${session.breaks!.length} הפסקות` : ''}`}
-            </Text>
+            {isSick ? (
+              <>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: COLOR_RED, textAlign: 'right' }}>
+                  {'יום מחלה'}
+                </Text>
+                {session.notes ? (
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                    {session.notes}
+                  </Text>
+                ) : null}
+              </>
+            ) : isVacation ? (
+              <>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: COLOR_AMBER, textAlign: 'right' }}>
+                  {'יום חופשה'}
+                </Text>
+                {session.notes ? (
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                    {session.notes}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>
+                  {formatTime(session.startTime)}
+                  {' – '}
+                  {session.endTime ? formatTime(session.endTime) : 'פעיל'}
+                </Text>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                  {`${netHrs} שעות נטו${(session.breaks?.length ?? 0) > 0 ? ` · ${session.breaks!.length} הפסקות` : ''}`}
+                </Text>
+              </>
+            )}
           </View>
         </View>
 
-        {/* Pay + edit button */}
-        <View style={{ alignItems: 'flex-end', gap: 6 }}>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: ACCENT_GREEN, fontVariant: ['tabular-nums'] }}>
-            {formatCurrency(session.totalPay, currency)}
-          </Text>
-          {session.status === 'completed' ? (
-            <Pressable
-              onPress={onEdit}
-              testID={`edit-session-${session.id}`}
-              style={{ padding: 4 }}
-              hitSlop={8}
-            >
-              <Pencil size={14} color={TEXT_SECONDARY} />
-            </Pressable>
-          ) : null}
-        </View>
+        {/* Pay + edit button (only for shift) */}
+        {!isSpecial ? (
+          <View style={{ alignItems: 'flex-end', gap: 6 }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: ACCENT_GREEN, fontVariant: ['tabular-nums'] }}>
+              {formatCurrency(Math.round(dynamicPay), currency)}
+            </Text>
+            {session.status === 'completed' ? (
+              <Pressable
+                onPress={onEdit}
+                testID={`edit-session-${session.id}`}
+                style={{ padding: 4 }}
+                hitSlop={8}
+              >
+                <Pencil size={14} color={TEXT_SECONDARY} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );

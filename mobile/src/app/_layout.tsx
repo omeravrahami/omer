@@ -52,6 +52,15 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="add-day-record"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.85, 1.0],
+            headerShown: false,
+          }}
+        />
       </Stack>
       <Toast />
     </ThemeProvider>
