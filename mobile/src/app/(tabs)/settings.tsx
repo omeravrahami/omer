@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Crown, ChevronLeft, Trash2, Plus } from 'lucide-react-native';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
-import { useSettingsStore, Deduction } from '@/lib/state/settings-store';
+import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 
@@ -42,6 +42,34 @@ const STATIC_PRESETS: Preset[] = [
   { name: 'פנסיה', type: 'percent', amount: 6 },
   { name: 'קרן השלמות', type: 'percent', amount: 2.5 },
 ];
+
+// ─── Hebrew month helper ──────────────────────────────────────────────────────
+
+const HEBREW_MONTHS = [
+  'ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני',
+  'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר',
+];
+
+function getHebrewMonthLabel(month: string): string {
+  const parts = month.split('-');
+  const monthNum = parseInt(parts[1] ?? '1', 10);
+  const year = parts[0] ?? '';
+  const label = HEBREW_MONTHS[monthNum - 1] ?? month;
+  return `${label} ${year}`;
+}
+
+function getCurrentMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function offsetMonth(month: string, delta: number): string {
+  const parts = month.split('-');
+  const year = parseInt(parts[0] ?? '2024', 10);
+  const m = parseInt(parts[1] ?? '1', 10);
+  const date = new Date(year, m - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
 
 // ─── Numeric field with local string state ────────────────────────────────────
 
@@ -93,6 +121,270 @@ function NumericInput({
         borderColor: BORDER,
       }}
     />
+  );
+}
+
+// ─── One-Time Additions Section ───────────────────────────────────────────────
+
+function OneTimeAdditionsSection() {
+  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const addOneTimeAddition = useSettingsStore((s) => s.addOneTimeAddition);
+  const removeOneTimeAddition = useSettingsStore((s) => s.removeOneTimeAddition);
+
+  const [expanded, setExpanded] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const [newMonth, setNewMonth] = useState(getCurrentMonth);
+  const [newType, setNewType] = useState<'bonus' | 'gift'>('bonus');
+
+  const handleAdd = useCallback(() => {
+    const amount = parseFloat(newAmount.replace(',', '.'));
+    if (!newName.trim() || isNaN(amount) || amount < 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    addOneTimeAddition({ name: newName.trim(), amount, month: newMonth, type: newType });
+    setNewName('');
+    setNewAmount('');
+    setNewMonth(getCurrentMonth());
+    setNewType('bonus');
+    setExpanded(false);
+  }, [newName, newAmount, newMonth, newType, addOneTimeAddition]);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      removeOneTimeAddition(id);
+    },
+    [removeOneTimeAddition]
+  );
+
+  const sortedAdditions = useMemo(
+    () => [...oneTimeAdditions].sort((a, b) => b.month.localeCompare(a.month)),
+    [oneTimeAdditions]
+  );
+
+  return (
+    <SectionCard title={'תוספות חד פעמיות'}>
+      {/* Existing additions list */}
+      {sortedAdditions.length === 0 ? (
+        <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+          <Text style={{ fontSize: 13, color: TEXT_SECONDARY, textAlign: 'right' }}>
+            {'אין תוספות חד פעמיות'}
+          </Text>
+        </View>
+      ) : (
+        sortedAdditions.map((a: OneTimeAddition) => (
+          <View
+            key={a.id}
+            style={{
+              flexDirection: 'row-reverse',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: BORDER,
+            }}
+            testID={`one-time-addition-row-${a.id}`}
+          >
+            {/* Name + type badge + month on the right */}
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+                {a.name}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: a.type === 'bonus' ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)',
+                  borderRadius: 8,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: a.type === 'bonus' ? ACCENT_BLUE : ACCENT_GREEN,
+                  }}
+                >
+                  {a.type === 'bonus' ? 'בונוס' : 'מתנה'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
+                {getHebrewMonthLabel(a.month)}
+              </Text>
+            </View>
+
+            {/* Amount + delete on the left */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>
+                {`₪${a.amount.toLocaleString()}`}
+              </Text>
+              <Pressable
+                onPress={() => handleDelete(a.id)}
+                hitSlop={8}
+                testID={`one-time-addition-delete-${a.id}`}
+                style={{ padding: 6 }}
+              >
+                <Trash2 size={18} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+        ))
+      )}
+
+      {/* Expand toggle */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setExpanded((v) => !v);
+        }}
+        testID="one-time-addition-expand-toggle"
+        style={{
+          flexDirection: 'row-reverse',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 14,
+        }}
+      >
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+          <Plus size={16} color={ACCENT_BLUE} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT_BLUE, textAlign: 'right' }}>
+            {'הוסף'}
+          </Text>
+        </View>
+        <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>{expanded ? '▲' : '▼'}</Text>
+      </Pressable>
+
+      {expanded ? (
+        <View style={{ paddingBottom: 12, gap: 12 }}>
+          {/* Name input */}
+          <TextInput
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="שם התוספת"
+            placeholderTextColor={TEXT_SECONDARY}
+            returnKeyType="next"
+            testID="one-time-addition-name-input"
+            style={{
+              backgroundColor: BG_INPUT,
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              fontSize: 15,
+              color: TEXT_PRIMARY,
+              textAlign: 'right',
+              borderWidth: 1,
+              borderColor: BORDER,
+            }}
+          />
+
+          {/* Amount input */}
+          <TextInput
+            value={newAmount}
+            onChangeText={setNewAmount}
+            placeholder="סכום"
+            placeholderTextColor={TEXT_SECONDARY}
+            keyboardType="decimal-pad"
+            returnKeyType="done"
+            testID="one-time-addition-amount-input"
+            style={{
+              backgroundColor: BG_INPUT,
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              fontSize: 15,
+              fontWeight: '700',
+              color: TEXT_PRIMARY,
+              textAlign: 'right',
+              borderWidth: 1,
+              borderColor: BORDER,
+            }}
+          />
+
+          {/* Month picker */}
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', backgroundColor: BG_INPUT, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: BORDER }}>
+            {/* Right arrow = older month */}
+            <Pressable
+              onPress={() => setNewMonth((m) => offsetMonth(m, -1))}
+              testID="month-picker-older"
+              hitSlop={8}
+            >
+              <ChevronRight size={20} color={TEXT_SECONDARY} />
+            </Pressable>
+
+            <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY }}>
+              {getHebrewMonthLabel(newMonth)}
+            </Text>
+
+            {/* Left arrow = newer month */}
+            <Pressable
+              onPress={() => setNewMonth((m) => offsetMonth(m, 1))}
+              testID="month-picker-newer"
+              hitSlop={8}
+            >
+              <ChevronLeft size={20} color={TEXT_SECONDARY} />
+            </Pressable>
+          </View>
+
+          {/* Type toggle */}
+          <View style={{ flexDirection: 'row-reverse', gap: 8 }}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setNewType('bonus');
+              }}
+              testID="one-time-type-bonus"
+              style={{
+                flex: 1,
+                backgroundColor: newType === 'bonus' ? ACCENT_BLUE : BG_INPUT,
+                borderRadius: 10,
+                paddingVertical: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: newType === 'bonus' ? ACCENT_BLUE : BORDER,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: newType === 'bonus' ? '#FFF' : TEXT_SECONDARY }}>
+                {'בונוס'}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setNewType('gift');
+              }}
+              testID="one-time-type-gift"
+              style={{
+                flex: 1,
+                backgroundColor: newType === 'gift' ? ACCENT_GREEN : BG_INPUT,
+                borderRadius: 10,
+                paddingVertical: 12,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: newType === 'gift' ? ACCENT_GREEN : BORDER,
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: newType === 'gift' ? '#FFF' : TEXT_SECONDARY }}>
+                {'מתנה'}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Confirm button */}
+          <Pressable
+            onPress={handleAdd}
+            testID="one-time-addition-confirm"
+            style={{
+              backgroundColor: ACCENT_BLUE,
+              borderRadius: 14,
+              paddingVertical: 14,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFF' }}>{'אישור'}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </SectionCard>
   );
 }
 
@@ -578,8 +870,7 @@ export default function SettingsScreen() {
   const isPro = useSettingsStore((s) => s.isPro);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
-  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
-  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
+  const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -684,29 +975,16 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
-            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
-              <SettingRow label={'שווי מתנות חודשי (גיפט קארד וכו׳)'}>
-                <NumericInput
-                  storeValue={giftCardMonthly}
-                  onCommit={(val) => save({ giftCardMonthly: val })}
-                  testID="gift-card-input"
-                />
-              </SettingRow>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'נוסף לברוטו החייב במס'}
-              </Text>
-            </View>
-
             <View style={{ paddingVertical: 14 }}>
-              <SettingRow label={'בונוס חודשי'} last>
+              <SettingRow label={'גילום רכב (חודשי)'} last>
                 <NumericInput
-                  storeValue={bonusMonthly}
-                  onCommit={(val) => save({ bonusMonthly: val })}
-                  testID="bonus-input"
+                  storeValue={carGrossupMonthly}
+                  onCommit={(val) => save({ carGrossupMonthly: val })}
+                  testID="car-grossup-input"
                 />
               </SettingRow>
               <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'נוסף לברוטו החייב במס'}
+                {'מגדיל את הברוטו החייב במס'}
               </Text>
             </View>
 
@@ -776,8 +1054,13 @@ export default function SettingsScreen() {
           <OvertimeSection />
         </Animated.View>
 
-        {/* Premium */}
+        {/* One-Time Additions section */}
         <Animated.View entering={FadeInDown.delay(380).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <OneTimeAdditionsSection />
+        </Animated.View>
+
+        {/* Premium */}
+        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <Pressable
             onPress={() => router.push('/premium' as never)}
             style={{

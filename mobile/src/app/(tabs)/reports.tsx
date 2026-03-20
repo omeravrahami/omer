@@ -64,7 +64,7 @@ function SectionHeader({ title, subtitle, icon }: { title: string; subtitle?: st
   );
 }
 
-// ─── Salary Breakdown Card ────────────────────────────────────────────────────
+// ─── Salary Breakdown Card (Premium Redesign) ─────────────────────────────────
 
 function SalaryBreakdownCard({
   gross,
@@ -78,6 +78,7 @@ function SalaryBreakdownCard({
   trainingFundDeduction,
   transportationAllowance,
   finalTakeHome,
+  oneTimeTotal,
 }: {
   gross: number;
   taxableGross: number;
@@ -90,63 +91,127 @@ function SalaryBreakdownCard({
   trainingFundDeduction: number;
   transportationAllowance: number;
   finalTakeHome: number;
+  oneTimeTotal: number;
 }) {
-  const rows: { label: string; value: number; color: string; bold?: boolean }[] = [
-    { label: '\u05D1\u05E8\u05D5\u05D8\u05D5', value: gross, color: TEXT_PRIMARY },
+  type RowKind = 'income' | 'deduction' | 'neutral' | 'net';
+  const rows: { label: string; value: number; kind: RowKind; icon: string }[] = [
+    { label: 'ברוטו', value: gross, kind: 'income', icon: '💰' },
     ...(carBenefitMonthly > 0
-      ? [{ label: '\u05E9\u05D5\u05D5\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05E8\u05DB\u05D1 \u05DC\u05DE\u05E1', value: carBenefitMonthly, color: ACCENT_AMBER }]
+      ? [{ label: 'שווי שימוש רכב למס', value: carBenefitMonthly, kind: 'income' as RowKind, icon: '🚗' }]
       : []),
-    { label: '\u05D1\u05E8\u05D5\u05D8\u05D5 \u05DC\u05DE\u05E1', value: taxableGross, color: TEXT_SECONDARY },
-    { label: '\u05DE\u05E1 \u05D4\u05DB\u05E0\u05E1\u05D4', value: incomeTax, color: ACCENT_RED },
-    { label: '\u05D1\u05D9\u05D8\u05D5\u05D7 \u05DC\u05D0\u05D5\u05DE\u05D9', value: nationalInsurance, color: ACCENT_AMBER },
-    { label: '\u05D1\u05D9\u05D8\u05D5\u05D7 \u05D1\u05E8\u05D9\u05D0\u05D5\u05EA', value: healthInsurance, color: ACCENT_AMBER },
+    ...(oneTimeTotal > 0
+      ? [{ label: 'תוספות חד פעמיות', value: oneTimeTotal, kind: 'income' as RowKind, icon: '✨' }]
+      : []),
+    { label: 'ברוטו למס', value: taxableGross, kind: 'neutral', icon: '📊' },
+    { label: 'מס הכנסה', value: incomeTax, kind: 'deduction', icon: '📊' },
+    { label: 'ביטוח לאומי', value: nationalInsurance, kind: 'deduction', icon: '🏥' },
+    { label: 'ביטוח בריאות', value: healthInsurance, kind: 'deduction', icon: '🏥' },
     ...(trainingFundDeduction > 0
-      ? [{ label: '\u05E7\u05E8\u05DF \u05D4\u05E9\u05EA\u05DC\u05DE\u05D5\u05EA', value: trainingFundDeduction, color: ACCENT_AMBER }]
+      ? [{ label: 'קרן השתלמות', value: trainingFundDeduction, kind: 'deduction' as RowKind, icon: '🏦' }]
       : []),
     ...(transportationAllowance > 0
-      ? [{ label: '\u05D3\u05DE\u05D9 \u05E0\u05E1\u05D9\u05E2\u05D5\u05EA', value: transportationAllowance, color: ACCENT_GREEN }]
+      ? [{ label: 'דמי נסיעות', value: transportationAllowance, kind: 'income' as RowKind, icon: '🚗' }]
       : []),
-    { label: '\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4', value: finalTakeHome, color: ACCENT_GREEN, bold: true },
   ];
 
   return (
     <Animated.View
       entering={FadeInDown.delay(100).duration(400)}
-      style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: BORDER, marginBottom: 16 }}
+      style={{
+        backgroundColor: '#0D1526',
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(59,130,246,0.15)',
+        marginBottom: 16,
+        shadowColor: '#3B82F6',
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
+      }}
       testID="salary-breakdown-card"
     >
-      <SectionHeader
-        title={'\u05E4\u05D9\u05E8\u05D5\u05D8 \u05E9\u05DB\u05E8'}
-        subtitle={'\u05D1\u05E8\u05D9\u05E8\u05D5\u05EA \u05DC\u05D7\u05DC\u05D5\u05D8\u05D9\u05DF'}
-        icon={<TrendingUp size={18} color={ACCENT_CYAN} />}
-      />
-
-      {rows.map((row, i) => (
-        <View
-          key={row.label}
-          style={{
-            flexDirection: 'row-reverse',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingVertical: 9,
-            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
-            borderBottomColor: 'rgba(255,255,255,0.05)',
-          }}
-        >
-          <Text style={{ fontSize: row.bold ? 15 : 13, fontWeight: row.bold ? '700' : '400', color: row.color === TEXT_SECONDARY ? TEXT_SECONDARY : TEXT_PRIMARY, textAlign: 'right' }}>
-            {row.label}
+      {/* Title */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <View style={{
+          width: 36, height: 36, borderRadius: 10,
+          backgroundColor: 'rgba(59,130,246,0.12)',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <TrendingUp size={18} color="#60A5FA" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>
+            {'פירוט שכר'}
           </Text>
-          <Text style={{ fontSize: row.bold ? 16 : 14, fontWeight: row.bold ? '800' : '500', color: row.color, fontVariant: ['tabular-nums'] }}>
-            {formatCurrency(row.value)}
+          <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 1 }}>
+            {'ברירות לחלוטין'}
           </Text>
         </View>
-      ))}
+      </View>
+
+      {/* Net pay hero */}
+      <View style={{ alignItems: 'center', marginBottom: 20, paddingVertical: 16 }}>
+        <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginBottom: 6, letterSpacing: 1 }}>
+          {'✨ נטו לקבלה'}
+        </Text>
+        <Text style={{
+          fontSize: 48,
+          fontWeight: '800',
+          color: '#4ADE80',
+          fontVariant: ['tabular-nums'],
+          textShadowColor: 'rgba(74,222,128,0.35)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 20,
+        }}>
+          {formatCurrency(finalTakeHome)}
+        </Text>
+      </View>
+
+      {/* Thin separator */}
+      <View style={{ height: 1, backgroundColor: 'rgba(59,130,246,0.3)', marginBottom: 16 }} />
+
+      {/* Row breakdown */}
+      {rows.map((row, i) => {
+        const isEven = i % 2 === 0;
+        const accentColor = row.kind === 'deduction' ? '#F87171' : row.kind === 'income' ? '#4ADE80' : TEXT_SECONDARY;
+        const borderLeftColor = row.kind === 'deduction' ? 'rgba(248,113,113,0.4)' : row.kind === 'income' ? 'rgba(74,222,128,0.4)' : 'transparent';
+
+        return (
+          <View
+            key={`${row.label}-${i}`}
+            style={{
+              flexDirection: 'row-reverse',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingVertical: 14,
+              paddingHorizontal: 10,
+              borderRadius: 10,
+              backgroundColor: isEven ? 'rgba(255,255,255,0.02)' : 'transparent',
+              borderLeftWidth: 3,
+              borderLeftColor,
+              marginBottom: 2,
+            }}
+          >
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 16 }}>{row.icon}</Text>
+              <Text style={{ fontSize: 13, color: row.kind === 'neutral' ? TEXT_SECONDARY : TEXT_PRIMARY, textAlign: 'right', fontWeight: row.kind === 'neutral' ? '400' : '500' }}>
+                {row.label}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: accentColor, fontVariant: ['tabular-nums'] }}>
+              {row.kind === 'deduction' ? `−${formatCurrency(row.value)}` : formatCurrency(row.value)}
+            </Text>
+          </View>
+        );
+      })}
 
       {/* Effective rate badge */}
       <View style={{ marginTop: 14, flexDirection: 'row-reverse', justifyContent: 'flex-start' }}>
         <View style={{ backgroundColor: 'rgba(248,113,113,0.12)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5 }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: ACCENT_RED }}>
-            {`${Math.round(effectiveTaxRate)}% \u05E9\u05D9\u05E2\u05D5\u05E8 \u05E0\u05D9\u05DB\u05D5\u05D9 \u05D0\u05E4\u05E7\u05D8\u05D9\u05D1\u05D9`}
+            {`${Math.round(effectiveTaxRate)}% שיעור ניכוי אפקטיבי`}
           </Text>
         </View>
       </View>
@@ -496,6 +561,7 @@ export default function ReportsScreen() {
   const deviceId = useDeviceId();
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
   const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
@@ -504,10 +570,15 @@ export default function ReportsScreen() {
   const transportationType = useSettingsStore((s) => s.transportationType);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
-  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
-  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
+  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+
+  const oneTimeTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
 
   const lastMonth = useMemo(() => {
@@ -535,8 +606,8 @@ export default function ReportsScreen() {
   }, [totalNetHours, hourlyRate, overtimeEnabled, overtimeMode, sessions]);
 
   const taxResult = useMemo(
-    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly }),
-    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly]
+    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal: oneTimeTotal }),
+    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeTotal]
   );
 
   const lastMonthHours = useMemo(
@@ -554,19 +625,25 @@ export default function ReportsScreen() {
     const totalNetMinutes = shiftSessions.reduce((sum, s) => sum + s.netMinutes, 0);
     return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
   }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthSessions]);
+
+  const lastMonthOneTimeTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonth]
+  );
+
   const lastMonthTax = useMemo(
-    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly }),
-    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly]
+    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal: lastMonthOneTimeTotal }),
+    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, lastMonthOneTimeTotal]
   );
 
   const bracketInfo = useMemo(
-    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
   );
 
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
   const sim5 = useMemo(
@@ -646,6 +723,7 @@ export default function ReportsScreen() {
               trainingFundDeduction={taxResult.trainingFundDeduction}
               transportationAllowance={taxResult.transportationAllowance}
               finalTakeHome={taxResult.finalTakeHome}
+              oneTimeTotal={oneTimeTotal}
             />
 
             {/* Month vs Last Month Comparison */}
@@ -661,7 +739,7 @@ export default function ReportsScreen() {
             {/* Bracket Progress */}
             <BracketProgressCard
               monthlyGross={currentMonthlyGross}
-              carBenefitMonthly={carBenefitMonthly + giftCardMonthly + bonusMonthly}
+              carBenefitMonthly={carBenefitMonthly + carGrossupMonthly + oneTimeTotal}
               currentRate={bracketInfo.currentRate}
               currentLabel={bracketInfo.currentLabel}
               nextLabel={bracketInfo.nextLabel}

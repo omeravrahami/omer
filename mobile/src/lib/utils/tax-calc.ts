@@ -47,8 +47,8 @@ export interface TaxInput {
   trainingFundType?: 'percent' | 'fixed';
   transportationValue?: number;
   transportationType?: 'percent' | 'fixed';
-  giftCardMonthly?: number;
-  bonusMonthly?: number;
+  carGrossupMonthly?: number;
+  oneTimeAdditionsTotal?: number;  // sum of all one-time additions for this month
 }
 
 export interface TaxResult {
@@ -120,8 +120,8 @@ function calcNIAndHealth(monthlyGross: number): { ni: number; health: number } {
 
 /** חישוב מלא של כל הניכויים */
 export function calcIsraeliTax(input: TaxInput): TaxResult {
-  const { monthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly } = input;
-  const taxableGross = monthlyGross + carBenefitMonthly + (giftCardMonthly ?? 0) + (bonusMonthly ?? 0);
+  const { monthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal } = input;
+  const taxableGross = monthlyGross + carBenefitMonthly + (carGrossupMonthly ?? 0) + (oneTimeAdditionsTotal ?? 0);
   const incomeTax = calcMonthlyIncomeTax(taxableGross, creditPoints);
   const { ni, health } = calcNIAndHealth(monthlyGross);
   const totalDeductions = incomeTax + ni + health;
@@ -148,12 +148,12 @@ export function calcTaxForHours(
   trainingFundType: 'percent' | 'fixed' = 'percent',
   transportationValue = 0,
   transportationType: 'percent' | 'fixed' = 'fixed',
-  giftCardMonthly = 0,
-  bonusMonthly = 0,
+  carGrossupMonthly = 0,
+  oneTimeAdditionsTotal = 0,
 ): TaxResult {
   const monthlyGross = hoursWorked * hourlyRate;
   const ratio = totalMonthlyHours > 0 ? Math.min(hoursWorked / totalMonthlyHours, 1) : 1;
-  return calcIsraeliTax({ monthlyGross, carBenefitMonthly: carBenefitMonthly * ratio, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly: giftCardMonthly * ratio, bonusMonthly: bonusMonthly * ratio });
+  return calcIsraeliTax({ monthlyGross, carBenefitMonthly: carBenefitMonthly * ratio, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly: carGrossupMonthly * ratio, oneTimeAdditionsTotal: oneTimeAdditionsTotal * ratio });
 }
 
 /** מידע על מדרגת המס הנוכחית והבאה */

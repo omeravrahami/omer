@@ -9,6 +9,14 @@ export interface Deduction {
   type: 'fixed' | 'percent'; // fixed = ₪ amount, percent = % of gross pay
 }
 
+export interface OneTimeAddition {
+  id: string;
+  month: string;      // 'YYYY-MM'
+  name: string;       // e.g. 'בונוס', 'מתנת חג'
+  amount: number;
+  type: 'bonus' | 'gift';  // bonus = בונוס, gift = מתנה/גיפט קארד
+}
+
 interface SettingsState {
   hourlyRate: number;
   currency: string;
@@ -28,15 +36,17 @@ interface SettingsState {
   transportationType: 'percent' | 'fixed';
   overtimeEnabled: boolean;
   overtimeMode: 'daily' | 'monthly';
-  giftCardMonthly: number;
-  bonusMonthly: number;
+  carGrossupMonthly: number;
+  oneTimeAdditions: OneTimeAddition[];
 
-  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction'>>) => void;
+  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
   togglePro: () => void;
   addDeduction: (d: Omit<Deduction, 'id'>) => void;
   removeDeduction: (id: string) => void;
   updateDeduction: (id: string, partial: Partial<Omit<Deduction, 'id'>>) => void;
+  addOneTimeAddition: (a: Omit<OneTimeAddition, 'id'>) => void;
+  removeOneTimeAddition: (id: string) => void;
 }
 
 let _idSeq = Date.now();
@@ -63,8 +73,8 @@ export const useSettingsStore = create<SettingsState>()(
       transportationType: 'fixed',
       overtimeEnabled: false,
       overtimeMode: 'daily',
-      giftCardMonthly: 0,
-      bonusMonthly: 0,
+      carGrossupMonthly: 0,
+      oneTimeAdditions: [],
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),
@@ -80,6 +90,12 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({
           deductions: s.deductions.map((d) => (d.id === id ? { ...d, ...partial } : d)),
         })),
+
+      addOneTimeAddition: (a) =>
+        set((s) => ({ oneTimeAdditions: [...s.oneTimeAdditions, { ...a, id: uid() }] })),
+
+      removeOneTimeAddition: (id) =>
+        set((s) => ({ oneTimeAdditions: s.oneTimeAdditions.filter((a) => a.id !== id) })),
     }),
     { name: 'workclock-settings', storage: createJSONStorage(() => AsyncStorage) }
   )

@@ -560,8 +560,8 @@ function TaxStatusCard() {
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
-  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
-  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
+  const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
+  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions } = useSessions(deviceId, currentMonth);
@@ -570,19 +570,25 @@ function TaxStatusCard() {
     () => (sessions ?? []).reduce((sum, s) => sum + s.netMinutes / 60, 0),
     [sessions]
   );
+
+  const oneTimeTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+
   const currentMonthlyGross = useMemo(
-    () => totalNetHours * hourlyRate + carBenefitMonthly + giftCardMonthly + bonusMonthly,
-    [totalNetHours, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
+    () => totalNetHours * hourlyRate + carBenefitMonthly + carGrossupMonthly + oneTimeTotal,
+    [totalNetHours, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
   );
 
   const bracketInfo = useMemo(
-    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
   );
 
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
   const bracketRate = Math.round(bracketInfo.currentRate * 100);
@@ -593,14 +599,10 @@ function TaxStatusCard() {
   // Progress toward next bracket (0–1)
   const progress = useMemo(() => {
     if (bracketInfo.isTopBracket || bracketInfo.monthlyAmountToNextBracket === null) return 1;
-    // Find the current bracket threshold (monthly)
-    // We know gross is before threshold by monthlyAmountToNextBracket
     const currentBracketMonthlyThreshold = currentMonthlyGross + bracketInfo.monthlyAmountToNextBracket;
     if (currentBracketMonthlyThreshold <= 0) return 0;
-    // Find previous bracket threshold to compute span
-    // Use tax config brackets (annual / 12)
     const annualBrackets = [0, 84120, 120720, 193800, 269280, 558240, 721560];
-    const annualTaxable = (currentMonthlyGross + carBenefitMonthly + giftCardMonthly + bonusMonthly) * 12;
+    const annualTaxable = (currentMonthlyGross + carBenefitMonthly + carGrossupMonthly + oneTimeTotal) * 12;
     let prevThreshold = 0;
     for (let i = 0; i < annualBrackets.length; i++) {
       if (annualTaxable <= annualBrackets[i + 1] || i === annualBrackets.length - 1) {
@@ -611,7 +613,7 @@ function TaxStatusCard() {
     const span = currentBracketMonthlyThreshold - prevThreshold;
     if (span <= 0) return 0;
     return Math.min(1, Math.max(0, (currentMonthlyGross - prevThreshold) / span));
-  }, [bracketInfo, currentMonthlyGross, carBenefitMonthly, giftCardMonthly, bonusMonthly]);
+  }, [bracketInfo, currentMonthlyGross, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]);
 
   const firstTip = tips[0] ?? null;
   const router = useRouter();
