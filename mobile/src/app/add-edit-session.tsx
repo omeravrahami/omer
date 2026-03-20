@@ -93,16 +93,20 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
       {/* Minutes column (rendered first = appears on left in LTR row) */}
       <SpinColumn
         val={m}
+        maxVal={59}
         onUp={() => setM(m + 5)}
         onDown={() => setM(m - 5)}
+        onChange={(n) => setM(n)}
         testPrefix="min"
       />
       <Text style={{ fontSize: 28, fontWeight: '700', color: TEXT_SECONDARY }}>:</Text>
       {/* Hours column */}
       <SpinColumn
         val={h}
+        maxVal={23}
         onUp={() => setH(h + 1)}
         onDown={() => setH(h - 1)}
+        onChange={(n) => setH(n)}
         testPrefix="hour"
       />
     </View>
@@ -111,15 +115,46 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
 
 function SpinColumn({
   val,
+  maxVal,
   onUp,
   onDown,
+  onChange,
   testPrefix,
 }: {
   val: number;
+  maxVal: number;
   onUp: () => void;
   onDown: () => void;
+  onChange: (n: number) => void;
   testPrefix: string;
 }) {
+  const [focused, setFocused] = useState(false);
+  const [text, setText] = useState(String(val).padStart(2, '0'));
+  const latestText = React.useRef(String(val).padStart(2, '0'));
+
+  React.useEffect(() => {
+    if (!focused) {
+      const s = String(val).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
+    }
+  }, [val, focused]);
+
+  const commit = (raw: string) => {
+    const n = parseInt(raw, 10);
+    if (!isNaN(n)) {
+      const clamped = Math.min(Math.max(0, n), maxVal);
+      onChange(clamped);
+      const s = String(clamped).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
+    } else {
+      const s = String(val).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
+    }
+  };
+
   return (
     <View style={{ alignItems: 'center', gap: 4, width: 56 }}>
       <Pressable
@@ -138,13 +173,27 @@ function SpinColumn({
         style={{
           width: 56, height: 52, borderRadius: 12,
           backgroundColor: BG_INPUT, borderWidth: 1,
-          borderColor: 'rgba(59,130,246,0.35)',
+          borderColor: focused ? ACCENT_BLUE : 'rgba(59,130,246,0.35)',
           alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Text style={{ fontSize: 26, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>
-          {String(val).padStart(2, '0')}
-        </Text>
+        <TextInput
+          value={focused ? text : String(val).padStart(2, '0')}
+          onChangeText={(t) => { setText(t); latestText.current = t; }}
+          onFocus={() => { setFocused(true); setText(''); latestText.current = ''; }}
+          onBlur={() => { setFocused(false); commit(latestText.current); }}
+          onSubmitEditing={() => commit(latestText.current)}
+          keyboardType="number-pad"
+          maxLength={2}
+          selectTextOnFocus
+          style={{
+            fontSize: 26, fontWeight: '700',
+            color: focused ? ACCENT_BLUE : TEXT_PRIMARY,
+            fontVariant: ['tabular-nums'],
+            width: 50, textAlign: 'center',
+          }}
+          testID={`${testPrefix}-input`}
+        />
       </View>
 
       <Pressable

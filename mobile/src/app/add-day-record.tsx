@@ -243,12 +243,16 @@ function TimeField({ value, maxVal, step, onChange, color }: {
   value: number; maxVal: number; step: number;
   onChange: (v: number) => void; color: string;
 }) {
-  const [text, setText] = useState(String(value).padStart(2, '0'));
   const [focused, setFocused] = useState(false);
+  const [text, setText] = useState(String(value).padStart(2, '0'));
+  const latestText = React.useRef(String(value).padStart(2, '0'));
 
-  // Sync display when value changes externally (arrows)
   React.useEffect(() => {
-    if (!focused) setText(String(value).padStart(2, '0'));
+    if (!focused) {
+      const s = String(value).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
+    }
   }, [value, focused]);
 
   const commit = (raw: string) => {
@@ -256,9 +260,13 @@ function TimeField({ value, maxVal, step, onChange, color }: {
     if (!isNaN(n)) {
       const clamped = Math.min(Math.max(0, n), maxVal);
       onChange(clamped);
-      setText(String(clamped).padStart(2, '0'));
+      const s = String(clamped).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
     } else {
-      setText(String(value).padStart(2, '0'));
+      const s = String(value).padStart(2, '0');
+      setText(s);
+      latestText.current = s;
     }
   };
 
@@ -270,10 +278,10 @@ function TimeField({ value, maxVal, step, onChange, color }: {
       </Pressable>
       <TextInput
         value={focused ? text : String(value).padStart(2, '0')}
-        onChangeText={setText}
-        onFocus={() => { setFocused(true); setText(''); }}
-        onBlur={() => { setFocused(false); commit(text); }}
-        onSubmitEditing={() => commit(text)}
+        onChangeText={(t) => { setText(t); latestText.current = t; }}
+        onFocus={() => { setFocused(true); setText(''); latestText.current = ''; }}
+        onBlur={() => { setFocused(false); commit(latestText.current); }}
+        onSubmitEditing={() => commit(latestText.current)}
         keyboardType="number-pad"
         maxLength={2}
         selectTextOnFocus
