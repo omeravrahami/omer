@@ -38,6 +38,8 @@ export function useSessions(deviceId: string, month?: string) {
       return api.get<WorkSession[]>(`/api/sessions/${deviceId}${params}`);
     },
     enabled: !!deviceId,
+    staleTime: 5 * 60 * 1000,   // 5 minutes — don't re-fetch if data is fresh
+    gcTime: 60 * 60 * 1000,     // keep cached months in memory for 1 hour
   });
 }
 
@@ -73,10 +75,10 @@ export function useEndWork(deviceId: string) {
 export function useDeleteSession(deviceId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (sessionId: string) =>
+    mutationFn: ({ sessionId, month }: { sessionId: string; month: string }) =>
       api.delete<void>(`/api/sessions/${deviceId}/${sessionId}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId, variables.month] });
       qc.invalidateQueries({ queryKey: ['stats', deviceId] });
     },
   });
@@ -143,8 +145,9 @@ export function useCreateSession(deviceId: string) {
       notes?: string;
       breaks?: { startTime: string; endTime: string }[];
     }) => api.post<WorkSession>(`/api/sessions/${deviceId}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+    onSuccess: (_, variables) => {
+      const month = variables.date.slice(0, 7);
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId, month] });
       qc.invalidateQueries({ queryKey: ['stats', deviceId] });
     },
   });
@@ -160,8 +163,9 @@ export function useCreateDayRecord(deviceId: string) {
       endTime?: string;
       notes?: string;
     }) => api.post<WorkSession>(`/api/sessions/${deviceId}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+    onSuccess: (_, variables) => {
+      const month = variables.date.slice(0, 7);
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId, month] });
       qc.invalidateQueries({ queryKey: ['stats', deviceId] });
     },
   });
@@ -180,8 +184,11 @@ export function useEditSession(deviceId: string) {
   return useMutation({
     mutationFn: ({ sessionId, data }: { sessionId: string; data: EditSessionPayload }) =>
       api.patch<WorkSession>(`/api/sessions/${deviceId}/${sessionId}/edit`, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+    onSuccess: (_, variables) => {
+      const month = variables.data.date
+        ? variables.data.date.slice(0, 7)
+        : new Date().toISOString().slice(0, 7);
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId, month] });
       qc.invalidateQueries({ queryKey: ['stats', deviceId] });
     },
   });

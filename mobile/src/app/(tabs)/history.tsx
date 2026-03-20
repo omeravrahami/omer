@@ -232,7 +232,7 @@ export default function HistoryScreen() {
           text: 'מחק',
           style: 'destructive',
           onPress: () =>
-            deleteSession.mutate(sessionId, {
+            deleteSession.mutate({ sessionId, month: monthKey }, {
               onSuccess: () => showToast('המשמרת נמחקה'),
               onError: () => showToast('שגיאה במחיקה', 'error'),
             }),

@@ -25,7 +25,8 @@ export default function SessionDetailScreen() {
   const handleDelete = () => {
     if (!id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    deleteSession.mutate(id, {
+    const month = session?.date?.slice(0, 7) ?? new Date().toISOString().slice(0, 7);
+    deleteSession.mutate({ sessionId: id, month }, {
       onSuccess: () => {
         showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05E0\u05DE\u05D7\u05E7\u05D4');
         router.back();
