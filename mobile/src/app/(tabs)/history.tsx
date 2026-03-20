@@ -43,6 +43,10 @@ function TaxSummaryCard({
   taxCreditPoints,
   currency,
   monthLabel,
+  trainingFundValue,
+  trainingFundType,
+  transportationValue,
+  transportationType,
 }: {
   totalNetHours: number;
   days: number;
@@ -51,10 +55,14 @@ function TaxSummaryCard({
   taxCreditPoints: number;
   currency: string;
   monthLabel: string;
+  trainingFundValue: number;
+  trainingFundType: 'percent' | 'fixed';
+  transportationValue: number;
+  transportationType: 'percent' | 'fixed';
 }) {
   const tax = useMemo(
-    () => calcTaxForHours(totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints),
-    [totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints]
+    () => calcTaxForHours(totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints, 186, trainingFundValue, trainingFundType, transportationValue, transportationType),
+    [totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
   );
 
   const fmt = (n: number) => formatCurrency(Math.round(n), currency);
@@ -106,28 +114,25 @@ function TaxSummaryCard({
       <TaxRow label="ביטוח לאומי" value={`-${fmt(tax.nationalInsurance)}`} valueColor={COLOR_AMBER} dot="#FBBF24" />
       <TaxRow label="ביטוח בריאות" value={`-${fmt(tax.healthInsurance)}`} valueColor={COLOR_AMBER} dot="#FBBF24" />
 
+      {/* Training Fund */}
+      {tax.trainingFundDeduction > 0 && (
+        <TaxRow label="קרן השתלמות" value={`-${fmt(tax.trainingFundDeduction)}`} valueColor={COLOR_AMBER} dot="#FBBF24" />
+      )}
+
       <Divider />
 
       {/* Net pay box */}
-      <View
-        style={{
-          backgroundColor: 'rgba(34,197,94,0.1)',
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: '#22C55E',
-          padding: 16,
-          flexDirection: 'row-reverse',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 4,
-          marginBottom: 12,
-        }}
-      >
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#22C55E', textAlign: 'right' }}>
-          {'נטו לקבלה'}
-        </Text>
+      <View style={{ backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 16, borderWidth: 1, borderColor: '#22C55E', padding: 16, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 12 }}>
+        <View>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#22C55E', textAlign: 'right' }}>{'נטו לקבלה'}</Text>
+          {tax.transportationAllowance > 0 && (
+            <Text style={{ fontSize: 11, color: 'rgba(34,197,94,0.7)', textAlign: 'right', marginTop: 2 }}>
+              {`כולל נסיעות +${fmt(tax.transportationAllowance)}`}
+            </Text>
+          )}
+        </View>
         <Text style={{ fontSize: 28, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
-          {fmt(tax.netPay)}
+          {fmt(tax.finalTakeHome)}
         </Text>
       </View>
 
@@ -172,6 +177,10 @@ export default function HistoryScreen() {
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
+  const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
+  const trainingFundType = useSettingsStore((s) => s.trainingFundType);
+  const transportationValue = useSettingsStore((s) => s.transportationValue);
+  const transportationType = useSettingsStore((s) => s.transportationType);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
@@ -272,6 +281,10 @@ export default function HistoryScreen() {
               taxCreditPoints={taxCreditPoints}
               currency={currency}
               monthLabel={getHebrewMonthYear(currentDate)}
+              trainingFundValue={trainingFundValue}
+              trainingFundType={trainingFundType}
+              transportationValue={transportationValue}
+              transportationType={transportationType}
             />
           </Animated.View>
         )}

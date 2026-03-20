@@ -22,6 +22,10 @@ interface SettingsState {
   deductions: Deduction[];
   carBenefitMonthly: number;
   taxCreditPoints: number;
+  trainingFundValue: number;
+  trainingFundType: 'percent' | 'fixed';
+  transportationValue: number;
+  transportationType: 'percent' | 'fixed';
 
   updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
@@ -49,6 +53,10 @@ export const useSettingsStore = create<SettingsState>()(
       deductions: [],
       carBenefitMonthly: 0,
       taxCreditPoints: 2.25,
+      trainingFundValue: 0,
+      trainingFundType: 'percent',
+      transportationValue: 0,
+      transportationType: 'fixed',
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),

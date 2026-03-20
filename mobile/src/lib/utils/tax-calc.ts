@@ -43,6 +43,10 @@ export interface TaxInput {
   monthlyGross: number;
   carBenefitMonthly: number;
   creditPoints: number;
+  trainingFundValue?: number;
+  trainingFundType?: 'percent' | 'fixed';
+  transportationValue?: number;
+  transportationType?: 'percent' | 'fixed';
 }
 
 export interface TaxResult {
@@ -54,6 +58,9 @@ export interface TaxResult {
   totalDeductions: number;
   netPay: number;
   effectiveTaxRate: number;
+  trainingFundDeduction: number;
+  transportationAllowance: number;
+  finalTakeHome: number;
 }
 
 export interface BracketInfo {
@@ -111,14 +118,21 @@ function calcNIAndHealth(monthlyGross: number): { ni: number; health: number } {
 
 /** חישוב מלא של כל הניכויים */
 export function calcIsraeliTax(input: TaxInput): TaxResult {
-  const { monthlyGross, carBenefitMonthly, creditPoints } = input;
+  const { monthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType } = input;
   const taxableGross = monthlyGross + carBenefitMonthly;
   const incomeTax = calcMonthlyIncomeTax(taxableGross, creditPoints);
   const { ni, health } = calcNIAndHealth(monthlyGross);
   const totalDeductions = incomeTax + ni + health;
   const netPay = Math.max(0, monthlyGross - totalDeductions);
   const effectiveTaxRate = monthlyGross > 0 ? (totalDeductions / monthlyGross) * 100 : 0;
-  return { grossPay: monthlyGross, taxableGross, incomeTax, nationalInsurance: ni, healthInsurance: health, totalDeductions, netPay, effectiveTaxRate };
+  const trainingFundDeduction = trainingFundType === 'fixed'
+    ? (trainingFundValue ?? 0)
+    : (monthlyGross * ((trainingFundValue ?? 0) / 100));
+  const transportationAllowance = transportationType === 'fixed'
+    ? (transportationValue ?? 0)
+    : (monthlyGross * ((transportationValue ?? 0) / 100));
+  const finalTakeHome = Math.max(0, netPay - trainingFundDeduction + transportationAllowance);
+  return { grossPay: monthlyGross, taxableGross, incomeTax, nationalInsurance: ni, healthInsurance: health, totalDeductions, netPay, effectiveTaxRate, trainingFundDeduction, transportationAllowance, finalTakeHome };
 }
 
 /** חישוב יחסי לפי שעות עבודה בחודש */
@@ -128,10 +142,14 @@ export function calcTaxForHours(
   carBenefitMonthly: number,
   creditPoints: number,
   totalMonthlyHours = 186,
+  trainingFundValue = 0,
+  trainingFundType: 'percent' | 'fixed' = 'percent',
+  transportationValue = 0,
+  transportationType: 'percent' | 'fixed' = 'fixed',
 ): TaxResult {
   const monthlyGross = hoursWorked * hourlyRate;
   const ratio = totalMonthlyHours > 0 ? Math.min(hoursWorked / totalMonthlyHours, 1) : 1;
-  return calcIsraeliTax({ monthlyGross, carBenefitMonthly: carBenefitMonthly * ratio, creditPoints });
+  return calcIsraeliTax({ monthlyGross, carBenefitMonthly: carBenefitMonthly * ratio, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType });
 }
 
 /** מידע על מדרגת המס הנוכחית והבאה */
@@ -182,12 +200,16 @@ export function simulateExtraHours(
   hourlyRate: number,
   carBenefitMonthly: number,
   creditPoints: number,
+  trainingFundValue = 0,
+  trainingFundType: 'percent' | 'fixed' = 'percent',
+  transportationValue = 0,
+  transportationType: 'percent' | 'fixed' = 'fixed',
 ): SimulationResult {
   const extraGross = extraHours * hourlyRate;
   const newGross = currentMonthlyGross + extraGross;
 
-  const currentResult = calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints });
-  const newResult     = calcIsraeliTax({ monthlyGross: newGross, carBenefitMonthly, creditPoints });
+  const currentResult = calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType });
+  const newResult     = calcIsraeliTax({ monthlyGross: newGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType });
 
   const extraNet = newResult.netPay - currentResult.netPay;
   const keepRate = extraGross > 0 ? (extraNet / extraGross) * 100 : 0;

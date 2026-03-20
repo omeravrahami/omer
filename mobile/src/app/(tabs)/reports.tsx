@@ -74,6 +74,9 @@ function SalaryBreakdownCard({
   netPay,
   effectiveTaxRate,
   carBenefitMonthly,
+  trainingFundDeduction,
+  transportationAllowance,
+  finalTakeHome,
 }: {
   gross: number;
   taxableGross: number;
@@ -83,6 +86,9 @@ function SalaryBreakdownCard({
   netPay: number;
   effectiveTaxRate: number;
   carBenefitMonthly: number;
+  trainingFundDeduction: number;
+  transportationAllowance: number;
+  finalTakeHome: number;
 }) {
   const rows: { label: string; value: number; color: string; bold?: boolean }[] = [
     { label: '\u05D1\u05E8\u05D5\u05D8\u05D5', value: gross, color: TEXT_PRIMARY },
@@ -93,7 +99,13 @@ function SalaryBreakdownCard({
     { label: '\u05DE\u05E1 \u05D4\u05DB\u05E0\u05E1\u05D4', value: incomeTax, color: ACCENT_RED },
     { label: '\u05D1\u05D9\u05D8\u05D5\u05D7 \u05DC\u05D0\u05D5\u05DE\u05D9', value: nationalInsurance, color: ACCENT_AMBER },
     { label: '\u05D1\u05D9\u05D8\u05D5\u05D7 \u05D1\u05E8\u05D9\u05D0\u05D5\u05EA', value: healthInsurance, color: ACCENT_AMBER },
-    { label: '\u05E0\u05D8\u05D5', value: netPay, color: ACCENT_GREEN, bold: true },
+    ...(trainingFundDeduction > 0
+      ? [{ label: '\u05E7\u05E8\u05DF \u05D4\u05E9\u05EA\u05DC\u05DE\u05D5\u05EA', value: trainingFundDeduction, color: ACCENT_AMBER }]
+      : []),
+    ...(transportationAllowance > 0
+      ? [{ label: '\u05D3\u05DE\u05D9 \u05E0\u05E1\u05D9\u05E2\u05D5\u05EA', value: transportationAllowance, color: ACCENT_GREEN }]
+      : []),
+    { label: '\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4', value: finalTakeHome, color: ACCENT_GREEN, bold: true },
   ];
 
   return (
@@ -395,6 +407,10 @@ export default function ReportsScreen() {
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
+  const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
+  const trainingFundType = useSettingsStore((s) => s.trainingFundType);
+  const transportationValue = useSettingsStore((s) => s.transportationValue);
+  const transportationType = useSettingsStore((s) => s.transportationType);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
@@ -410,8 +426,8 @@ export default function ReportsScreen() {
   );
 
   const taxResult = useMemo(
-    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints }),
-    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints]
+    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
+    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
   );
 
   const bracketInfo = useMemo(
@@ -477,7 +493,7 @@ export default function ReportsScreen() {
           <View style={{ flex: 1, backgroundColor: BG_CARD, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: BORDER, alignItems: 'flex-end' }}>
             <Text style={{ fontSize: 10, color: TEXT_SECONDARY, marginBottom: 4 }}>{'נטו'}</Text>
             <Text style={{ fontSize: 22, fontWeight: '800', color: ACCENT_GREEN, fontVariant: ['tabular-nums'] }}>
-              {formatCurrency(taxResult.netPay)}
+              {formatCurrency(taxResult.finalTakeHome)}
             </Text>
           </View>
         </Animated.View>
@@ -498,6 +514,9 @@ export default function ReportsScreen() {
               netPay={taxResult.netPay}
               effectiveTaxRate={taxResult.effectiveTaxRate}
               carBenefitMonthly={carBenefitMonthly}
+              trainingFundDeduction={taxResult.trainingFundDeduction}
+              transportationAllowance={taxResult.transportationAllowance}
+              finalTakeHome={taxResult.finalTakeHome}
             />
 
             {/* Bracket Progress */}

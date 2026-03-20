@@ -395,6 +395,10 @@ export default function SettingsScreen() {
   const isPro = useSettingsStore((s) => s.isPro);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
+  const trainingFundType = useSettingsStore((s) => s.trainingFundType);
+  const transportationValue = useSettingsStore((s) => s.transportationValue);
+  const transportationType = useSettingsStore((s) => s.transportationType);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -553,6 +557,85 @@ export default function SettingsScreen() {
         {/* Deductions section */}
         <Animated.View entering={FadeInDown.delay(300).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <DeductionsSection />
+        </Animated.View>
+
+        {/* Training Fund & Transportation section */}
+        <Animated.View entering={FadeInDown.delay(340).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <SectionCard title={'קרן השתלמות ונסיעות'}>
+
+            {/* Training Fund */}
+            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+                  {'קרן השתלמות (עובד)'}
+                </Text>
+                {/* Segmented pill: % / ₪ */}
+                <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 2, borderWidth: 1, borderColor: BORDER }}>
+                  <Pressable
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); save({ trainingFundType: 'percent' }); }}
+                    testID="training-fund-type-percent"
+                    style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: trainingFundType === 'percent' ? ACCENT_BLUE : 'transparent' }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: trainingFundType === 'percent' ? '#FFF' : TEXT_SECONDARY }}>{'%'}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); save({ trainingFundType: 'fixed' }); }}
+                    testID="training-fund-type-fixed"
+                    style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: trainingFundType === 'fixed' ? ACCENT_BLUE : 'transparent' }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: trainingFundType === 'fixed' ? '#FFF' : TEXT_SECONDARY }}>{'₪'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+              <NumericInput
+                storeValue={trainingFundValue}
+                onCommit={(val) => save({ trainingFundValue: val })}
+                testID="training-fund-value-input"
+              />
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 6 }}>
+                {trainingFundType === 'percent'
+                  ? `ניכוי חודשי: ${trainingFundValue}% מהברוטו`
+                  : `ניכוי חודשי קבוע: ₪${trainingFundValue}`}
+              </Text>
+            </View>
+
+            {/* Transportation */}
+            <View style={{ paddingVertical: 14 }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+                  {'דמי נסיעות'}
+                </Text>
+                {/* Segmented pill: % / ₪ */}
+                <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 2, borderWidth: 1, borderColor: BORDER }}>
+                  <Pressable
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); save({ transportationType: 'percent' }); }}
+                    testID="transportation-type-percent"
+                    style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: transportationType === 'percent' ? ACCENT_BLUE : 'transparent' }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: transportationType === 'percent' ? '#FFF' : TEXT_SECONDARY }}>{'%'}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); save({ transportationType: 'fixed' }); }}
+                    testID="transportation-type-fixed"
+                    style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, backgroundColor: transportationType === 'fixed' ? ACCENT_BLUE : 'transparent' }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: transportationType === 'fixed' ? '#FFF' : TEXT_SECONDARY }}>{'₪'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+              <NumericInput
+                storeValue={transportationValue}
+                onCommit={(val) => save({ transportationValue: val })}
+                testID="transportation-value-input"
+              />
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 6 }}>
+                {transportationType === 'percent'
+                  ? `תוספת חודשית: ${transportationValue}% מהברוטו`
+                  : `תוספת נסיעות קבועה: ₪${transportationValue}`}
+              </Text>
+            </View>
+
+          </SectionCard>
         </Animated.View>
 
         {/* Premium */}
