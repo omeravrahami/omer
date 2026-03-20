@@ -1035,10 +1035,25 @@ export default function ReportsScreen() {
     [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
-  // Simulations
-  const sim5  = useMemo(() => simulateExtraHours(currentMonthlyGross, 5,  hourlyRate, carBenefitMonthly, taxCreditPoints), [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints]);
-  const sim10 = useMemo(() => simulateExtraHours(currentMonthlyGross, 10, hourlyRate, carBenefitMonthly, taxCreditPoints), [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints]);
-  const sim20 = useMemo(() => simulateExtraHours(currentMonthlyGross, 20, hourlyRate, carBenefitMonthly, taxCreditPoints), [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints]);
+  // Simulations — pass full context so results match actual taxResult
+  const simContext = useMemo(() => ({
+    carBenefitMonthly,
+    creditPoints: taxCreditPoints,
+    trainingFundValue,
+    trainingFundType,
+    transportationValue,
+    transportationType,
+    carGrossupMonthly,
+    oneTimeBonusTotal,
+    oneTimeGiftTotal,
+    employerPensionRate: employerPensionRate / 100,
+  }), [carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType,
+       transportationValue, transportationType, carGrossupMonthly,
+       oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate]);
+
+  const sim5  = useMemo(() => simulateExtraHours(currentMonthlyGross, 5,  hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
+  const sim10 = useMemo(() => simulateExtraHours(currentMonthlyGross, 10, hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
+  const sim20 = useMemo(() => simulateExtraHours(currentMonthlyGross, 20, hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
 
   const currentBonusAdditions = useMemo(
     () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus'),

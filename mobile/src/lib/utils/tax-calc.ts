@@ -285,25 +285,19 @@ export function simulateExtraHours(
   currentMonthlyGross: number,
   extraHours: number,
   hourlyRate: number,
-  carBenefitMonthly: number,
-  creditPoints: number,
-  trainingFundValue = 0,
-  trainingFundType: 'percent' | 'fixed' = 'percent',
-  transportationValue = 0,
-  transportationType: 'percent' | 'fixed' = 'fixed',
+  context: Omit<TaxInput, 'monthlyGross'>,
 ): SimulationResult {
   const extraGross = extraHours * hourlyRate;
-  const newGross = currentMonthlyGross + extraGross;
+  const newGross   = currentMonthlyGross + extraGross;
 
-  const currentResult = calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType });
-  const newResult     = calcIsraeliTax({ monthlyGross: newGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType });
+  const currentResult = calcIsraeliTax({ ...context, monthlyGross: currentMonthlyGross });
+  const newResult     = calcIsraeliTax({ ...context, monthlyGross: newGross });
 
-  const extraNet = newResult.netPay - currentResult.netPay;
+  const extraNet = newResult.finalTakeHome - currentResult.finalTakeHome;
   const keepRate = extraGross > 0 ? (extraNet / extraGross) * 100 : 0;
 
-  // בדיקה אם נחצית מדרגת מס
-  const currentBracket = getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly);
-  const newBracket     = getBracketInfo(newGross, hourlyRate, carBenefitMonthly);
+  const currentBracket = getBracketInfo(currentMonthlyGross, hourlyRate, context.carBenefitMonthly);
+  const newBracket     = getBracketInfo(newGross,             hourlyRate, context.carBenefitMonthly);
   const bracketCrossed = currentBracket.currentRate !== newBracket.currentRate;
 
   return { ...newResult, extraHours, extraGross, extraNet, keepRate, bracketCrossed };
@@ -347,7 +341,7 @@ export function getSmartTips(
 
   // כמה נשאר מכל שעה נוספת
   if (hourlyRate > 0) {
-    const sim = simulateExtraHours(monthlyGross, 1, hourlyRate, carBenefitMonthly, creditPoints);
+    const sim = simulateExtraHours(monthlyGross, 1, hourlyRate, { carBenefitMonthly, creditPoints });
     const netPerHour = Math.round(sim.extraNet);
     tips.push(`מכל שעה נוספת שתעבוד, תקבל כ-₪${netPerHour} נטו לאחר מס`);
   }
