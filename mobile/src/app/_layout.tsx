@@ -77,14 +77,24 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const initDevice = useDeviceStore((s) => s.initDevice);
+  const hasHydrated = useDeviceStore((s) => s._hasHydrated);
 
+  // RTL: set once on first mount
   useEffect(() => {
     if (!I18nManager.isRTL) {
       I18nManager.forceRTL(true);
     }
+  }, []);
+
+  // Wait for AsyncStorage to load before initialising the device ID.
+  // Without this guard, a hot-reload could call initDevice() before the
+  // stored deviceId is available, creating a fresh UUID and making all
+  // existing sessions appear to be gone.
+  useEffect(() => {
+    if (!hasHydrated) return;
     initDevice();
     SplashScreen.hideAsync();
-  }, [initDevice]);
+  }, [hasHydrated, initDevice]);
 
   return (
     <QueryClientProvider client={queryClient}>
