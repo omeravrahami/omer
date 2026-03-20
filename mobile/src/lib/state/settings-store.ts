@@ -25,7 +25,6 @@ interface SettingsState {
   defaultBreakMinutes: number;
   showSalaryOnDashboard: boolean;
   themeMode: 'light' | 'dark';
-  isPro: boolean;
   onboardingCompleted: boolean;
   deductions: Deduction[];
   carBenefitMonthly: number;
@@ -40,9 +39,8 @@ interface SettingsState {
   oneTimeAdditions: OneTimeAddition[];
   employerPensionRate: number;
 
-  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition'>>) => void;
+  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
-  togglePro: () => void;
   addDeduction: (d: Omit<Deduction, 'id'>) => void;
   removeDeduction: (id: string) => void;
   updateDeduction: (id: string, partial: Partial<Omit<Deduction, 'id'>>) => void;
@@ -63,7 +61,6 @@ export const useSettingsStore = create<SettingsState>()(
       defaultBreakMinutes: 30,
       showSalaryOnDashboard: true,
       themeMode: 'light',
-      isPro: false,
       onboardingCompleted: false,
       deductions: [],
       carBenefitMonthly: 0,
@@ -80,7 +77,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),
-      togglePro: () => set({ isPro: !get().isPro }),
 
       addDeduction: (d) =>
         set((s) => ({ deductions: [...s.deductions, { ...d, id: uid() }] })),

@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { I18nManager } from 'react-native';
 import { useDeviceStore } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
 
 export const unstable_settings = {
@@ -22,14 +23,31 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null | undefined }) {
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
+  const token = useAuthStore((s) => s.token);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const isAuthenticated = token !== null || isGuest;
+
+  const getInitialRoute = () => {
+    if (!onboardingCompleted) return 'onboarding';
+    if (!isAuthenticated) return 'auth/login';
+    return '(tabs)';
+  };
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack initialRouteName={onboardingCompleted ? '(tabs)' : 'onboarding'}>
+      <Stack initialRouteName={getInitialRoute()}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="auth/login"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="auth/register"
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="session-detail/[id]"

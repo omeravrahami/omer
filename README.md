@@ -1,6 +1,6 @@
 # WorkClock - וורק קלוק
 
-A premium Hebrew time-tracking app for employees, freelancers, and students.
+A free Hebrew time-tracking app for employees, freelancers, and students. Monetized via ads (AdMob), not subscriptions.
 
 ## Overview
 
@@ -11,19 +11,27 @@ WorkClock helps users track work hours, breaks, and earnings with a beautiful, R
 - **Mobile**: Expo SDK 53 + React Native with NativeWind styling
 - **Backend**: Hono + Bun + Prisma (SQLite)
 - **State**: React Query (server), Zustand (local)
+- **Auth**: Custom token-based auth (bcryptjs + DB sessions), guest mode supported
+
+## Monetization
+
+- **Free forever** (at least year 1) — all features unlocked
+- **AdMob** (pending native build): Banner (home), Interstitial (end shift), Rewarded (reports/insights)
+- Ad placeholders in `mobile/src/components/ads/` — activate after app store publish
 
 ## Features
 
-- Start/stop work sessions with live timer
+- Start/stop work sessions with live timer + pulse animation
 - Break tracking (start/end breaks during shifts)
 - Automatic pay calculation based on hourly rate
 - Session history with month navigation
 - Weekly/monthly analytics and reports
+- **3-tier salary breakdown**: ברוטו לתשלום / ברוטו לחישוב מס / נטו בפועל
+- **Smart component tags**: "לצורכי מס בלבד", "פטור ממס", "רכיב חד פעמי"
+- **User accounts**: email/password registration, login, guest mode, cross-device sync
+- **Dynamic insights**: effective hourly net rate, effective tax %, net per extra hour
 - Onboarding flow for new users
-- Dark mode support
-- Full RTL Hebrew interface
-- PRO upgrade screen (placeholder)
-- Ad banner placeholder for free tier
+- Dark mode, full RTL Hebrew interface
 
 ## Screens
 

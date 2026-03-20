@@ -414,6 +414,22 @@ function SalaryBreakdownCard({
         </View>
       </View>
 
+      {/* 3-tier summary strip */}
+      <View style={{ flexDirection: 'row-reverse', gap: 8, marginTop: 14, marginBottom: 6 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(52,211,153,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' }}>
+          <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 4, letterSpacing: 0.4 }}>{'ברוטו לתשלום'}</Text>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: '#34D399', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(96,165,250,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(96,165,250,0.2)' }}>
+          <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 4, letterSpacing: 0.4 }}>{'ברוטו לחישוב מס'}</Text>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
+          <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 4, letterSpacing: 0.4 }}>{'נטו בפועל'}</Text>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: '#A78BFA', fontVariant: ['tabular-nums'] }}>{formatCurrency(finalTakeHome)}</Text>
+        </View>
+      </View>
+
       {/* ── Layer 1: ברוטו רגיל ─────────────────────────────────────── */}
       <SectionLabel label="שכבה 1 — הכנסות ברוטו רגיל" color="#60A5FA" />
 
@@ -1166,6 +1182,31 @@ export default function ReportsScreen() {
                 <Target size={17} color={ACCENT_CYAN} />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: TEXT_PRIMARY }}>{'מה אם אעבוד יותר?'}</Text>
               </View>
+
+              {/* Smart rate summary strip */}
+              <View style={{ flexDirection: 'row-reverse', gap: 8, marginBottom: 12 }}>
+                {totalNetHours > 0 && taxResult.effectiveHourlyNet > 0 ? (
+                  <View style={{ flex: 1, backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(167,139,250,0.18)' }}>
+                    <Text style={{ fontSize: 9, color: TEXT_SECONDARY, marginBottom: 3 }}>{'שכר נטו לשעה'}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '800', color: '#A78BFA', fontVariant: ['tabular-nums'] }}>
+                      {`₪${Math.round(taxResult.effectiveHourlyNet)}`}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={{ flex: 1, backgroundColor: 'rgba(248,113,113,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(248,113,113,0.18)' }}>
+                  <Text style={{ fontSize: 9, color: TEXT_SECONDARY, marginBottom: 3 }}>{'אחוז מס אפקטיבי'}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: ACCENT_RED, fontVariant: ['tabular-nums'] }}>
+                    {`${Math.round(taxResult.effectiveTaxRate)}%`}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: 'rgba(52,211,153,0.08)', borderRadius: 14, padding: 12, alignItems: 'flex-end', borderWidth: 1, borderColor: 'rgba(52,211,153,0.18)' }}>
+                  <Text style={{ fontSize: 9, color: TEXT_SECONDARY, marginBottom: 3 }}>{'מכל שעה נוספת'}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#34D399', fontVariant: ['tabular-nums'] }}>
+                    {`₪${Math.round(sim5.extraNet / 5)}`}
+                  </Text>
+                </View>
+              </View>
+
               <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
                 <SimulationCard extraHours={5}  extraGross={sim5.extraGross}  extraNet={sim5.extraNet}  keepRate={sim5.keepRate}  bracketCrossed={sim5.bracketCrossed}  finalNet={sim5.finalTakeHome}  delay={420} />
                 <SimulationCard extraHours={10} extraGross={sim10.extraGross} extraNet={sim10.extraNet} keepRate={sim10.keepRate} bracketCrossed={sim10.bracketCrossed} finalNet={sim10.finalTakeHome} delay={460} />

@@ -6,7 +6,9 @@ import {
   Pressable,
   TextInput,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -935,14 +937,34 @@ export default function SettingsScreen() {
   const weeklyGoalHours = useSettingsStore((s) => s.weeklyGoalHours);
   const defaultBreakMinutes = useSettingsStore((s) => s.defaultBreakMinutes);
   const showSalaryOnDashboard = useSettingsStore((s) => s.showSalaryOnDashboard);
-  const isPro = useSettingsStore((s) => s.isPro);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
+  const authToken = useAuthStore((s) => s.token);
+  const authIsGuest = useAuthStore((s) => s.isGuest);
+  const authLogout = useAuthStore((s) => s.logout);
+  const [loggingOut, setLoggingOut] = useState<boolean>(false);
+
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    try {
+      if (authToken) {
+        const { logout: logoutApi } = await import('@/lib/api/auth-api');
+        await logoutApi(authToken);
+      }
+    } catch {
+      // ignore errors on logout
+    } finally {
+      authLogout();
+      setLoggingOut(false);
+      router.replace('/auth/login' as any);
+    }
+  }, [authToken, authLogout, router]);
 
   const save = useCallback(
     (partial: Record<string, unknown>) => {
@@ -1186,16 +1208,70 @@ export default function SettingsScreen() {
                 <Crown size={24} color="#F59E0B" />
                 <View>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: '#FCD34D', textAlign: 'right' }}>
-                    {isPro ? 'PRO פעיל' : 'שדרגו ל-PRO'}
+                    {'WorkClock'}
                   </Text>
                   <Text style={{ fontSize: 12, color: 'rgba(252,211,77,0.6)', textAlign: 'right', marginTop: 2 }}>
-                    {isPro ? 'אתם נהנים מכל התכונות' : 'ייצוא, ללא פרסומות ועוד'}
+                    {'גישה לכל התכונות — בחינם'}
                   </Text>
                 </View>
               </View>
               <ChevronLeft size={18} color="#F59E0B" />
             </View>
           </Pressable>
+        </Animated.View>
+        {/* Account / Auth section */}
+        <Animated.View entering={FadeInDown.delay(420).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          {authIsGuest ? (
+            <Pressable
+              testID="register-account-button"
+              onPress={() => router.push('/auth/login' as any)}
+              style={{
+                backgroundColor: 'rgba(96,165,250,0.1)',
+                borderRadius: 20,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(96,165,250,0.25)',
+              }}
+            >
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>
+                    {'הרשמה לחשבון'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(96,165,250,0.6)', textAlign: 'right', marginTop: 2 }}>
+                    {'שמור את הנתונים שלך בענן'}
+                  </Text>
+                </View>
+                <ChevronLeft size={18} color="#60A5FA" />
+              </View>
+            </Pressable>
+          ) : (
+            <Pressable
+              testID="logout-button"
+              onPress={handleLogout}
+              disabled={loggingOut}
+              style={{
+                backgroundColor: 'rgba(248,113,113,0.08)',
+                borderRadius: 20,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(248,113,113,0.2)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row-reverse',
+                gap: 10,
+              }}
+            >
+              {loggingOut
+                ? <ActivityIndicator color="#F87171" size="small" testID="logout-loading" />
+                : (
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#F87171', textAlign: 'center' }}>
+                    {'התנתקות'}
+                  </Text>
+                )
+              }
+            </Pressable>
+          )}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

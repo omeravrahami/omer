@@ -112,7 +112,6 @@ export default function HistoryScreen() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
-  const isPro = useSettingsStore((s) => s.isPro);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -320,18 +319,6 @@ export default function HistoryScreen() {
           ))
         )}
 
-        {/* Ad Banner */}
-        {!isPro ? (
-          <Pressable
-            onPress={() => router.push('/premium' as never)}
-            style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)', paddingVertical: 12, paddingHorizontal: 16 }}
-            testID="history-ad-banner"
-          >
-            <Text style={{ textAlign: 'center', fontSize: 13, fontWeight: '600', color: ACCENT_BLUE }}>
-              {'שדרגו ל-PRO להסרת פרסומות'}
-            </Text>
-          </Pressable>
-        ) : null}
       </ScrollView>
 
       {/* FAB */}

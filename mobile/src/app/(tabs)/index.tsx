@@ -56,6 +56,7 @@ import {
   type TaxResult,
 } from '@/lib/utils/tax-calc';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
+import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
 import type { WorkSession } from '@/lib/types';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
@@ -420,10 +421,12 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
   const scale = useSharedValue(1);
   const glowOpacity = useSharedValue(0.15);
+  const pulseScale = useSharedValue(1);
 
   useEffect(() => {
     glowOpacity.value = withRepeat(withTiming(0.35, { duration: 2500 }), -1, true);
-  }, [glowOpacity]);
+    pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true);
+  }, [glowOpacity, pulseScale]);
 
   const handleStart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -435,6 +438,11 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+  }));
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    shadowOpacity: (pulseScale.value - 1) * 4,
   }));
 
   const glowStyle = useAnimatedStyle(() => ({
@@ -488,40 +496,50 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
         {'לחץ להתחלת משמרת'}
       </Text>
 
-      {/* CTA Button — compact, centered, premium */}
-      <Animated.View style={animStyle}>
-        <Pressable
-          onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
-          onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
-          onPress={handleStart}
-          testID="start-work-button"
-          style={{ borderRadius: 99, overflow: 'hidden' }}
-        >
-          <LinearGradient
-            colors={['#3B82F6', '#1D4ED8']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+      {/* CTA Button — pulsing breathing animation when idle */}
+      <Animated.View style={pulseStyle}>
+        <Animated.View style={animStyle}>
+          <Pressable
+            onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
+            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true); }}
+            onPress={handleStart}
+            testID="start-work-button"
             style={{
-              height: 52,
-              width: 240,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row-reverse',
-              gap: 10,
+              borderRadius: 99,
+              overflow: 'hidden',
+              shadowColor: '#3B82F6',
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.6,
+              shadowRadius: 18,
+              elevation: 8,
             }}
           >
-            {startWork.isPending ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <>
-                <Play size={18} color="#FFF" fill="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 }}>
-                  {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
-                </Text>
-              </>
-            )}
-          </LinearGradient>
-        </Pressable>
+            <LinearGradient
+              colors={['#3B82F6', '#1D4ED8']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                height: 60,
+                width: 260,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row-reverse',
+                gap: 10,
+              }}
+            >
+              {startWork.isPending ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Play size={20} color="#FFF" fill="#FFF" />
+                  <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '700', letterSpacing: 0.3 }}>
+                    {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
       </Animated.View>
     </Animated.View>
   );
@@ -530,29 +548,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 // ─── Ad Banner ────────────────────────────────────────────────────────────────
 
 function AdBanner() {
-  const isPro = useSettingsStore((s) => s.isPro);
-  const router = useRouter();
-
-  if (isPro) return null;
-
-  return (
-    <Pressable
-      onPress={() => router.push('/premium' as never)}
-      testID="ad-banner"
-      style={{ marginHorizontal: 16, marginBottom: 16, borderRadius: 14, overflow: 'hidden' }}
-    >
-      <LinearGradient
-        colors={['#1E293B', '#0F172A']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{ paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' }}
-      >
-        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '500', textAlign: 'center' }}>
-          {'\u26A1 \u05E9\u05D3\u05E8\u05D2\u05D5 \u05DC-PRO \u2014 \u05D1\u05DC\u05D9 \u05E4\u05E8\u05E1\u05D5\u05DE\u05D5\u05EA'}
-        </Text>
-      </LinearGradient>
-    </Pressable>
-  );
+  return <AdBannerComponent />;
 }
 
 // ─── Monthly Salary Breakdown Card ────────────────────────────────────────────
@@ -1082,6 +1078,53 @@ export default function DashboardScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
         >
+          {/* Big Net Salary Hero Card */}
+          {homeTaxResult.finalTakeHome > 0 ? (
+            <Animated.View
+              entering={FadeInUp.duration(400)}
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                borderRadius: 24,
+                overflow: 'hidden',
+                shadowColor: '#34D399',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.22,
+                shadowRadius: 20,
+                elevation: 8,
+              }}
+              testID="net-salary-hero-card"
+            >
+              <LinearGradient
+                colors={['#0D1F1A', '#0B1020']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ padding: 22, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' }}
+              >
+                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700', textAlign: 'right', letterSpacing: 0.8, marginBottom: 6 }}>
+                  {'נטו לקבלה — חודש נוכחי'}
+                </Text>
+                <Text style={{
+                  color: '#34D399',
+                  fontSize: 52,
+                  fontWeight: '800',
+                  textAlign: 'right',
+                  fontVariant: ['tabular-nums'],
+                  letterSpacing: 1,
+                  textShadowColor: 'rgba(52,211,153,0.4)',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 24,
+                  lineHeight: 58,
+                }}>
+                  {formatCurrency(homeTaxResult.finalTakeHome)}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'right', marginTop: 8, fontVariant: ['tabular-nums'] }}>
+                  {`ברוטו: ${formatCurrency(homeTaxResult.regularGross)}  |  מסים: ${formatCurrency(homeTaxResult.totalDeductions)}`}
+                </Text>
+              </LinearGradient>
+            </Animated.View>
+          ) : null}
+
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
             <View style={{
