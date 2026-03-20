@@ -89,8 +89,8 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
   }, [value, onChange]);
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      {/* Hours column (left) */}
+    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+      {/* Hours column */}
       <SpinColumn
         val={h}
         maxVal={23}
@@ -100,7 +100,7 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
         testPrefix="hour"
       />
       <Text style={{ fontSize: 28, fontWeight: '700', color: TEXT_SECONDARY }}>:</Text>
-      {/* Minutes column (right) */}
+      {/* Minutes column */}
       <SpinColumn
         val={m}
         maxVal={59}

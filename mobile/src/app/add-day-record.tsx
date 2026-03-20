@@ -324,7 +324,7 @@ function TimeRow({ label, hour, min, onHourChange, onMinChange, color }: {
   return (
     <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
       <Text style={{ fontSize: 14, color: TEXT_SECONDARY, flex: 1, textAlign: 'right' }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
         <TimeField value={hour} maxVal={23} step={1} onChange={onHourChange} color={color} />
         <Text style={{ fontSize: 24, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 2 }}>:</Text>
         <TimeField value={min} maxVal={59} step={5} onChange={onMinChange} color={color} />
