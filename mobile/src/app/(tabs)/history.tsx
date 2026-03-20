@@ -18,6 +18,7 @@ import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatTime, formatCurrency, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
 import { calcTaxForHours } from '@/lib/utils/tax-calc';
+import { calcOvertimePay } from '@/lib/utils/overtime-calc';
 import type { WorkSession } from '@/lib/types';
 
 // ─── Dark theme ───────────────────────────────────────────────────────────────
@@ -399,6 +400,11 @@ function SessionRow({
     : ACCENT_BLUE;
 
   const dynamicPay = (session.netMinutes / 60) * hourlyRate;
+  const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeMode = useSettingsStore((s) => s.overtimeMode);
+  const dynamicPayFinal = overtimeEnabled
+    ? calcOvertimePay(session.netMinutes, hourlyRate, overtimeMode)
+    : dynamicPay;
   const netHrs = (session.netMinutes / 60).toFixed(1);
 
   return (
@@ -470,7 +476,7 @@ function SessionRow({
         {!isSpecial ? (
           <View style={{ alignItems: 'flex-end', gap: 6 }}>
             <Text style={{ fontSize: 17, fontWeight: '700', color: ACCENT_GREEN, fontVariant: ['tabular-nums'] }}>
-              {formatCurrency(Math.round(dynamicPay), currency)}
+              {formatCurrency(Math.round(dynamicPayFinal), currency)}
             </Text>
             {session.status === 'completed' ? (
               <Pressable

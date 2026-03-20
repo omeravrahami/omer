@@ -27,6 +27,7 @@ import {
   getSmartTips,
   TAX_CONFIG,
 } from '@/lib/utils/tax-calc';
+import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -501,6 +502,8 @@ export default function ReportsScreen() {
   const trainingFundType = useSettingsStore((s) => s.trainingFundType);
   const transportationValue = useSettingsStore((s) => s.transportationValue);
   const transportationType = useSettingsStore((s) => s.transportationType);
+  const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeMode = useSettingsStore((s) => s.overtimeMode);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
@@ -517,10 +520,17 @@ export default function ReportsScreen() {
     [sessions]
   );
 
-  const currentMonthlyGross = useMemo(
-    () => totalNetHours * hourlyRate,
-    [totalNetHours, hourlyRate]
-  );
+  const currentMonthlyGross = useMemo(() => {
+    if (!overtimeEnabled) return totalNetHours * hourlyRate;
+    const shiftSessions = (sessions ?? []).filter(
+      (s) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'
+    );
+    if (overtimeMode === 'daily') {
+      return calcOvertimePayMonthly(shiftSessions, hourlyRate);
+    }
+    const totalNetMinutes = shiftSessions.reduce((sum, s) => sum + s.netMinutes, 0);
+    return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
+  }, [totalNetHours, hourlyRate, overtimeEnabled, overtimeMode, sessions]);
 
   const taxResult = useMemo(
     () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
@@ -531,7 +541,17 @@ export default function ReportsScreen() {
     () => (lastMonthSessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation').reduce((sum, s) => sum + s.netMinutes / 60, 0),
     [lastMonthSessions]
   );
-  const lastMonthGross = useMemo(() => lastMonthHours * hourlyRate, [lastMonthHours, hourlyRate]);
+  const lastMonthGross = useMemo(() => {
+    if (!overtimeEnabled) return lastMonthHours * hourlyRate;
+    const shiftSessions = (lastMonthSessions ?? []).filter(
+      (s) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'
+    );
+    if (overtimeMode === 'daily') {
+      return calcOvertimePayMonthly(shiftSessions, hourlyRate);
+    }
+    const totalNetMinutes = shiftSessions.reduce((sum, s) => sum + s.netMinutes, 0);
+    return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
+  }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthSessions]);
   const lastMonthTax = useMemo(
     () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
     [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]

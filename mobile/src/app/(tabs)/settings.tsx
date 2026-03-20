@@ -459,7 +459,109 @@ function TrainingTransportSection() {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Overtime Section ─────────────────────────────────────────────────────────
+
+function OvertimeSection() {
+  const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeMode = useSettingsStore((s) => s.overtimeMode);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+
+  return (
+    <SectionCard title={'שעות נוספות'}>
+      {/* Enable toggle */}
+      <View
+        style={{
+          flexDirection: 'row-reverse',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 14,
+          borderBottomWidth: overtimeEnabled ? 1 : 0,
+          borderBottomColor: BORDER,
+        }}
+      >
+        <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, flex: 1, textAlign: 'right' }}>
+          {'חישוב שעות נוספות'}
+        </Text>
+        <Switch
+          value={overtimeEnabled}
+          onValueChange={(val) => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            updateSettings({ overtimeEnabled: val });
+          }}
+          trackColor={{ false: 'rgba(255,255,255,0.12)', true: 'rgba(59,130,246,0.5)' }}
+          thumbColor={overtimeEnabled ? ACCENT_BLUE : 'rgba(255,255,255,0.4)'}
+          testID="overtime-enabled-switch"
+        />
+      </View>
+
+      {overtimeEnabled ? (
+        <View style={{ paddingVertical: 14 }}>
+          {/* Mode selector */}
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+              {'שיטת חישוב'}
+            </Text>
+            <View style={{ flexDirection: 'row-reverse', gap: 6 }}>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  updateSettings({ overtimeMode: 'daily' });
+                }}
+                testID="overtime-mode-daily"
+                style={{
+                  backgroundColor: overtimeMode === 'daily' ? ACCENT_BLUE : BG_INPUT,
+                  borderRadius: 10,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderWidth: 1,
+                  borderColor: overtimeMode === 'daily' ? ACCENT_BLUE : BORDER,
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: overtimeMode === 'daily' ? '#FFF' : TEXT_SECONDARY }}>
+                  {'יומי'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  updateSettings({ overtimeMode: 'monthly' });
+                }}
+                testID="overtime-mode-monthly"
+                style={{
+                  backgroundColor: overtimeMode === 'monthly' ? ACCENT_BLUE : BG_INPUT,
+                  borderRadius: 10,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderWidth: 1,
+                  borderColor: overtimeMode === 'monthly' ? ACCENT_BLUE : BORDER,
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: overtimeMode === 'monthly' ? '#FFF' : TEXT_SECONDARY }}>
+                  {'חודשי'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Info text */}
+          <View style={{ backgroundColor: 'rgba(59,130,246,0.07)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)' }}>
+            {overtimeMode === 'daily' ? (
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', lineHeight: 18 }}>
+                {'יומי: 8-10 שעות × 125%, מעל 10 שעות × 150%'}
+              </Text>
+            ) : (
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', lineHeight: 18 }}>
+                {'חודשי: מעל 182 שעות × 125%, מעל 210 שעות × 150%'}
+              </Text>
+            )}
+          </View>
+        </View>
+      ) : null}
+    </SectionCard>
+  );
+}
+
+
 
 export default function SettingsScreen() {
   const deviceId = useDeviceId();
@@ -639,6 +741,11 @@ export default function SettingsScreen() {
         {/* Training Fund & Transportation section */}
         <Animated.View entering={FadeInDown.delay(340).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <TrainingTransportSection />
+        </Animated.View>
+
+        {/* Overtime section */}
+        <Animated.View entering={FadeInDown.delay(360).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <OvertimeSection />
         </Animated.View>
 
         {/* Premium */}

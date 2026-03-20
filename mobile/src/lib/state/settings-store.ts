@@ -26,6 +26,8 @@ interface SettingsState {
   trainingFundType: 'percent' | 'fixed';
   transportationValue: number;
   transportationType: 'percent' | 'fixed';
+  overtimeEnabled: boolean;
+  overtimeMode: 'daily' | 'monthly';
 
   updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
@@ -57,6 +59,8 @@ export const useSettingsStore = create<SettingsState>()(
       trainingFundType: 'percent',
       transportationValue: 0,
       transportationType: 'fixed',
+      overtimeEnabled: false,
+      overtimeMode: 'daily',
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),
