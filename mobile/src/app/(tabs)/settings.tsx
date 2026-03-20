@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState, useMemo } from 'react';
+import React, { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Crown, ChevronLeft, ChevronRight, Trash2, Plus } from 'lucide-react-native';
+import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useUpdateSettings } from '@/lib/api/workclock-api';
@@ -71,7 +71,7 @@ function offsetMonth(month: string, delta: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// ─── Numeric field with local string state ────────────────────────────────────
+// ─── Numeric field — debounced live-commit with "נשמר ✓" indicator ─────────────
 
 function NumericInput({
   storeValue,
@@ -83,44 +83,89 @@ function NumericInput({
   testID?: string;
 }) {
   const [local, setLocal] = useState(String(storeValue));
+  const [saved, setSaved] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const borderOpacity = useSharedValue(0);
 
+  // Keep in sync if store value changes externally
   const prevStoreRef = useRef(storeValue);
   if (prevStoreRef.current !== storeValue) {
     prevStoreRef.current = storeValue;
     setLocal(String(storeValue));
   }
 
-  const handleBlur = useCallback(() => {
-    const parsed = parseFloat(local.replace(',', '.'));
+  const commit = useCallback((text: string) => {
+    const parsed = parseFloat(text.replace(',', '.'));
     if (!isNaN(parsed) && parsed >= 0) {
       onCommit(parsed);
-    } else {
-      setLocal(String(storeValue));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Flash green border
+      borderOpacity.value = withSequence(
+        withTiming(1, { duration: 150 }),
+        withTiming(1, { duration: 800 }),
+        withTiming(0, { duration: 400 }),
+      );
+      setSaved(true);
+      if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
+      savedTimeoutRef.current = setTimeout(() => setSaved(false), 1800);
     }
-  }, [local, storeValue, onCommit]);
+  }, [onCommit, borderOpacity]);
+
+  const handleChangeText = useCallback((text: string) => {
+    setLocal(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => commit(text), 700);
+  }, [commit]);
+
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    commit(local);
+  }, [local, commit]);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
+  }, []);
+
+  const animBorderStyle = useAnimatedStyle(() => ({
+    borderColor: `rgba(34,197,94,${borderOpacity.value})`,
+  }));
 
   return (
-    <TextInput
-      value={local}
-      onChangeText={setLocal}
-      onBlur={handleBlur}
-      keyboardType="decimal-pad"
-      returnKeyType="done"
-      testID={testID}
-      style={{
-        backgroundColor: BG_INPUT,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        fontSize: 16,
-        fontWeight: '700',
-        color: TEXT_PRIMARY,
-        minWidth: 80,
-        textAlign: 'center',
-        borderWidth: 1,
-        borderColor: BORDER,
-      }}
-    />
+    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+      {saved ? (
+        <Animated.View
+          entering={FadeIn.duration(150)}
+          exiting={FadeOut.duration(300)}
+          style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}
+        >
+          <Check size={13} color="#22C55E" />
+          <Text style={{ fontSize: 11, color: '#22C55E', fontWeight: '700' }}>{'נשמר'}</Text>
+        </Animated.View>
+      ) : null}
+      <Animated.View style={[{ borderRadius: 12, borderWidth: 1.5 }, animBorderStyle]}>
+        <TextInput
+          value={local}
+          onChangeText={handleChangeText}
+          onBlur={handleBlur}
+          keyboardType="decimal-pad"
+          returnKeyType="done"
+          testID={testID}
+          style={{
+            backgroundColor: BG_INPUT,
+            borderRadius: 11,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            fontSize: 16,
+            fontWeight: '700',
+            color: TEXT_PRIMARY,
+            minWidth: 80,
+            textAlign: 'center',
+          }}
+        />
+      </Animated.View>
+    </View>
   );
 }
 
