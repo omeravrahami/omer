@@ -239,6 +239,60 @@ export default function AddDayRecordScreen() {
   );
 }
 
+function TimeField({ value, maxVal, step, onChange, color }: {
+  value: number; maxVal: number; step: number;
+  onChange: (v: number) => void; color: string;
+}) {
+  const [text, setText] = useState(String(value).padStart(2, '0'));
+  const [focused, setFocused] = useState(false);
+
+  // Sync display when value changes externally (arrows)
+  React.useEffect(() => {
+    if (!focused) setText(String(value).padStart(2, '0'));
+  }, [value, focused]);
+
+  const commit = (raw: string) => {
+    const n = parseInt(raw, 10);
+    if (!isNaN(n)) {
+      const clamped = Math.min(Math.max(0, n), maxVal);
+      onChange(clamped);
+      setText(String(clamped).padStart(2, '0'));
+    } else {
+      setText(String(value).padStart(2, '0'));
+    }
+  };
+
+  return (
+    <View style={{ alignItems: 'center', gap: 4 }}>
+      <Pressable onPress={() => onChange((value + step) % (maxVal + 1))} hitSlop={10}
+        style={{ padding: 4 }}>
+        <ChevronLeft size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
+      </Pressable>
+      <TextInput
+        value={focused ? text : String(value).padStart(2, '0')}
+        onChangeText={setText}
+        onFocus={() => { setFocused(true); setText(''); }}
+        onBlur={() => { setFocused(false); commit(text); }}
+        onSubmitEditing={() => commit(text)}
+        keyboardType="number-pad"
+        maxLength={2}
+        selectTextOnFocus
+        style={{
+          fontSize: 24, fontWeight: '700', color: focused ? color : TEXT_PRIMARY,
+          fontVariant: ['tabular-nums'], width: 40, textAlign: 'center',
+          borderBottomWidth: focused ? 2 : 0, borderBottomColor: color,
+          paddingVertical: 2,
+        }}
+        testID={`time-field-${maxVal}`}
+      />
+      <Pressable onPress={() => onChange((value - step + maxVal + 1) % (maxVal + 1))} hitSlop={10}
+        style={{ padding: 4 }}>
+        <ChevronRight size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
+      </Pressable>
+    </View>
+  );
+}
+
 function TimeRow({ label, hour, min, onHourChange, onMinChange, color }: {
   label: string; hour: number; min: number;
   onHourChange: (h: number) => void; onMinChange: (m: number) => void; color: string;
@@ -246,28 +300,10 @@ function TimeRow({ label, hour, min, onHourChange, onMinChange, color }: {
   return (
     <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
       <Text style={{ fontSize: 14, color: TEXT_SECONDARY, flex: 1, textAlign: 'right' }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {/* Hour */}
-        <View style={{ flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Pressable onPress={() => onHourChange((hour + 1) % 24)} hitSlop={8}>
-            <ChevronLeft size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
-          </Pressable>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'], width: 32, textAlign: 'center' }}>{String(hour).padStart(2, '0')}</Text>
-          <Pressable onPress={() => onHourChange((hour - 1 + 24) % 24)} hitSlop={8}>
-            <ChevronRight size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
-          </Pressable>
-        </View>
-        <Text style={{ fontSize: 22, fontWeight: '700', color: TEXT_SECONDARY }}>:</Text>
-        {/* Minutes */}
-        <View style={{ flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <Pressable onPress={() => onMinChange((min + 5) % 60)} hitSlop={8}>
-            <ChevronLeft size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
-          </Pressable>
-          <Text style={{ fontSize: 22, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'], width: 32, textAlign: 'center' }}>{String(min).padStart(2, '0')}</Text>
-          <Pressable onPress={() => onMinChange((min - 5 + 60) % 60)} hitSlop={8}>
-            <ChevronRight size={16} color={color} style={{ transform: [{ rotate: '90deg' }] }} />
-          </Pressable>
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <TimeField value={hour} maxVal={23} step={1} onChange={onHourChange} color={color} />
+        <Text style={{ fontSize: 24, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 2 }}>:</Text>
+        <TimeField value={min} maxVal={59} step={5} onChange={onMinChange} color={color} />
       </View>
     </View>
   );
