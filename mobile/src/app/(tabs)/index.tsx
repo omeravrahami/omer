@@ -723,10 +723,22 @@ export default function DashboardScreen() {
   const { data: weekStats } = useStats(deviceId, 'week');
   const { data: monthStats } = useStats(deviceId, 'month');
   const hourlyRateHome = useSettingsStore((s) => s.hourlyRate);
+  const carBenefitHome = useSettingsStore((s) => s.carBenefitMonthly);
+  const carGrossupHome = useSettingsStore((s) => s.carGrossupMonthly);
+  const oneTimeAdditionsHome = useSettingsStore((s) => s.oneTimeAdditions);
 
-  // Compute monthly pay dynamically so it always reflects the current hourly rate
-  // (monthStats.totalPay is stored at session-save time and goes stale after a rate change)
-  const dynamicMonthlyPay = (monthStats?.totalHours ?? 0) * hourlyRateHome;
+  // Full gross = base wage + car benefit + car grossup + current-month one-time additions
+  // Matches the "ברוטו למס" shown in the reports/insights page
+  const currentMonthKey = useMemo(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+  const oneTimeTotalHome = useMemo(
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditionsHome, currentMonthKey]
+  );
+  const dynamicMonthlyGross = (monthStats?.totalHours ?? 0) * hourlyRateHome
+    + carBenefitHome + carGrossupHome + oneTimeTotalHome;
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -830,7 +842,7 @@ export default function DashboardScreen() {
                     <Text style={{ color: '#34D399', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
                   <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
-                    {dynamicMonthlyPay > 0 ? formatCurrency(dynamicMonthlyPay) : '—'}
+                    {dynamicMonthlyGross > 0 ? formatCurrency(dynamicMonthlyGross) : '—'}
                   </Text>
                 </View>
               </View>
