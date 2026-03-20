@@ -841,7 +841,7 @@ function SimulationCard({
   extraNet,
   keepRate,
   bracketCrossed,
-  netPay,
+  finalNet,
   delay,
 }: {
   extraHours: number;
@@ -849,7 +849,7 @@ function SimulationCard({
   extraNet: number;
   keepRate: number;
   bracketCrossed: boolean;
-  netPay: number;
+  finalNet: number;
   delay: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -892,7 +892,7 @@ function SimulationCard({
           {[
             { label: 'ברוטו נוסף', value: formatCurrency(extraGross), color: TEXT_PRIMARY },
             { label: 'נטו נוסף', value: formatCurrency(extraNet), color: ACCENT_GREEN },
-            { label: 'נטו כולל', value: formatCurrency(netPay), color: TEXT_PRIMARY },
+            { label: 'נטו כולל', value: formatCurrency(finalNet), color: TEXT_PRIMARY },
           ].map((r) => (
             <View key={r.label} style={{ flexDirection: 'row-reverse', justifyContent: 'space-between' }}>
               <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>{r.label}</Text>
@@ -1031,7 +1031,7 @@ export default function ReportsScreen() {
     [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
   );
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal, taxCreditPoints, dailyGoalHours * 20, totalNetHours, 186, carBenefitMonthly),
     [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
@@ -1152,9 +1152,9 @@ export default function ReportsScreen() {
                 <Text style={{ fontSize: 16, fontWeight: '700', color: TEXT_PRIMARY }}>{'מה אם אעבוד יותר?'}</Text>
               </View>
               <View style={{ flexDirection: 'row-reverse', gap: 10 }}>
-                <SimulationCard extraHours={5}  extraGross={sim5.extraGross}  extraNet={sim5.extraNet}  keepRate={sim5.keepRate}  bracketCrossed={sim5.bracketCrossed}  netPay={sim5.netPay}  delay={420} />
-                <SimulationCard extraHours={10} extraGross={sim10.extraGross} extraNet={sim10.extraNet} keepRate={sim10.keepRate} bracketCrossed={sim10.bracketCrossed} netPay={sim10.netPay} delay={460} />
-                <SimulationCard extraHours={20} extraGross={sim20.extraGross} extraNet={sim20.extraNet} keepRate={sim20.keepRate} bracketCrossed={sim20.bracketCrossed} netPay={sim20.netPay} delay={500} />
+                <SimulationCard extraHours={5}  extraGross={sim5.extraGross}  extraNet={sim5.extraNet}  keepRate={sim5.keepRate}  bracketCrossed={sim5.bracketCrossed}  finalNet={sim5.finalTakeHome}  delay={420} />
+                <SimulationCard extraHours={10} extraGross={sim10.extraGross} extraNet={sim10.extraNet} keepRate={sim10.keepRate} bracketCrossed={sim10.bracketCrossed} finalNet={sim10.finalTakeHome} delay={460} />
+                <SimulationCard extraHours={20} extraGross={sim20.extraGross} extraNet={sim20.extraNet} keepRate={sim20.keepRate} bracketCrossed={sim20.bracketCrossed} finalNet={sim20.finalTakeHome} delay={500} />
               </View>
             </Animated.View>
 

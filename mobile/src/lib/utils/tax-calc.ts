@@ -313,11 +313,12 @@ export function simulateExtraHours(
 export function getSmartTips(
   monthlyGross: number,
   hourlyRate: number,
-  carBenefitMonthly: number,
+  carBenefitMonthly: number,   // full sum for bracket calc
   creditPoints: number,
   dailyGoalHours: number,
   currentMonthHours: number,
   totalMonthlyHours = 186,
+  actualCarBenefit = 0,         // actual שווי שימוש only (for tip text)
 ): string[] {
   const tips: string[] = [];
   const result = calcIsraeliTax({ monthlyGross, carBenefitMonthly, creditPoints });
@@ -334,9 +335,10 @@ export function getSmartTips(
     tips.push(`מעבר למדרגה הבאה לא אומר שכל השכר ממוסה בשיעור חדש — רק השכר מעל הסף`);
   }
 
-  // שווי שימוש רכב
-  if (carBenefitMonthly > 0) {
-    tips.push(`שווי שימוש הרכב (₪${carBenefitMonthly.toLocaleString()}) מגדיל את חישוב המס, אך לא נכנס לנטו שלך`);
+  // שווי שימוש רכב — show actual car benefit, not combined sum
+  const displayCarBenefit = actualCarBenefit > 0 ? actualCarBenefit : carBenefitMonthly;
+  if (displayCarBenefit > 0) {
+    tips.push(`שווי שימוש הרכב (₪${Math.round(displayCarBenefit).toLocaleString('he-IL')}) מגדיל את חישוב המס, אך לא נכנס לנטו שלך`);
   }
 
   // שיעור ניכוי

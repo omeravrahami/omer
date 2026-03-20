@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,13 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil, Plus, Heart, Sun } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil, Plus, Heart, Sun, Share2 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
@@ -129,6 +130,61 @@ export default function HistoryScreen() {
     });
   };
 
+  const handleShareReport = useCallback(async () => {
+    if (!sessions || sessions.length === 0) {
+      showToast('אין נתונים לייצוא לחודש זה', 'error');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const monthLabel = getHebrewMonthYear(currentDate);
+    const shifts = sessions.filter((s) => s.status === 'completed' && (s.sessionType === 'shift' || !s.sessionType));
+    const sickDays = sessions.filter((s) => s.sessionType === 'sick').length;
+    const vacationDays = sessions.filter((s) => s.sessionType === 'vacation').length;
+    const totalHours = shifts.reduce((sum, s) => sum + s.netMinutes / 60, 0);
+    const workDays = new Set(shifts.map((s) => s.date)).size;
+
+    // Group by date, sort ascending
+    const groups: Record<string, WorkSession[]> = {};
+    for (const s of shifts) {
+      const d = s.date ?? new Date(s.startTime).toISOString().split('T')[0];
+      if (!groups[d]) groups[d] = [];
+      groups[d]!.push(s);
+    }
+    const sortedDates = Object.keys(groups).sort();
+
+    const lines: string[] = [
+      `דוח שעות — ${monthLabel}`,
+      '─'.repeat(32),
+      `סה"כ שעות: ${totalHours.toFixed(2)}`,
+      `ימי עבודה: ${workDays}`,
+      ...(sickDays > 0 ? [`ימי מחלה: ${sickDays}`] : []),
+      ...(vacationDays > 0 ? [`ימי חופשה: ${vacationDays}`] : []),
+      '─'.repeat(32),
+      '',
+    ];
+
+    for (const dateKey of sortedDates) {
+      const dateLabel = new Date(dateKey + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
+      const daySessions = groups[dateKey] ?? [];
+      const dayHours = daySessions.reduce((sum, s) => sum + s.netMinutes / 60, 0);
+      lines.push(`📅 ${dateLabel}  |  ${dayHours.toFixed(2)} שע׳`);
+      for (const s of daySessions) {
+        const start = s.startTime ? new Date(s.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '—';
+        const end = s.endTime ? new Date(s.endTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'פעיל';
+        const h = (s.netMinutes / 60).toFixed(2);
+        lines.push(`   ${start} – ${end}  (${h} שע׳)`);
+      }
+    }
+
+    lines.push('');
+    lines.push('─'.repeat(32));
+    lines.push('נוצר על ידי WorkClock');
+
+    await Share.share({ message: lines.join('\n'), title: `דוח שעות — ${monthLabel}` });
+  }, [sessions, currentDate, showToast]);
+
+
   const totals = useMemo(() => {
     if (!sessions) return { hours: 0, days: 0, sickDays: 0, vacationDays: 0 };
     const shifts = sessions.filter((s) => s.status === 'completed' && (s.sessionType === 'shift' || !s.sessionType));
@@ -192,9 +248,18 @@ export default function HistoryScreen() {
           borderBottomWidth: 1, borderBottomColor: BORDER,
         }}
       >
-        <Pressable onPress={() => navigateMonth(1)} testID="month-next" style={{ padding: 4 }}>
-          <ChevronLeft size={22} color={TEXT_PRIMARY} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Pressable onPress={() => navigateMonth(1)} testID="month-next" style={{ padding: 4 }}>
+            <ChevronLeft size={22} color={TEXT_PRIMARY} />
+          </Pressable>
+          <Pressable
+            onPress={handleShareReport}
+            testID="share-report-btn"
+            style={{ padding: 6, borderRadius: 10, backgroundColor: 'rgba(59,130,246,0.12)' }}
+          >
+            <Share2 size={18} color={ACCENT_BLUE} />
+          </Pressable>
+        </View>
         <Text style={{ fontSize: 18, fontWeight: '700', color: TEXT_PRIMARY }}>
           {getHebrewMonthYear(currentDate)}
         </Text>
