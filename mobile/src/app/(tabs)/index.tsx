@@ -53,6 +53,7 @@ import {
   getBracketInfo,
   getSmartTips,
 } from '@/lib/utils/tax-calc';
+import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import type { WorkSession } from '@/lib/types';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
@@ -721,24 +722,47 @@ export default function DashboardScreen() {
 
   const { data: activeSession, isLoading } = useActiveSession(deviceId);
   const { data: weekStats } = useStats(deviceId, 'week');
-  const { data: monthStats } = useStats(deviceId, 'month');
-  const hourlyRateHome = useSettingsStore((s) => s.hourlyRate);
-  const carBenefitHome = useSettingsStore((s) => s.carBenefitMonthly);
-  const carGrossupHome = useSettingsStore((s) => s.carGrossupMonthly);
-  const oneTimeAdditionsHome = useSettingsStore((s) => s.oneTimeAdditions);
 
-  // Full gross = base wage + car benefit + car grossup + current-month one-time additions
-  // Matches the "ברוטו למס" shown in the reports/insights page
   const currentMonthKey = useMemo(() => {
     const n = new Date();
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
   }, []);
-  const oneTimeTotalHome = useMemo(
-    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditionsHome, currentMonthKey]
-  );
-  const dynamicMonthlyGross = (monthStats?.totalHours ?? 0) * hourlyRateHome
-    + carBenefitHome + carGrossupHome + oneTimeTotalHome;
+
+  // Fetch current-month sessions directly (same source as reports page)
+  const { data: currentMonthSessions } = useSessions(deviceId, currentMonthKey);
+
+  const hourlyRateHome   = useSettingsStore((s) => s.hourlyRate);
+  const carBenefitHome   = useSettingsStore((s) => s.carBenefitMonthly);
+  const carGrossupHome   = useSettingsStore((s) => s.carGrossupMonthly);
+  const overtimeEnabledHome = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeModeHome    = useSettingsStore((s) => s.overtimeMode);
+  const oneTimeAdditionsHome = useSettingsStore((s) => s.oneTimeAdditions);
+
+  // Same calculation as reports page:
+  // 1. Filter out sick/vacation (identical to reports totalNetHours)
+  // 2. Apply overtime multipliers when enabled
+  // 3. Add car benefit + car grossup + one-time additions
+  const dynamicMonthlyGross = useMemo(() => {
+    const shifts = (currentMonthSessions ?? []).filter(
+      s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'
+    );
+    let baseGross: number;
+    if (overtimeEnabledHome) {
+      baseGross = overtimeModeHome === 'daily'
+        ? calcOvertimePayMonthly(shifts, hourlyRateHome)
+        : calcOvertimePay(shifts.reduce((t, s) => t + s.netMinutes, 0), hourlyRateHome, 'monthly');
+    } else {
+      baseGross = shifts.reduce((t, s) => t + (s.netMinutes / 60) * hourlyRateHome, 0);
+    }
+    const oneTimeTotal = oneTimeAdditionsHome
+      .filter(a => a.month === currentMonthKey)
+      .reduce((t, a) => t + a.amount, 0);
+    return baseGross + carBenefitHome + carGrossupHome + oneTimeTotal;
+  }, [currentMonthSessions, hourlyRateHome, carBenefitHome, carGrossupHome,
+      overtimeEnabledHome, overtimeModeHome, oneTimeAdditionsHome, currentMonthKey]);
+
+  // Keep weekStats for the week column
+  const { data: monthStats } = useStats(deviceId, 'month');
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -841,8 +865,8 @@ export default function DashboardScreen() {
                     </Text>
                     <Text style={{ color: '#34D399', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
-                  <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
-                    {dynamicMonthlyGross > 0 ? formatCurrency(dynamicMonthlyGross) : '—'}
+                  <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 5, fontWeight: '500' }}>
+                    {dynamicMonthlyGross > 0 ? `ברוטו ${formatCurrency(dynamicMonthlyGross)}` : '—'}
                   </Text>
                 </View>
               </View>
