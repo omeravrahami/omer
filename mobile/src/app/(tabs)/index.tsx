@@ -50,6 +50,7 @@ import {
   formatHours,
 } from '@/lib/utils';
 import {
+  calcIsraeliTax,
   getBracketInfo,
   getSmartTips,
 } from '@/lib/utils/tax-calc';
@@ -564,13 +565,21 @@ function TaxStatusCard() {
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
+  const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeMode = useSettingsStore((s) => s.overtimeMode);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions } = useSessions(deviceId, currentMonth);
 
-  const totalNetHours = useMemo(
-    () => (sessions ?? []).reduce((sum, s) => sum + s.netMinutes / 60, 0),
+  // Filter out sick/vacation — same as reports page
+  const shiftSessions = useMemo(
+    () => (sessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
     [sessions]
+  );
+
+  const totalNetHours = useMemo(
+    () => shiftSessions.reduce((sum, s) => sum + s.netMinutes / 60, 0),
+    [shiftSessions]
   );
 
   const oneTimeBonusTotal = useMemo(
@@ -583,10 +592,13 @@ function TaxStatusCard() {
   );
   const oneTimeTotal = oneTimeBonusTotal + oneTimeGiftTotal;
 
-  const currentMonthlyGross = useMemo(
-    () => totalNetHours * hourlyRate + carBenefitMonthly + carGrossupMonthly + oneTimeBonusTotal + oneTimeGiftTotal,
-    [totalNetHours, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeBonusTotal, oneTimeGiftTotal]
-  );
+  // Overtime-aware base gross — same as reports page
+  const currentMonthlyGross = useMemo(() => {
+    if (!overtimeEnabled) return totalNetHours * hourlyRate;
+    if (overtimeMode === 'daily') return calcOvertimePayMonthly(shiftSessions, hourlyRate);
+    const totalNetMinutes = shiftSessions.reduce((sum, s) => sum + s.netMinutes, 0);
+    return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
+  }, [shiftSessions, totalNetHours, hourlyRate, overtimeEnabled, overtimeMode]);
 
   const combinedBenefits = carBenefitMonthly + carGrossupMonthly + oneTimeTotal;
 
@@ -737,29 +749,58 @@ export default function DashboardScreen() {
   const overtimeEnabledHome = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeModeHome    = useSettingsStore((s) => s.overtimeMode);
   const oneTimeAdditionsHome = useSettingsStore((s) => s.oneTimeAdditions);
+  const taxCreditPointsHome  = useSettingsStore((s) => s.taxCreditPoints);
+  const trainingFundValueHome = useSettingsStore((s) => s.trainingFundValue);
+  const trainingFundTypeHome  = useSettingsStore((s) => s.trainingFundType);
+  const transportationValueHome = useSettingsStore((s) => s.transportationValue);
+  const transportationTypeHome  = useSettingsStore((s) => s.transportationType);
+  const employerPensionRateHome = useSettingsStore((s) => s.employerPensionRate);
 
-  // Same calculation as reports page:
-  // 1. Filter out sick/vacation (identical to reports totalNetHours)
-  // 2. Apply overtime multipliers when enabled
-  // 3. Add car benefit + car grossup + one-time additions
-  const dynamicMonthlyGross = useMemo(() => {
-    const shifts = (currentMonthSessions ?? []).filter(
-      s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'
-    );
-    let baseGross: number;
-    if (overtimeEnabledHome) {
-      baseGross = overtimeModeHome === 'daily'
-        ? calcOvertimePayMonthly(shifts, hourlyRateHome)
-        : calcOvertimePay(shifts.reduce((t, s) => t + s.netMinutes, 0), hourlyRateHome, 'monthly');
-    } else {
-      baseGross = shifts.reduce((t, s) => t + (s.netMinutes / 60) * hourlyRateHome, 0);
-    }
-    const oneTimeTotal = oneTimeAdditionsHome
-      .filter(a => a.month === currentMonthKey)
-      .reduce((t, a) => t + a.amount, 0);
-    return baseGross + carBenefitHome + carGrossupHome + oneTimeTotal;
-  }, [currentMonthSessions, hourlyRateHome, carBenefitHome, carGrossupHome,
-      overtimeEnabledHome, overtimeModeHome, oneTimeAdditionsHome, currentMonthKey]);
+  // Filter shifts — same as reports page
+  const currentMonthShifts = useMemo(
+    () => (currentMonthSessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
+    [currentMonthSessions]
+  );
+
+  // Base gross (overtime-aware) — identical logic to reports page
+  const baseMonthlyGross = useMemo(() => {
+    if (!overtimeEnabledHome) return currentMonthShifts.reduce((t, s) => t + (s.netMinutes / 60) * hourlyRateHome, 0);
+    if (overtimeModeHome === 'daily') return calcOvertimePayMonthly(currentMonthShifts, hourlyRateHome);
+    const totalNetMinutes = currentMonthShifts.reduce((t, s) => t + s.netMinutes, 0);
+    return calcOvertimePay(totalNetMinutes, hourlyRateHome, 'monthly');
+  }, [currentMonthShifts, hourlyRateHome, overtimeEnabledHome, overtimeModeHome]);
+
+  const oneTimeBonusTotalHome = useMemo(
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'bonus').reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditionsHome, currentMonthKey]
+  );
+  const oneTimeGiftTotalHome = useMemo(
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'gift').reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditionsHome, currentMonthKey]
+  );
+
+  // Full tax calculation — same inputs as reports page
+  const homeTaxResult = useMemo(
+    () => calcIsraeliTax({
+      monthlyGross: baseMonthlyGross,
+      carBenefitMonthly: carBenefitHome,
+      carGrossupMonthly: carGrossupHome,
+      creditPoints: taxCreditPointsHome,
+      trainingFundValue: trainingFundValueHome,
+      trainingFundType: trainingFundTypeHome,
+      transportationValue: transportationValueHome,
+      transportationType: transportationTypeHome,
+      oneTimeBonusTotal: oneTimeBonusTotalHome,
+      oneTimeGiftTotal: oneTimeGiftTotalHome,
+      employerPensionRate: employerPensionRateHome / 100,
+    }),
+    [baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
+     trainingFundValueHome, trainingFundTypeHome, transportationValueHome,
+     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome]
+  );
+
+  // Keep for display (ברוטו למס = taxableGross)
+  const dynamicMonthlyGross = homeTaxResult.taxableGross;
 
   // Keep weekStats for the week column
   const { data: monthStats } = useStats(deviceId, 'month');
@@ -868,6 +909,11 @@ export default function DashboardScreen() {
                   <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 5, fontWeight: '500' }}>
                     {dynamicMonthlyGross > 0 ? `ברוטו ${formatCurrency(dynamicMonthlyGross)}` : '—'}
                   </Text>
+                  {homeTaxResult.finalTakeHome > 0 ? (
+                    <Text style={{ color: '#059669', fontSize: 12, marginTop: 2, fontWeight: '700' }}>
+                      {`נטו ${formatCurrency(homeTaxResult.finalTakeHome)}`}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
             </View>
