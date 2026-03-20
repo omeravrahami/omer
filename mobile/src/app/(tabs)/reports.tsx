@@ -17,7 +17,7 @@ import {
   ChevronDown,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
-import { useSettingsStore } from '@/lib/state/settings-store';
+import { useSettingsStore, OneTimeAddition } from '@/lib/state/settings-store';
 import { useSessions } from '@/lib/api/workclock-api';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -75,10 +75,12 @@ function SalaryBreakdownCard({
   netPay,
   effectiveTaxRate,
   carBenefitMonthly,
+  carGrossupMonthly,
   trainingFundDeduction,
   transportationAllowance,
   finalTakeHome,
-  oneTimeTotal,
+  bonusAdditions,
+  giftAdditions,
   employerPension,
 }: {
   gross: number;
@@ -89,24 +91,27 @@ function SalaryBreakdownCard({
   netPay: number;
   effectiveTaxRate: number;
   carBenefitMonthly: number;
+  carGrossupMonthly: number;
   trainingFundDeduction: number;
   transportationAllowance: number;
   finalTakeHome: number;
-  oneTimeTotal: number;
+  bonusAdditions: OneTimeAddition[];
+  giftAdditions: OneTimeAddition[];
   employerPension: number;
 }) {
   type RowKind = 'income' | 'deduction' | 'neutral' | 'net';
   const rows: { label: string; value: number; kind: RowKind; icon: string }[] = [
-    { label: 'ברוטו', value: gross, kind: 'income', icon: '💰' },
+    { label: 'ברוטו שכר', value: gross, kind: 'income', icon: '💰' },
     ...(employerPension > 0
       ? [{ label: 'הפרשות מעסיק לפנסיה', value: employerPension, kind: 'income' as RowKind, icon: '🏦' }]
       : []),
     ...(carBenefitMonthly > 0
       ? [{ label: 'שווי שימוש רכב למס', value: carBenefitMonthly, kind: 'income' as RowKind, icon: '🚗' }]
       : []),
-    ...(oneTimeTotal > 0
-      ? [{ label: 'תוספות חד פעמיות', value: oneTimeTotal, kind: 'income' as RowKind, icon: '✨' }]
+    ...(carGrossupMonthly > 0
+      ? [{ label: 'גילום רכב', value: carGrossupMonthly, kind: 'neutral' as RowKind, icon: '🚗' }]
       : []),
+    ...bonusAdditions.map((a) => ({ label: a.name, value: a.amount, kind: 'income' as RowKind, icon: '💎' })),
     { label: 'ברוטו למס', value: taxableGross, kind: 'neutral', icon: '📊' },
     { label: 'מס הכנסה', value: incomeTax, kind: 'deduction', icon: '📊' },
     { label: 'ביטוח לאומי', value: nationalInsurance, kind: 'deduction', icon: '🏥' },
@@ -114,8 +119,9 @@ function SalaryBreakdownCard({
     ...(trainingFundDeduction > 0
       ? [{ label: 'קרן השתלמות', value: trainingFundDeduction, kind: 'deduction' as RowKind, icon: '🏦' }]
       : []),
+    ...giftAdditions.map((a) => ({ label: a.name, value: a.amount, kind: 'neutral' as RowKind, icon: '🎁' })),
     ...(transportationAllowance > 0
-      ? [{ label: 'דמי נסיעות', value: transportationAllowance, kind: 'income' as RowKind, icon: '🚗' }]
+      ? [{ label: 'סיבוס / נסיעות', value: transportationAllowance, kind: 'income' as RowKind, icon: '🚗' }]
       : []),
   ];
 
@@ -151,7 +157,7 @@ function SalaryBreakdownCard({
             {'פירוט שכר'}
           </Text>
           <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 1 }}>
-            {'ברירות לחלוטין'}
+            {'חישוב מס ישראלי 2024'}
           </Text>
         </View>
       </View>
@@ -727,7 +733,7 @@ export default function ReportsScreen() {
           <View style={{ paddingHorizontal: 16 }}>
             {/* Salary Breakdown */}
             <SalaryBreakdownCard
-              gross={taxResult.grossPay}
+              gross={taxResult.cashGross}
               taxableGross={taxResult.taxableGross}
               incomeTax={taxResult.incomeTax}
               nationalInsurance={taxResult.nationalInsurance}
@@ -735,10 +741,12 @@ export default function ReportsScreen() {
               netPay={taxResult.netPay}
               effectiveTaxRate={taxResult.effectiveTaxRate}
               carBenefitMonthly={carBenefitMonthly}
+              carGrossupMonthly={carGrossupMonthly}
               trainingFundDeduction={taxResult.trainingFundDeduction}
               transportationAllowance={taxResult.transportationAllowance}
               finalTakeHome={taxResult.finalTakeHome}
-              oneTimeTotal={oneTimeTotal}
+              bonusAdditions={oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus')}
+              giftAdditions={oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift')}
               employerPension={taxResult.employerPension}
             />
 
