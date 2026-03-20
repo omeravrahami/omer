@@ -578,6 +578,8 @@ export default function SettingsScreen() {
   const isPro = useSettingsStore((s) => s.isPro);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
+  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -669,8 +671,8 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
-            <View style={{ paddingVertical: 14 }}>
-              <SettingRow label={'שווי שימוש ברכב (חודשי)'} last>
+            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <SettingRow label={'שווי שימוש ברכב (חודשי)'}>
                 <NumericInput
                   storeValue={carBenefitMonthly}
                   onCommit={(val) => save({ carBenefitMonthly: val })}
@@ -679,6 +681,32 @@ export default function SettingsScreen() {
               </SettingRow>
               <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
                 {'מגדיל את הברוטו החייב במס בלבד'}
+              </Text>
+            </View>
+
+            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <SettingRow label={'שווי מתנות חודשי (גיפט קארד וכו׳)'}>
+                <NumericInput
+                  storeValue={giftCardMonthly}
+                  onCommit={(val) => save({ giftCardMonthly: val })}
+                  testID="gift-card-input"
+                />
+              </SettingRow>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'נוסף לברוטו החייב במס'}
+              </Text>
+            </View>
+
+            <View style={{ paddingVertical: 14 }}>
+              <SettingRow label={'בונוס חודשי'} last>
+                <NumericInput
+                  storeValue={bonusMonthly}
+                  onCommit={(val) => save({ bonusMonthly: val })}
+                  testID="bonus-input"
+                />
+              </SettingRow>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'נוסף לברוטו החייב במס'}
               </Text>
             </View>
 

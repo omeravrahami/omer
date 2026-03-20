@@ -504,6 +504,8 @@ export default function ReportsScreen() {
   const transportationType = useSettingsStore((s) => s.transportationType);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
+  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
+  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
@@ -533,8 +535,8 @@ export default function ReportsScreen() {
   }, [totalNetHours, hourlyRate, overtimeEnabled, overtimeMode, sessions]);
 
   const taxResult = useMemo(
-    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
-    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
+    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly }),
+    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly]
   );
 
   const lastMonthHours = useMemo(
@@ -553,18 +555,18 @@ export default function ReportsScreen() {
     return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
   }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthSessions]);
   const lastMonthTax = useMemo(
-    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
-    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
+    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly }),
+    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, giftCardMonthly, bonusMonthly]
   );
 
   const bracketInfo = useMemo(
-    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly]
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
   );
 
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
   const sim5 = useMemo(
@@ -659,7 +661,7 @@ export default function ReportsScreen() {
             {/* Bracket Progress */}
             <BracketProgressCard
               monthlyGross={currentMonthlyGross}
-              carBenefitMonthly={carBenefitMonthly}
+              carBenefitMonthly={carBenefitMonthly + giftCardMonthly + bonusMonthly}
               currentRate={bracketInfo.currentRate}
               currentLabel={bracketInfo.currentLabel}
               nextLabel={bracketInfo.nextLabel}

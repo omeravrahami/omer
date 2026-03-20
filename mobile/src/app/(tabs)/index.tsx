@@ -560,6 +560,8 @@ function TaxStatusCard() {
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
+  const giftCardMonthly = useSettingsStore((s) => s.giftCardMonthly);
+  const bonusMonthly = useSettingsStore((s) => s.bonusMonthly);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions } = useSessions(deviceId, currentMonth);
@@ -569,18 +571,18 @@ function TaxStatusCard() {
     [sessions]
   );
   const currentMonthlyGross = useMemo(
-    () => totalNetHours * hourlyRate,
-    [totalNetHours, hourlyRate]
+    () => totalNetHours * hourlyRate + carBenefitMonthly + giftCardMonthly + bonusMonthly,
+    [totalNetHours, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
   );
 
   const bracketInfo = useMemo(
-    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly]
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly]
   );
 
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + giftCardMonthly + bonusMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, giftCardMonthly, bonusMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
   const bracketRate = Math.round(bracketInfo.currentRate * 100);
@@ -598,7 +600,7 @@ function TaxStatusCard() {
     // Find previous bracket threshold to compute span
     // Use tax config brackets (annual / 12)
     const annualBrackets = [0, 84120, 120720, 193800, 269280, 558240, 721560];
-    const annualTaxable = (currentMonthlyGross + carBenefitMonthly) * 12;
+    const annualTaxable = (currentMonthlyGross + carBenefitMonthly + giftCardMonthly + bonusMonthly) * 12;
     let prevThreshold = 0;
     for (let i = 0; i < annualBrackets.length; i++) {
       if (annualTaxable <= annualBrackets[i + 1] || i === annualBrackets.length - 1) {
@@ -609,7 +611,7 @@ function TaxStatusCard() {
     const span = currentBracketMonthlyThreshold - prevThreshold;
     if (span <= 0) return 0;
     return Math.min(1, Math.max(0, (currentMonthlyGross - prevThreshold) / span));
-  }, [bracketInfo, currentMonthlyGross, carBenefitMonthly]);
+  }, [bracketInfo, currentMonthlyGross, carBenefitMonthly, giftCardMonthly, bonusMonthly]);
 
   const firstTip = tips[0] ?? null;
   const router = useRouter();

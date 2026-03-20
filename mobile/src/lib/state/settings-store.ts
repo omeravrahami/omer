@@ -28,6 +28,8 @@ interface SettingsState {
   transportationType: 'percent' | 'fixed';
   overtimeEnabled: boolean;
   overtimeMode: 'daily' | 'monthly';
+  giftCardMonthly: number;
+  bonusMonthly: number;
 
   updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
@@ -61,6 +63,8 @@ export const useSettingsStore = create<SettingsState>()(
       transportationType: 'fixed',
       overtimeEnabled: false,
       overtimeMode: 'daily',
+      giftCardMonthly: 0,
+      bonusMonthly: 0,
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),
