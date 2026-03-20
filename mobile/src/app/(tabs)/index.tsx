@@ -230,7 +230,7 @@ function ActiveSessionHero({
   }));
 
   return (
-    <Animated.View entering={FadeInDown.duration(500)} testID="active-session-card" style={{ flex: 1 }}>
+    <Animated.View entering={FadeInDown.duration(500)} testID="active-session-card">
       {/* Glow */}
       <AmbientGlow isOnBreak={isOnBreak} />
 
