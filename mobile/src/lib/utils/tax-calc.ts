@@ -51,22 +51,26 @@ export interface TaxInput {
   oneTimeBonusTotal?: number;   // bonus — taxable + cash
   oneTimeGiftTotal?: number;    // gifts — taxable only (not cash)
   employerPensionRate?: number; // default 0.065 (6.5%)
+  totalHours?: number;          // optional: for effectiveHourlyNet calc
 }
 
 export interface TaxResult {
-  grossPay: number;
-  taxableGross: number;
-  cashGross: number;
+  grossPay: number;          // base hourly gross (monthlyGross only)
+  regularGross: number;      // cash components: baseGross + grossup + bonus
+  taxableGross: number;      // regularGross + carBenefit + gifts (full tax base)
+  cashGross: number;         // alias for regularGross (backwards compat)
   incomeTax: number;
   nationalInsurance: number;
   healthInsurance: number;
   totalDeductions: number;
-  netPay: number;
-  effectiveTaxRate: number;
+  netPay: number;            // regularGross - all deductions (before transport)
+  effectiveTaxRate: number;  // totalDeductions / regularGross × 100
   trainingFundDeduction: number;
   transportationAllowance: number;
-  finalTakeHome: number;
-  employerPension: number;
+  finalTakeHome: number;     // netPay - trainingFund + transportation
+  employerPension: number;   // base salary only × rate (no bonus/grossup)
+  effectiveHourlyNet: number; // finalTakeHome / totalHours (0 if no hours)
+  netToGrossRatio: number;    // finalTakeHome / regularGross (0–1)
 }
 
 export interface BracketInfo {
@@ -132,6 +136,7 @@ export function calcIsraeliTax(input: TaxInput): TaxResult {
     trainingFundType,
     transportationValue,
     transportationType,
+    totalHours,
   } = input;
 
   const bonusTotal = input.oneTimeBonusTotal ?? 0;
@@ -139,42 +144,52 @@ export function calcIsraeliTax(input: TaxInput): TaxResult {
   const grossup    = input.carGrossupMonthly ?? 0;
   const empPensionRate = input.employerPensionRate ?? 0.065;
 
-  // What is taxed (base + car benefit + car grossup + bonus + gift):
-  const taxableGross = monthlyGross + carBenefitMonthly + grossup + bonusTotal + giftTotal;
+  // regularGross: cash components only (what you actually receive as cash)
+  // = base salary + car grossup (employer pays your tax cost) + bonus
+  const regularGross = monthlyGross + grossup + bonusTotal;
 
-  // What is actually received as cash (base + bonus only):
-  const cashGross = monthlyGross + bonusTotal;
+  // taxableGross: full tax base including non-cash benefits
+  // = regularGross + car benefit (שווי שימוש) + gifts (tax-only additions)
+  const taxableGross = regularGross + carBenefitMonthly + giftTotal;
 
+  // Income tax on full taxable gross (including non-cash benefits)
   const incomeTax = calcMonthlyIncomeTax(taxableGross, creditPoints);
 
-  // NI/health computed on cash gross (not on non-cash benefits)
-  const { ni, health } = calcNIAndHealth(cashGross);
-
-  const totalDeductions = incomeTax + ni + health;
-
-  // Net pay is cash minus all taxes/deductions
-  const netPay = Math.max(0, cashGross - totalDeductions);
-
-  const effectiveTaxRate = cashGross > 0 ? (totalDeductions / cashGross) * 100 : 0;
+  // NI/health computed on regularGross only (not on non-cash benefits like שווי שימוש)
+  const { ni, health } = calcNIAndHealth(regularGross);
 
   const trainingFundDeduction = trainingFundType === 'fixed'
     ? (trainingFundValue ?? 0)
-    : (cashGross * ((trainingFundValue ?? 0) / 100));
+    : (regularGross * ((trainingFundValue ?? 0) / 100));
+
+  const totalDeductions = incomeTax + ni + health + trainingFundDeduction;
+
+  // Net pay: regular cash received minus all taxes and deductions
+  const netPay = Math.max(0, regularGross - totalDeductions);
+
+  const effectiveTaxRate = regularGross > 0 ? (totalDeductions / regularGross) * 100 : 0;
 
   const transportationAllowance = transportationType === 'fixed'
     ? (transportationValue ?? 0)
-    : (cashGross * ((transportationValue ?? 0) / 100));
+    : (regularGross * ((transportationValue ?? 0) / 100));
 
-  const finalTakeHome = Math.max(0, netPay - trainingFundDeduction + transportationAllowance);
+  // finalTakeHome = net + transportation (transportation is added post-tax)
+  const finalTakeHome = Math.max(0, netPay + transportationAllowance);
 
-  // Employer pension based on base wage + bonus
-  const pensionBase = monthlyGross + bonusTotal;
-  const employerPension = pensionBase * empPensionRate;
+  // Employer pension: base salary ONLY (no bonus, no grossup)
+  const employerPension = monthlyGross * empPensionRate;
+
+  // Effective hourly net
+  const effectiveHourlyNet = (totalHours && totalHours > 0) ? finalTakeHome / totalHours : 0;
+
+  // Net to gross ratio
+  const netToGrossRatio = regularGross > 0 ? finalTakeHome / regularGross : 0;
 
   return {
     grossPay: monthlyGross,
+    regularGross,
     taxableGross,
-    cashGross,
+    cashGross: regularGross, // backwards compat alias
     incomeTax,
     nationalInsurance: ni,
     healthInsurance: health,
@@ -185,6 +200,8 @@ export function calcIsraeliTax(input: TaxInput): TaxResult {
     transportationAllowance,
     finalTakeHome,
     employerPension,
+    effectiveHourlyNet,
+    netToGrossRatio,
   };
 }
 
@@ -218,6 +235,7 @@ export function calcTaxForHours(
     oneTimeBonusTotal: oneTimeBonusTotal * ratio,
     oneTimeGiftTotal: oneTimeGiftTotal * ratio,
     employerPensionRate,
+    totalHours: hoursWorked,
   });
 }
 

@@ -192,7 +192,7 @@ function OneTimeAdditionsSection() {
               </Text>
               <View
                 style={{
-                  backgroundColor: a.type === 'bonus' ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)',
+                  backgroundColor: a.type === 'bonus' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)',
                   borderRadius: 8,
                   paddingHorizontal: 8,
                   paddingVertical: 3,
@@ -202,10 +202,10 @@ function OneTimeAdditionsSection() {
                   style={{
                     fontSize: 11,
                     fontWeight: '700',
-                    color: a.type === 'bonus' ? ACCENT_BLUE : ACCENT_GREEN,
+                    color: a.type === 'bonus' ? ACCENT_BLUE : '#F59E0B',
                   }}
                 >
-                  {a.type === 'bonus' ? 'בונוס' : 'מתנה'}
+                  {a.type === 'bonus' ? 'בונוס — נכנס לנטו' : 'מתנה — מס בלבד'}
                 </Text>
               </View>
               <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
@@ -689,63 +689,86 @@ function TrainingTransportSection() {
   return (
     <SectionCard title={'ניכויים ותוספות'}>
       {/* Training Fund */}
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, flex: 1, textAlign: 'right' }}>
-          {'קרן השתלמות (עובד)'}
-        </Text>
-        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-          {/* Type toggle */}
-          <View style={{ flexDirection: 'row-reverse', gap: 4 }}>
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ trainingFundType: 'percent' }); }}
-              testID="training-fund-type-percent"
-              style={{ backgroundColor: trainingFundType === 'percent' ? ACCENT_BLUE : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: trainingFundType === 'percent' ? ACCENT_BLUE : BORDER }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'%'}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ trainingFundType: 'fixed' }); }}
-              testID="training-fund-type-fixed"
-              style={{ backgroundColor: trainingFundType === 'fixed' ? ACCENT_BLUE : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: trainingFundType === 'fixed' ? ACCENT_BLUE : BORDER }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'₪'}</Text>
-            </Pressable>
+      <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+              {'קרן השתלמות (עובד)'}
+            </Text>
           </View>
-          {/* Value input */}
-          <NumericInput
-            storeValue={trainingFundValue}
-            onCommit={(n) => updateSettings({ trainingFundValue: n })}
-            testID="training-fund-input"
-          />
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row-reverse', gap: 4 }}>
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ trainingFundType: 'percent' }); }}
+                testID="training-fund-type-percent"
+                style={{ backgroundColor: trainingFundType === 'percent' ? ACCENT_BLUE : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: trainingFundType === 'percent' ? ACCENT_BLUE : BORDER }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'%'}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ trainingFundType: 'fixed' }); }}
+                testID="training-fund-type-fixed"
+                style={{ backgroundColor: trainingFundType === 'fixed' ? ACCENT_BLUE : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: trainingFundType === 'fixed' ? ACCENT_BLUE : BORDER }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'₪'}</Text>
+              </Pressable>
+            </View>
+            <NumericInput
+              storeValue={trainingFundValue}
+              onCommit={(n) => updateSettings({ trainingFundValue: n })}
+              testID="training-fund-input"
+            />
+          </View>
         </View>
+        <View style={{ flexDirection: 'row-reverse', gap: 6, marginTop: 6 }}>
+          <View style={{ backgroundColor: 'rgba(148,163,184,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#94A3B8' }}>{'ניכוי מברוטו רגיל'}</Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+          {'ניכוי מחושב על ברוטו רגיל — חוסך גם ממס הכנסה'}
+        </Text>
       </View>
 
       {/* Transportation (Sibos) */}
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, flex: 1, textAlign: 'right' }}>
-          {'סיבוס (נסיעות)'}
-        </Text>
-        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-          {/* Type toggle */}
-          <View style={{ flexDirection: 'row-reverse', gap: 4 }}>
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ transportationType: 'percent' }); }}
-              testID="transportation-type-percent"
-              style={{ backgroundColor: transportationType === 'percent' ? ACCENT_GREEN : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: transportationType === 'percent' ? ACCENT_GREEN : BORDER }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'%'}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ transportationType: 'fixed' }); }}
-              testID="transportation-type-fixed"
-              style={{ backgroundColor: transportationType === 'fixed' ? ACCENT_GREEN : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: transportationType === 'fixed' ? ACCENT_GREEN : BORDER }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'₪'}</Text>
-            </Pressable>
+      <View style={{ paddingVertical: 14 }}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+              {'נסיעות / החזר הוצאות'}
+            </Text>
           </View>
-          {/* Value input */}
-          <NumericInput
-            storeValue={transportationValue}
-            onCommit={(n) => updateSettings({ transportationValue: n })}
-            testID="transportation-input"
-          />
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row-reverse', gap: 4 }}>
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ transportationType: 'percent' }); }}
+                testID="transportation-type-percent"
+                style={{ backgroundColor: transportationType === 'percent' ? ACCENT_GREEN : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: transportationType === 'percent' ? ACCENT_GREEN : BORDER }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'%'}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); updateSettings({ transportationType: 'fixed' }); }}
+                testID="transportation-type-fixed"
+                style={{ backgroundColor: transportationType === 'fixed' ? ACCENT_GREEN : BG_INPUT, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: transportationType === 'fixed' ? ACCENT_GREEN : BORDER }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{'₪'}</Text>
+              </Pressable>
+            </View>
+            <NumericInput
+              storeValue={transportationValue}
+              onCommit={(n) => updateSettings({ transportationValue: n })}
+              testID="transportation-input"
+            />
+          </View>
         </View>
+        <View style={{ flexDirection: 'row-reverse', gap: 6, marginTop: 6 }}>
+          <View style={{ backgroundColor: 'rgba(34,197,94,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#22C55E' }}>{'נכנס לנטו'}</Text>
+          </View>
+          <View style={{ backgroundColor: 'rgba(99,102,241,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#818CF8' }}>{'הטבת מעסיק'}</Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+          {'מתווסף לנטו לאחר המס — אינו נחשב הכנסה חייבת'}
+        </Text>
       </View>
     </SectionCard>
   );
@@ -958,8 +981,8 @@ export default function SettingsScreen() {
                   testID="tax-credit-points-input"
                 />
               </SettingRow>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'ברירת מחדל: 2.25 לרווק/ה'}
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+                {'ברירת מחדל: 2.25 (רווק/ה). כל נקודה = ₪242/חודש הנחה במס'}
               </Text>
             </View>
 
@@ -971,8 +994,16 @@ export default function SettingsScreen() {
                   testID="car-benefit-input"
                 />
               </SettingRow>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'מגדיל את הברוטו החייב במס בלבד'}
+              <View style={{ flexDirection: 'row-reverse', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                <View style={{ backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#F59E0B' }}>{'לצורכי מס בלבד'}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(148,163,184,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#94A3B8' }}>{'לא נכלל בפנסיה'}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+                {'זקיפת שווי — מגדיל את בסיס המס אך לא נכנס לנטו שלך'}
               </Text>
             </View>
 
@@ -984,8 +1015,19 @@ export default function SettingsScreen() {
                   testID="car-grossup-input"
                 />
               </SettingRow>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'מגדיל את הברוטו החייב במס'}
+              <View style={{ flexDirection: 'row-reverse', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                <View style={{ backgroundColor: 'rgba(34,197,94,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#22C55E' }}>{'נכנס לנטו'}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(59,130,246,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#3B82F6' }}>{'מגדיל בסיס מס'}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(148,163,184,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#94A3B8' }}>{'לא נכלל בפנסיה'}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+                {'תשלום מהמעסיק לכיסוי עלות המס על הרכב — נכנס לנטו בפועל'}
               </Text>
             </View>
 
@@ -997,8 +1039,16 @@ export default function SettingsScreen() {
                   testID="employer-pension-input"
                 />
               </SettingRow>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'ברירת מחדל: 6.5%'}
+              <View style={{ flexDirection: 'row-reverse', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                <View style={{ backgroundColor: 'rgba(20,184,166,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#14B8A6' }}>{'בסיס פנסיוני'}</Text>
+                </View>
+                <View style={{ backgroundColor: 'rgba(99,102,241,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#818CF8' }}>{'הטבת מעסיק'}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
+                {'מחושב על שכר בסיס בלבד (לא על בונוסים וגילום). ברירת מחדל: 6.5%'}
               </Text>
             </View>
 

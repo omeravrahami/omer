@@ -572,52 +572,55 @@ function MonthlySalaryCard({
   bonusAdditions: OneTimeAddition[];
   giftAdditions: OneTimeAddition[];
 }) {
+  const router = useRouter();
   if (taxResult.taxableGross <= 0 && baseGross <= 0) return null;
+
+  const regularGross = taxResult.regularGross;
+  const taxableGross = taxResult.taxableGross;
 
   type RowKind = 'income' | 'deduction' | 'neutral' | 'total';
 
-  const rows: { label: string; value: number; kind: RowKind; icon: string }[] = [
-    { label: 'ברוטו שכר', value: baseGross, kind: 'income', icon: '💰' },
-    ...(taxResult.employerPension > 0
-      ? [{ label: 'הפרשות מעסיק לפנסיה', value: taxResult.employerPension, kind: 'income' as RowKind, icon: '🏦' }]
-      : []),
-    ...(carBenefitMonthly > 0
-      ? [{ label: 'שווי שימוש רכב למס', value: carBenefitMonthly, kind: 'neutral' as RowKind, icon: '🚗' }]
-      : []),
+  const incomeRows: { label: string; value: number; kind: RowKind; icon: string; sub?: string }[] = [
+    { label: 'שכר בסיס', value: baseGross, kind: 'income', icon: '💰', sub: 'שעות × שכר שעתי' },
     ...(carGrossupMonthly > 0
-      ? [{ label: 'גילום רכב', value: carGrossupMonthly, kind: 'neutral' as RowKind, icon: '🚗' }]
+      ? [{ label: 'גילום רכב', value: carGrossupMonthly, kind: 'neutral' as RowKind, icon: '🚗', sub: 'נכנס לנטו' }]
       : []),
-    ...bonusAdditions.map(a => ({ label: a.name, value: a.amount, kind: 'income' as RowKind, icon: '💎' })),
-    ...giftAdditions.map(a => ({ label: a.name, value: a.amount, kind: 'neutral' as RowKind, icon: '🎁' })),
+    ...bonusAdditions.map(a => ({ label: a.name, value: a.amount, kind: 'income' as RowKind, icon: '💎', sub: 'בונוס' })),
+  ];
+
+  const taxOnlyRows: { label: string; value: number; icon: string; sub?: string }[] = [
+    ...(carBenefitMonthly > 0
+      ? [{ label: 'שווי שימוש ברכב', value: carBenefitMonthly, icon: '🚗', sub: 'לצורכי מס בלבד' }]
+      : []),
+    ...giftAdditions.map(a => ({ label: a.name, value: a.amount, icon: '🎁', sub: 'לצורכי מס בלבד' })),
   ];
 
   const deductionRows: { label: string; value: number; kind: RowKind; icon: string }[] = [
     { label: 'מס הכנסה', value: taxResult.incomeTax, kind: 'deduction', icon: '📊' },
     { label: 'ביטוח לאומי', value: taxResult.nationalInsurance, kind: 'deduction', icon: '🏥' },
-    { label: 'ביטוח בריאות', value: taxResult.healthInsurance, kind: 'deduction', icon: '🏥' },
+    { label: 'ביטוח בריאות', value: taxResult.healthInsurance, kind: 'deduction', icon: '💊' },
     ...(taxResult.trainingFundDeduction > 0
       ? [{ label: 'קרן השתלמות', value: taxResult.trainingFundDeduction, kind: 'deduction' as RowKind, icon: '🏦' }]
       : []),
   ];
 
-  const rowColor = (kind: RowKind) => {
-    if (kind === 'income') return '#22C55E';
-    if (kind === 'deduction') return '#F87171';
-    if (kind === 'total') return '#F0F6FF';
-    return '#94A3B8';
-  };
-
-  const Row = ({ label, value, kind, icon }: { label: string; value: number; kind: RowKind; icon: string }) => (
-    <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, flex: 1 }}>
-        <Text style={{ fontSize: 14 }}>{icon}</Text>
-        <Text style={{ fontSize: 13, color: '#CBD5E1', textAlign: 'right', flex: 1 }}>{label}</Text>
+  const Row = ({ label, value, kind, icon, sub }: { label: string; value: number; kind: RowKind; icon: string; sub?: string }) => {
+    const color = kind === 'income' ? '#22C55E' : kind === 'deduction' ? '#F87171' : '#94A3B8';
+    return (
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+          <Text style={{ fontSize: 15 }}>{icon}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '500', color: '#CBD5E1', textAlign: 'right' }}>{label}</Text>
+            {sub ? <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'right', marginTop: 1 }}>{sub}</Text> : null}
+          </View>
+        </View>
+        <Text style={{ fontSize: 13, fontWeight: '700', color, fontVariant: ['tabular-nums'] }}>
+          {kind === 'deduction' ? `-${formatCurrency(value)}` : formatCurrency(value)}
+        </Text>
       </View>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: rowColor(kind), fontVariant: ['tabular-nums'] }}>
-        {kind === 'deduction' ? `-${formatCurrency(value)}` : formatCurrency(value)}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   const Divider = () => (
     <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4 }} />
@@ -652,17 +655,59 @@ function MonthlySalaryCard({
         </View>
       </View>
 
-      {/* Income rows */}
-      {rows.map((r, i) => <Row key={i} {...r} />)}
-
-      {/* ברוטו למס summary */}
-      <Divider />
-      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#F0F6FF', textAlign: 'right' }}>{'ברוטו למס'}</Text>
-        <Text style={{ fontSize: 15, fontWeight: '800', color: '#F0F6FF', fontVariant: ['tabular-nums'] }}>
-          {formatCurrency(taxResult.taxableGross)}
-        </Text>
+      {/* 3-pill stat strip */}
+      <View style={{ flexDirection: 'row-reverse', gap: 8, marginBottom: 14 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)' }}>
+          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'ברוטו רגיל'}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(245,158,11,0.15)' }}>
+          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'ברוטו למס'}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.15)' }}>
+          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'נטו לקבלה'}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxResult.finalTakeHome)}</Text>
+        </View>
       </View>
+
+      {/* Income rows */}
+      {incomeRows.map((r, i) => <Row key={i} {...r} />)}
+
+      {/* ברוטו רגיל summary line */}
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4 }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>{'= ברוטו רגיל'}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+      </View>
+
+      {/* Tax-only additions */}
+      {taxOnlyRows.length > 0 ? (
+        <>
+          <Divider />
+          <View style={{ paddingVertical: 4 }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#F59E0B', textAlign: 'right', marginBottom: 4, letterSpacing: 0.5 }}>
+              {'זקיפות מס (לא מזומן)'}
+            </Text>
+            {taxOnlyRows.map((r, i) => (
+              <View key={i} style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, opacity: 0.75 }}>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Text style={{ fontSize: 15 }}>{r.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '500', color: '#CBD5E1', textAlign: 'right' }}>{r.label}</Text>
+                    {r.sub ? <Text style={{ fontSize: 10, color: '#F59E0B', textAlign: 'right', marginTop: 1 }}>{r.sub}</Text> : null}
+                  </View>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(r.value)}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>{'= ברוטו למס'}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+          </View>
+        </>
+      ) : null}
+
       <Divider />
 
       {/* Deduction rows */}
@@ -671,7 +716,7 @@ function MonthlySalaryCard({
       {/* Net pay subtotal */}
       <Divider />
       <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
-        <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>{'נטו לפני תוספות'}</Text>
+        <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>{'נטו לפני נסיעות'}</Text>
         <Text style={{ fontSize: 13, fontWeight: '700', color: '#F0F6FF', fontVariant: ['tabular-nums'] }}>
           {formatCurrency(taxResult.netPay)}
         </Text>
@@ -682,7 +727,7 @@ function MonthlySalaryCard({
         <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
           <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
             <Text style={{ fontSize: 14 }}>{'🚌'}</Text>
-            <Text style={{ fontSize: 13, color: '#CBD5E1' }}>{'סיבוס / נסיעות'}</Text>
+            <Text style={{ fontSize: 13, color: '#CBD5E1' }}>{'נסיעות / החזר'}</Text>
           </View>
           <Text style={{ fontSize: 13, fontWeight: '700', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
             {`+${formatCurrency(taxResult.transportationAllowance)}`}
@@ -707,6 +752,18 @@ function MonthlySalaryCard({
           {formatCurrency(taxResult.finalTakeHome)}
         </Text>
       </View>
+
+      {/* Link to full insights */}
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/(tabs)/reports' as never);
+        }}
+        testID="view-full-insights-link"
+        style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}
+      >
+        <Text style={{ fontSize: 12, color: '#3B82F6', fontWeight: '600' }}>{'לפירוט מלא ← תובנות'}</Text>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -956,8 +1013,8 @@ export default function DashboardScreen() {
      transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome]
   );
 
-  // Keep for display (ברוטו למס = taxableGross)
-  const dynamicMonthlyGross = homeTaxResult.taxableGross;
+  // Keep for display (ברוטו רגיל = regularGross — cash components)
+  const dynamicMonthlyGross = homeTaxResult.regularGross;
 
   // Keep weekStats for the week column
   const { data: monthStats } = useStats(deviceId, 'month');
@@ -1033,46 +1090,77 @@ export default function DashboardScreen() {
               elevation: 4,
             }}>
               <View style={{ flexDirection: 'row-reverse' }}>
-                {/* Week stat — centered */}
-                <View style={{ flex: 1, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
+                {/* Week stat */}
+                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.8 }}>
                     {'השבוע'}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                    <Text style={{ color: '#2563EB', fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 40 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 38 }}>
                       {weekStats ? weekStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#93C5FD', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#93C5FD', fontSize: 14, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
-                  <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
-                    {`${weekStats?.workDaysCount ?? 0} ימי עבודה`}
-                  </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#BFDBFE' }} />
+                    <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500' }}>
+                      {`${weekStats?.workDaysCount ?? 0} ימים`}
+                    </Text>
+                  </View>
                 </View>
 
                 {/* Divider */}
-                <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 18 }} />
+                <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 16 }} />
 
-                {/* Month stat — centered */}
-                <View style={{ flex: 1, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
+                {/* Month stat */}
+                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.8 }}>
                     {'החודש'}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                    <Text style={{ color: '#059669', fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 40 }}>
+                    <Text style={{ color: '#059669', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 38 }}>
                       {monthStats ? monthStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#34D399', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#34D399', fontSize: 14, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
-                  <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 5, fontWeight: '500' }}>
-                    {dynamicMonthlyGross > 0 ? `ברוטו ${formatCurrency(dynamicMonthlyGross)}` : '—'}
-                  </Text>
-                  {homeTaxResult.finalTakeHome > 0 ? (
-                    <Text style={{ color: '#059669', fontSize: 12, marginTop: 2, fontWeight: '700' }}>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#86EFAC' }} />
+                    <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500' }}>
+                      {`${monthStats?.workDaysCount ?? 0} ימים`}
+                    </Text>
+                  </View>
+                  {dynamicMonthlyGross > 0 ? (
+                    <Text style={{ color: '#059669', fontSize: 12, marginTop: 4, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
                       {`נטו ${formatCurrency(homeTaxResult.finalTakeHome)}`}
                     </Text>
                   ) : null}
                 </View>
               </View>
+
+              {/* Progress bar toward monthly hour goal */}
+              {homeTaxResult.finalTakeHome > 0 ? (
+                <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+                  <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 10, color: '#94A3B8' }}>{'ברוטו רגיל'}</Text>
+                    <Text style={{ fontSize: 10, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
+                      {`${formatCurrency(dynamicMonthlyGross)} → נטו ${formatCurrency(homeTaxResult.finalTakeHome)}`}
+                    </Text>
+                  </View>
+                  <View style={{ height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
+                    <View style={{
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor: '#059669',
+                      width: dynamicMonthlyGross > 0
+                        ? `${Math.min(100, Math.round((homeTaxResult.finalTakeHome / dynamicMonthlyGross) * 100))}%`
+                        : '0%',
+                    }} />
+                  </View>
+                  <Text style={{ fontSize: 9, color: '#94A3B8', textAlign: 'right', marginTop: 3 }}>
+                    {`${Math.round(homeTaxResult.netToGrossRatio * 100)}% נטו מברוטו`}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </Animated.View>
 
