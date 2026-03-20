@@ -611,8 +611,16 @@ function TaxStatusCard() {
   }, [bracketInfo, currentMonthlyGross, carBenefitMonthly]);
 
   const firstTip = tips[0] ?? null;
+  const router = useRouter();
 
   return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push('/tax-brackets' as never);
+      }}
+      testID="tax-status-card-pressable"
+    >
     <Animated.View
       entering={FadeInUp.delay(150).duration(400)}
       style={{
@@ -684,6 +692,7 @@ function TaxStatusCard() {
         {'\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E7\u05D9\u05D9\u05DE\u05D9\u05DD'}
       </Text>
     </Animated.View>
+    </Pressable>
   );
 }
 

@@ -61,6 +61,13 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="tax-brackets"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
       </Stack>
       <Toast />
     </ThemeProvider>
