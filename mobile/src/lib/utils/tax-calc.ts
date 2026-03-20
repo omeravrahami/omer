@@ -13,25 +13,24 @@
 
 export const TAX_CONFIG = {
   /** ערך נקודת זיכוי חודשי (2024) */
-  creditPointMonthly: 242,
+  creditPointMonthly: 235,
 
   /** מדרגות מס הכנסה שנתי 2024 (₪) */
   incomeTaxBrackets: [
-    { upTo: 84_120,   rate: 0.10, label: '10%' },
-    { upTo: 120_720,  rate: 0.14, label: '14%' },
-    { upTo: 193_800,  rate: 0.20, label: '20%' },
-    { upTo: 269_280,  rate: 0.31, label: '31%' },
-    { upTo: 558_240,  rate: 0.35, label: '35%' },
-    { upTo: 721_560,  rate: 0.47, label: '47%' },
-    { upTo: Infinity, rate: 0.50, label: '50%' },
+    { upTo:  81_480,  rate: 0.10, label: '10%' },
+    { upTo: 116_760,  rate: 0.14, label: '14%' },
+    { upTo: 187_440,  rate: 0.20, label: '20%' },
+    { upTo: 253_800,  rate: 0.31, label: '31%' },
+    { upTo: 663_240,  rate: 0.35, label: '35%' },
+    { upTo: Infinity, rate: 0.47, label: '47%' },
   ],
 
   /** מדרגות ביטוח לאומי + בריאות (עובד שכיר, חודשי 2024) */
   ni: {
     lowCeiling: 7_522,   // 60% מהשכר הממוצע
-    maxIncome:  49_030,  // תקרה חודשית
-    lowNI:      0.004,   // 0.4% מדרגה נמוכה
-    highNI:     0.07,    // 7% מדרגה גבוהה
+    maxIncome:  45_075,  // תקרה חודשית
+    lowNI:      0.035,   // 3.5% מדרגה נמוכה
+    highNI:     0.12,    // 12% מדרגה גבוהה
     lowHealth:  0.031,   // 3.1% מדרגה נמוכה
     highHealth: 0.05,    // 5% מדרגה גבוהה
   },

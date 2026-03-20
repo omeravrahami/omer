@@ -836,7 +836,7 @@ function TaxStatusCard() {
     if (bracketInfo.isTopBracket || bracketInfo.monthlyAmountToNextBracket === null) return 1;
     const currentBracketMonthlyThreshold = currentMonthlyGross + bracketInfo.monthlyAmountToNextBracket;
     if (currentBracketMonthlyThreshold <= 0) return 0;
-    const annualBrackets = [0, 84120, 120720, 193800, 269280, 558240, 721560];
+    const annualBrackets = [0, 81480, 116760, 187440, 253800, 663240];
     const annualTaxable = (currentMonthlyGross + carBenefitMonthly + carGrossupMonthly + oneTimeTotal) * 12;
     let prevThreshold = 0;
     for (let i = 0; i < annualBrackets.length; i++) {
@@ -993,6 +993,11 @@ export default function DashboardScreen() {
     [oneTimeAdditionsHome, currentMonthKey]
   );
 
+  const totalNetHoursHome = useMemo(
+    () => currentMonthShifts.reduce((t, s) => t + s.netMinutes / 60, 0),
+    [currentMonthShifts]
+  );
+
   // Full tax calculation — same inputs as reports page
   const homeTaxResult = useMemo(
     () => calcIsraeliTax({
@@ -1007,10 +1012,12 @@ export default function DashboardScreen() {
       oneTimeBonusTotal: oneTimeBonusTotalHome,
       oneTimeGiftTotal: oneTimeGiftTotalHome,
       employerPensionRate: employerPensionRateHome / 100,
+      totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
     }),
     [baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
      trainingFundValueHome, trainingFundTypeHome, transportationValueHome,
-     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome]
+     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome,
+     totalNetHoursHome]
   );
 
   // Keep for display (ברוטו רגיל = regularGross — cash components)

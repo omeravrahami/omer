@@ -24,23 +24,21 @@ const BRACKET_COLORS = [
   '#F97316', // 31% — orange
   '#EF4444', // 35% — red
   '#DC2626', // 47% — deep red
-  '#991B1B', // 50% — dark red
 ];
 
 // Monthly bracket ranges (display only)
 const BRACKET_MONTHLY_LABELS = [
-  'עד ₪7,010/חודש',
-  '₪7,011 – ₪10,060',
-  '₪10,061 – ₪16,150',
-  '₪16,151 – ₪22,440',
-  '₪22,441 – ₪46,520',
-  '₪46,521 – ₪60,130',
-  'מעל ₪60,130',
+  'עד ₪6,790/חודש',
+  '₪6,791 – ₪9,730',
+  '₪9,731 – ₪15,620',
+  '₪15,621 – ₪21,150',
+  '₪21,151 – ₪55,270',
+  'מעל ₪55,270',
 ];
 
 // Annual ceiling for each bracket (for bar fill proportion)
-const BRACKET_CEILINGS_ANNUAL = [84_120, 120_720, 193_800, 269_280, 558_240, 721_560, 999_999];
-const MAX_CEILING = 721_560;
+const BRACKET_CEILINGS_ANNUAL = [81_480, 116_760, 187_440, 253_800, 663_240, 999_999];
+const MAX_CEILING = 663_240;
 
 // ─── Bracket Row ──────────────────────────────────────────────────────────────
 
