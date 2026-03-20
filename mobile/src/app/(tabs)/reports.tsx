@@ -399,6 +399,96 @@ function SimulationCard({
   );
 }
 
+// ─── Month Comparison Card ────────────────────────────────────────────────────
+
+function MonthComparisonCard({
+  currentHours,
+  currentGross,
+  currentNet,
+  lastHours,
+  lastGross,
+  lastNet,
+}: {
+  currentHours: number;
+  currentGross: number;
+  currentNet: number;
+  lastHours: number;
+  lastGross: number;
+  lastNet: number;
+}) {
+  const hoursDiff = currentHours - lastHours;
+  const grossDiff = currentGross - lastGross;
+  const netDiff = currentNet - lastNet;
+
+  const noLastData = lastHours === 0 && lastGross === 0;
+
+  const rows: { label: string; current: number; last: number; diff: number; isHours?: boolean; fmt: (v: number) => string }[] = [
+    { label: 'שעות', current: currentHours, last: lastHours, diff: hoursDiff, isHours: true, fmt: (v) => `${v.toFixed(1)}` },
+    { label: 'ברוטו', current: currentGross, last: lastGross, diff: grossDiff, fmt: (v) => formatCurrency(v) },
+    { label: 'נטו לקבלה', current: currentNet, last: lastNet, diff: netDiff, fmt: (v) => formatCurrency(v) },
+  ];
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(80).duration(400)}
+      style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: BORDER, marginBottom: 16 }}
+      testID="month-comparison-card"
+    >
+      <SectionHeader
+        title="השוואה לחודש שעבר"
+        subtitle="החודש הנוכחי מול החודש הקודם"
+        icon={<TrendingUp size={18} color={ACCENT_CYAN} />}
+      />
+
+      {/* Column headers */}
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 8, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, flex: 1, textAlign: 'right' }}>{'פריט'}</Text>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, width: 72, textAlign: 'center' }}>{'חודש שעבר'}</Text>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, width: 72, textAlign: 'center' }}>{'החודש'}</Text>
+        <Text style={{ fontSize: 11, color: TEXT_SECONDARY, width: 48, textAlign: 'center' }}>{'שינוי'}</Text>
+      </View>
+
+      {rows.map((row, i) => (
+        <View
+          key={row.label}
+          style={{
+            flexDirection: 'row-reverse',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 10,
+            borderBottomWidth: i < rows.length - 1 ? 1 : 0,
+            borderBottomColor: 'rgba(255,255,255,0.05)',
+          }}
+        >
+          <Text style={{ fontSize: 13, color: TEXT_PRIMARY, flex: 1, textAlign: 'right', fontWeight: '500' }}>{row.label}</Text>
+          <Text style={{ fontSize: 12, color: TEXT_SECONDARY, width: 72, textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            {noLastData ? '—' : row.fmt(row.last)}
+          </Text>
+          <Text style={{ fontSize: 13, color: TEXT_PRIMARY, width: 72, textAlign: 'center', fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+            {row.fmt(row.current)}
+          </Text>
+          <View style={{ width: 48, alignItems: 'center' }}>
+            {noLastData ? (
+              <Text style={{ fontSize: 10, color: TEXT_SECONDARY }}>{'—'}</Text>
+            ) : (
+              <View style={{
+                backgroundColor: row.diff >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(248,113,113,0.12)',
+                borderRadius: 99, paddingHorizontal: 6, paddingVertical: 2,
+              }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: row.diff >= 0 ? ACCENT_GREEN : ACCENT_RED }}>
+                  {row.diff >= 0
+                    ? `+${row.fmt(row.diff)}`
+                    : (row.isHours ? `${row.fmt(row.diff)}` : `-${row.fmt(Math.abs(row.diff))}`)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      ))}
+    </Animated.View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ReportsScreen() {
@@ -415,8 +505,15 @@ export default function ReportsScreen() {
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
 
+  const lastMonth = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+  const { data: lastMonthSessions } = useSessions(deviceId, lastMonth);
+
   const totalNetHours = useMemo(
-    () => (sessions ?? []).reduce((sum, s) => sum + s.netMinutes / 60, 0),
+    () => (sessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation').reduce((sum, s) => sum + s.netMinutes / 60, 0),
     [sessions]
   );
 
@@ -428,6 +525,16 @@ export default function ReportsScreen() {
   const taxResult = useMemo(
     () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
     [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
+  );
+
+  const lastMonthHours = useMemo(
+    () => (lastMonthSessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation').reduce((sum, s) => sum + s.netMinutes / 60, 0),
+    [lastMonthSessions]
+  );
+  const lastMonthGross = useMemo(() => lastMonthHours * hourlyRate, [lastMonthHours, hourlyRate]);
+  const lastMonthTax = useMemo(
+    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType }),
+    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType]
   );
 
   const bracketInfo = useMemo(
@@ -517,6 +624,16 @@ export default function ReportsScreen() {
               trainingFundDeduction={taxResult.trainingFundDeduction}
               transportationAllowance={taxResult.transportationAllowance}
               finalTakeHome={taxResult.finalTakeHome}
+            />
+
+            {/* Month vs Last Month Comparison */}
+            <MonthComparisonCard
+              currentHours={totalNetHours}
+              currentGross={currentMonthlyGross}
+              currentNet={taxResult.finalTakeHome}
+              lastHours={lastMonthHours}
+              lastGross={lastMonthGross}
+              lastNet={lastMonthTax.finalTakeHome}
             />
 
             {/* Bracket Progress */}
