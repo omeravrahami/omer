@@ -25,8 +25,7 @@ import {
   Square,
   Plus,
   Clock,
-  BarChart3,
-  SlidersHorizontal,
+  CalendarDays,
   Coffee,
   CircleCheck,
   Shield,
@@ -821,39 +820,32 @@ export default function DashboardScreen() {
           {/* Tax Status Card */}
           <TaxStatusCard />
 
-          {/* Quick action pills */}
-          <Animated.View entering={FadeInUp.delay(200).duration(400)}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
-              style={{ flexGrow: 0, marginBottom: 20 }}
-            >
-              <QuickPill
-                icon={<Plus size={16} color="#2563EB" />}
-                label={'\u05D4\u05D5\u05E1\u05E3 \u05D9\u05D3\u05E0\u05D9\u05EA'}
+          {/* Quick action cards */}
+          <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
+              <ActionCard
+                icon={<Plus size={22} color="#2563EB" />}
+                title={'\u05D4\u05D5\u05E1\u05E3 \u05DE\u05E9\u05DE\u05E8\u05EA'}
+                subtitle={'\u05D4\u05D6\u05E0\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA'}
+                color="#EFF6FF"
+                accentColor="#2563EB"
                 onPress={() => router.push('/add-edit-session' as never)}
                 testID="quick-add-manual"
               />
-              <QuickPill
-                icon={<Clock size={16} color="#059669" />}
-                label={'\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4'}
-                onPress={() => router.push('/(tabs)/history' as never)}
-                testID="quick-history"
+              <ActionCard
+                icon={<CalendarDays size={22} color="#059669" />}
+                title={'\u05D4\u05D5\u05E1\u05E3 \u05D9\u05D5\u05DD'}
+                subtitle={'\u05DE\u05D7\u05DC\u05D4 / \u05D7\u05D5\u05E4\u05E9'}
+                color="#F0FDF4"
+                accentColor="#059669"
+                onPress={() => {
+                  const now = new Date();
+                  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                  router.push(`/add-day-record?month=${monthKey}` as never);
+                }}
+                testID="quick-add-day-record"
               />
-              <QuickPill
-                icon={<BarChart3 size={16} color="#7C3AED" />}
-                label={'\u05EA\u05D5\u05D1\u05E0\u05D5\u05EA'}
-                onPress={() => router.push('/(tabs)/reports' as never)}
-                testID="quick-reports"
-              />
-              <QuickPill
-                icon={<SlidersHorizontal size={16} color="#D97706" />}
-                label={'\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA'}
-                onPress={() => router.push('/(tabs)/settings' as never)}
-                testID="quick-settings"
-              />
-            </ScrollView>
+            </View>
           </Animated.View>
 
           {/* Ad Banner */}
@@ -866,16 +858,22 @@ export default function DashboardScreen() {
   );
 }
 
-// ─── Quick Pill ───────────────────────────────────────────────────────────────
+// ─── Action Card ──────────────────────────────────────────────────────────────
 
-function QuickPill({
+function ActionCard({
   icon,
-  label,
+  title,
+  subtitle,
+  color,
+  accentColor,
   onPress,
   testID,
 }: {
   icon: React.ReactNode;
-  label: string;
+  title: string;
+  subtitle: string;
+  color: string;
+  accentColor: string;
   onPress: () => void;
   testID: string;
 }) {
@@ -885,9 +883,9 @@ function QuickPill({
   }));
 
   return (
-    <Animated.View style={animStyle}>
+    <Animated.View style={[{ flex: 1 }, animStyle]}>
       <Pressable
-        onPressIn={() => { scale.value = withSpring(0.94, { damping: 15 }); }}
+        onPressIn={() => { scale.value = withSpring(0.96, { damping: 15 }); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -895,23 +893,33 @@ function QuickPill({
         }}
         testID={testID}
         style={{
-          flexDirection: 'row-reverse',
-          alignItems: 'center',
           backgroundColor: '#FFFFFF',
-          borderRadius: 99,
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          gap: 7,
+          borderRadius: 20,
+          padding: 18,
+          alignItems: 'flex-end',
           shadowColor: '#0B1020',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.06,
-          shadowRadius: 8,
+          shadowRadius: 10,
           elevation: 3,
         }}
       >
-        {icon}
-        <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '600' }}>
-          {label}
+        <View style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          backgroundColor: color,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 12,
+        }}>
+          {icon}
+        </View>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', textAlign: 'right', marginBottom: 2 }}>
+          {title}
+        </Text>
+        <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'right' }}>
+          {subtitle}
         </Text>
       </Pressable>
     </Animated.View>
