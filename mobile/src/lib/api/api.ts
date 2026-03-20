@@ -18,18 +18,19 @@ const request = async <T>(
 
   // 1. Handle 204 No Content
   if (response.status === 204) {
-    return undefined as T;
+    return null as unknown as T;
   }
 
   // 2. JSON responses: parse and unwrap { data }
   const contentType = response.headers.get("content-type");
   if (contentType?.includes("application/json")) {
     const json: ApiResponse<T> = await response.json();
-    return json.data;
+    // TanStack Query forbids undefined — coerce to null
+    return (json.data ?? null) as T;
   }
 
-  // 3. Non-JSON: return undefined
-  return undefined as T;
+  // 3. Non-JSON: return null (undefined is forbidden by TanStack Query)
+  return null as unknown as T;
 };
 
 export const api = {
