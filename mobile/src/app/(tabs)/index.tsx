@@ -710,6 +710,11 @@ export default function DashboardScreen() {
   const { data: activeSession, isLoading } = useActiveSession(deviceId);
   const { data: weekStats } = useStats(deviceId, 'week');
   const { data: monthStats } = useStats(deviceId, 'month');
+  const hourlyRateHome = useSettingsStore((s) => s.hourlyRate);
+
+  // Compute monthly pay dynamically so it always reflects the current hourly rate
+  // (monthStats.totalPay is stored at session-save time and goes stale after a rate change)
+  const dynamicMonthlyPay = (monthStats?.totalHours ?? 0) * hourlyRateHome;
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -813,7 +818,7 @@ export default function DashboardScreen() {
                     <Text style={{ color: '#34D399', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
                   <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
-                    {monthStats && monthStats.totalPay > 0 ? formatCurrency(monthStats.totalPay) : '—'}
+                    {dynamicMonthlyPay > 0 ? formatCurrency(dynamicMonthlyPay) : '—'}
                   </Text>
                 </View>
               </View>
