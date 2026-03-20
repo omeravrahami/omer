@@ -562,6 +562,7 @@ function TaxStatusCard() {
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const { data: sessions } = useSessions(deviceId, currentMonth);
@@ -571,24 +572,31 @@ function TaxStatusCard() {
     [sessions]
   );
 
-  const oneTimeTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth).reduce((s, a) => s + a.amount, 0),
+  const oneTimeBonusTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
+  const oneTimeGiftTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+  const oneTimeTotal = oneTimeBonusTotal + oneTimeGiftTotal;
 
   const currentMonthlyGross = useMemo(
-    () => totalNetHours * hourlyRate + carBenefitMonthly + carGrossupMonthly + oneTimeTotal,
-    [totalNetHours, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
+    () => totalNetHours * hourlyRate + carBenefitMonthly + carGrossupMonthly + oneTimeBonusTotal + oneTimeGiftTotal,
+    [totalNetHours, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeBonusTotal, oneTimeGiftTotal]
   );
 
+  const combinedBenefits = carBenefitMonthly + carGrossupMonthly + oneTimeTotal;
+
   const bracketInfo = useMemo(
-    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal]
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, combinedBenefits),
+    [currentMonthlyGross, hourlyRate, combinedBenefits]
   );
 
   const tips = useMemo(
-    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly + carGrossupMonthly + oneTimeTotal, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
-    [currentMonthlyGross, hourlyRate, carBenefitMonthly, carGrossupMonthly, oneTimeTotal, taxCreditPoints, dailyGoalHours, totalNetHours]
+    () => getSmartTips(currentMonthlyGross, hourlyRate, combinedBenefits, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, combinedBenefits, taxCreditPoints, dailyGoalHours, totalNetHours]
   );
 
   const bracketRate = Math.round(bracketInfo.currentRate * 100);

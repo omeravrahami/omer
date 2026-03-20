@@ -38,6 +38,7 @@ interface SettingsState {
   overtimeMode: 'daily' | 'monthly';
   carGrossupMonthly: number;
   oneTimeAdditions: OneTimeAddition[];
+  employerPensionRate: number;
 
   updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'togglePro' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
@@ -75,6 +76,7 @@ export const useSettingsStore = create<SettingsState>()(
       overtimeMode: 'daily',
       carGrossupMonthly: 0,
       oneTimeAdditions: [],
+      employerPensionRate: 6.5,
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),

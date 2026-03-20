@@ -871,6 +871,7 @@ export default function SettingsScreen() {
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
+  const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -975,8 +976,8 @@ export default function SettingsScreen() {
               </Text>
             </View>
 
-            <View style={{ paddingVertical: 14 }}>
-              <SettingRow label={'גילום רכב (חודשי)'} last>
+            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <SettingRow label={'גילום רכב (חודשי)'}>
                 <NumericInput
                   storeValue={carGrossupMonthly}
                   onCommit={(val) => save({ carGrossupMonthly: val })}
@@ -985,6 +986,19 @@ export default function SettingsScreen() {
               </SettingRow>
               <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
                 {'מגדיל את הברוטו החייב במס'}
+              </Text>
+            </View>
+
+            <View style={{ paddingVertical: 14 }}>
+              <SettingRow label={'הפרשות מעסיק לפנסיה (%)'} last>
+                <NumericInput
+                  storeValue={employerPensionRate}
+                  onCommit={(val) => save({ employerPensionRate: val })}
+                  testID="employer-pension-input"
+                />
+              </SettingRow>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'ברירת מחדל: 6.5%'}
               </Text>
             </View>
 

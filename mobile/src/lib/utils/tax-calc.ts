@@ -48,12 +48,15 @@ export interface TaxInput {
   transportationValue?: number;
   transportationType?: 'percent' | 'fixed';
   carGrossupMonthly?: number;
-  oneTimeAdditionsTotal?: number;  // sum of all one-time additions for this month
+  oneTimeBonusTotal?: number;   // bonus — taxable + cash
+  oneTimeGiftTotal?: number;    // gifts — taxable only (not cash)
+  employerPensionRate?: number; // default 0.065 (6.5%)
 }
 
 export interface TaxResult {
   grossPay: number;
   taxableGross: number;
+  cashGross: number;
   incomeTax: number;
   nationalInsurance: number;
   healthInsurance: number;
@@ -63,6 +66,7 @@ export interface TaxResult {
   trainingFundDeduction: number;
   transportationAllowance: number;
   finalTakeHome: number;
+  employerPension: number;
 }
 
 export interface BracketInfo {
@@ -120,21 +124,68 @@ function calcNIAndHealth(monthlyGross: number): { ni: number; health: number } {
 
 /** חישוב מלא של כל הניכויים */
 export function calcIsraeliTax(input: TaxInput): TaxResult {
-  const { monthlyGross, carBenefitMonthly, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal } = input;
-  const taxableGross = monthlyGross + carBenefitMonthly + (carGrossupMonthly ?? 0) + (oneTimeAdditionsTotal ?? 0);
+  const {
+    monthlyGross,
+    carBenefitMonthly,
+    creditPoints,
+    trainingFundValue,
+    trainingFundType,
+    transportationValue,
+    transportationType,
+  } = input;
+
+  const bonusTotal = input.oneTimeBonusTotal ?? 0;
+  const giftTotal  = input.oneTimeGiftTotal  ?? 0;
+  const grossup    = input.carGrossupMonthly ?? 0;
+  const empPensionRate = input.employerPensionRate ?? 0.065;
+
+  // What is taxed (base + car benefit + car grossup + bonus + gift):
+  const taxableGross = monthlyGross + carBenefitMonthly + grossup + bonusTotal + giftTotal;
+
+  // What is actually received as cash (base + bonus only):
+  const cashGross = monthlyGross + bonusTotal;
+
   const incomeTax = calcMonthlyIncomeTax(taxableGross, creditPoints);
-  const { ni, health } = calcNIAndHealth(monthlyGross);
+
+  // NI/health computed on cash gross (not on non-cash benefits)
+  const { ni, health } = calcNIAndHealth(cashGross);
+
   const totalDeductions = incomeTax + ni + health;
-  const netPay = Math.max(0, monthlyGross - totalDeductions);
-  const effectiveTaxRate = monthlyGross > 0 ? (totalDeductions / monthlyGross) * 100 : 0;
+
+  // Net pay is cash minus all taxes/deductions
+  const netPay = Math.max(0, cashGross - totalDeductions);
+
+  const effectiveTaxRate = cashGross > 0 ? (totalDeductions / cashGross) * 100 : 0;
+
   const trainingFundDeduction = trainingFundType === 'fixed'
     ? (trainingFundValue ?? 0)
-    : (monthlyGross * ((trainingFundValue ?? 0) / 100));
+    : (cashGross * ((trainingFundValue ?? 0) / 100));
+
   const transportationAllowance = transportationType === 'fixed'
     ? (transportationValue ?? 0)
-    : (monthlyGross * ((transportationValue ?? 0) / 100));
+    : (cashGross * ((transportationValue ?? 0) / 100));
+
   const finalTakeHome = Math.max(0, netPay - trainingFundDeduction + transportationAllowance);
-  return { grossPay: monthlyGross, taxableGross, incomeTax, nationalInsurance: ni, healthInsurance: health, totalDeductions, netPay, effectiveTaxRate, trainingFundDeduction, transportationAllowance, finalTakeHome };
+
+  // Employer pension based on base wage + bonus
+  const pensionBase = monthlyGross + bonusTotal;
+  const employerPension = pensionBase * empPensionRate;
+
+  return {
+    grossPay: monthlyGross,
+    taxableGross,
+    cashGross,
+    incomeTax,
+    nationalInsurance: ni,
+    healthInsurance: health,
+    totalDeductions,
+    netPay,
+    effectiveTaxRate,
+    trainingFundDeduction,
+    transportationAllowance,
+    finalTakeHome,
+    employerPension,
+  };
 }
 
 /** חישוב יחסי לפי שעות עבודה בחודש */
@@ -149,11 +200,25 @@ export function calcTaxForHours(
   transportationValue = 0,
   transportationType: 'percent' | 'fixed' = 'fixed',
   carGrossupMonthly = 0,
-  oneTimeAdditionsTotal = 0,
+  oneTimeBonusTotal = 0,
+  oneTimeGiftTotal = 0,
+  employerPensionRate = 0.065,
 ): TaxResult {
   const monthlyGross = hoursWorked * hourlyRate;
   const ratio = totalMonthlyHours > 0 ? Math.min(hoursWorked / totalMonthlyHours, 1) : 1;
-  return calcIsraeliTax({ monthlyGross, carBenefitMonthly: carBenefitMonthly * ratio, creditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly: carGrossupMonthly * ratio, oneTimeAdditionsTotal: oneTimeAdditionsTotal * ratio });
+  return calcIsraeliTax({
+    monthlyGross,
+    carBenefitMonthly: carBenefitMonthly * ratio,
+    creditPoints,
+    trainingFundValue,
+    trainingFundType,
+    transportationValue,
+    transportationType,
+    carGrossupMonthly: carGrossupMonthly * ratio,
+    oneTimeBonusTotal: oneTimeBonusTotal * ratio,
+    oneTimeGiftTotal: oneTimeGiftTotal * ratio,
+    employerPensionRate,
+  });
 }
 
 /** מידע על מדרגת המס הנוכחית והבאה */

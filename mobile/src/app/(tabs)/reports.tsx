@@ -79,6 +79,7 @@ function SalaryBreakdownCard({
   transportationAllowance,
   finalTakeHome,
   oneTimeTotal,
+  employerPension,
 }: {
   gross: number;
   taxableGross: number;
@@ -92,10 +93,14 @@ function SalaryBreakdownCard({
   transportationAllowance: number;
   finalTakeHome: number;
   oneTimeTotal: number;
+  employerPension: number;
 }) {
   type RowKind = 'income' | 'deduction' | 'neutral' | 'net';
   const rows: { label: string; value: number; kind: RowKind; icon: string }[] = [
     { label: 'ברוטו', value: gross, kind: 'income', icon: '💰' },
+    ...(employerPension > 0
+      ? [{ label: 'הפרשות מעסיק לפנסיה', value: employerPension, kind: 'income' as RowKind, icon: '🏦' }]
+      : []),
     ...(carBenefitMonthly > 0
       ? [{ label: 'שווי שימוש רכב למס', value: carBenefitMonthly, kind: 'income' as RowKind, icon: '🚗' }]
       : []),
@@ -571,13 +576,19 @@ export default function ReportsScreen() {
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
   const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
-  const oneTimeTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth).reduce((s, a) => s + a.amount, 0),
+  const oneTimeBonusTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
+  const oneTimeGiftTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+  const oneTimeTotal = oneTimeBonusTotal + oneTimeGiftTotal;
 
   const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
 
@@ -606,8 +617,8 @@ export default function ReportsScreen() {
   }, [totalNetHours, hourlyRate, overtimeEnabled, overtimeMode, sessions]);
 
   const taxResult = useMemo(
-    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal: oneTimeTotal }),
-    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeTotal]
+    () => calcIsraeliTax({ monthlyGross: currentMonthlyGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate: employerPensionRate / 100 }),
+    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate]
   );
 
   const lastMonthHours = useMemo(
@@ -626,14 +637,18 @@ export default function ReportsScreen() {
     return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
   }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthSessions]);
 
-  const lastMonthOneTimeTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth).reduce((s, a) => s + a.amount, 0),
+  const lastMonthBonusTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonth]
+  );
+  const lastMonthGiftTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, lastMonth]
   );
 
   const lastMonthTax = useMemo(
-    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeAdditionsTotal: lastMonthOneTimeTotal }),
-    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, lastMonthOneTimeTotal]
+    () => calcIsraeliTax({ monthlyGross: lastMonthGross, carBenefitMonthly, creditPoints: taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, oneTimeBonusTotal: lastMonthBonusTotal, oneTimeGiftTotal: lastMonthGiftTotal, employerPensionRate: employerPensionRate / 100 }),
+    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType, transportationValue, transportationType, carGrossupMonthly, lastMonthBonusTotal, lastMonthGiftTotal, employerPensionRate]
   );
 
   const bracketInfo = useMemo(
@@ -724,6 +739,7 @@ export default function ReportsScreen() {
               transportationAllowance={taxResult.transportationAllowance}
               finalTakeHome={taxResult.finalTakeHome}
               oneTimeTotal={oneTimeTotal}
+              employerPension={taxResult.employerPension}
             />
 
             {/* Month vs Last Month Comparison */}
