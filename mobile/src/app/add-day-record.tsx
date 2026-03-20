@@ -50,11 +50,22 @@ export default function AddDayRecordScreen() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(initialDate);
 
-  // Shift time state
-  const [startHour, setStartHour] = useState(9);
-  const [startMin, setStartMin] = useState(0);
-  const [endHour, setEndHour] = useState(17);
-  const [endMin, setEndMin] = useState(0);
+  // Shift time state — refs mirror state so handleSubmit always reads latest value
+  // even if TextInput onBlur fires concurrently with the submit press
+  const startHRef = React.useRef(9);
+  const startMRef = React.useRef(0);
+  const endHRef   = React.useRef(17);
+  const endMRef   = React.useRef(0);
+
+  const [startHour, _setStartHour] = useState(9);
+  const [startMin,  _setStartMin]  = useState(0);
+  const [endHour,   _setEndHour]   = useState(17);
+  const [endMin,    _setEndMin]    = useState(0);
+
+  const setStartHour = (v: number) => { startHRef.current = v; _setStartHour(v); };
+  const setStartMin  = (v: number) => { startMRef.current = v; _setStartMin(v); };
+  const setEndHour   = (v: number) => { endHRef.current   = v; _setEndHour(v); };
+  const setEndMin    = (v: number) => { endMRef.current   = v; _setEndMin(v); };
 
   const [notes, setNotes] = useState('');
 
@@ -68,10 +79,11 @@ export default function AddDayRecordScreen() {
     const dateStr = toLocalDate(selectedDate);
 
     if (sessionType === 'shift') {
+      // Read from refs — guaranteed latest even if state update is still pending
       const start = new Date(selectedDate);
-      start.setHours(startHour, startMin, 0, 0);
+      start.setHours(startHRef.current, startMRef.current, 0, 0);
       const end = new Date(selectedDate);
-      end.setHours(endHour, endMin, 0, 0);
+      end.setHours(endHRef.current, endMRef.current, 0, 0);
 
       if (end <= start) {
         Alert.alert('שגיאה', 'שעת סיום חייבת להיות אחרי שעת התחלה');

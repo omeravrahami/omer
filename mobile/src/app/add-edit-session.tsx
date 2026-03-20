@@ -90,17 +90,7 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      {/* Minutes column (rendered first = appears on left in LTR row) */}
-      <SpinColumn
-        val={m}
-        maxVal={59}
-        onUp={() => setM(m + 5)}
-        onDown={() => setM(m - 5)}
-        onChange={(n) => setM(n)}
-        testPrefix="min"
-      />
-      <Text style={{ fontSize: 28, fontWeight: '700', color: TEXT_SECONDARY }}>:</Text>
-      {/* Hours column */}
+      {/* Hours column (left) */}
       <SpinColumn
         val={h}
         maxVal={23}
@@ -108,6 +98,16 @@ function TimeSpinner({ value, onChange }: { value: Date; onChange: (d: Date) => 
         onDown={() => setH(h - 1)}
         onChange={(n) => setH(n)}
         testPrefix="hour"
+      />
+      <Text style={{ fontSize: 28, fontWeight: '700', color: TEXT_SECONDARY }}>:</Text>
+      {/* Minutes column (right) */}
+      <SpinColumn
+        val={m}
+        maxVal={59}
+        onUp={() => setM(m + 5)}
+        onDown={() => setM(m - 5)}
+        onChange={(n) => setM(n)}
+        testPrefix="min"
       />
     </View>
   );
@@ -423,6 +423,12 @@ export default function AddEditSessionScreen() {
   const [date, setDate] = useState<Date>(initDate);
   const [startTime, setStartTime] = useState<Date>(initStart);
   const [endTime, setEndTime] = useState<Date>(initEnd);
+  // Refs mirror state so handleSave always reads the latest value
+  // even when TextInput onBlur and the save button press race each other
+  const startTimeRef = React.useRef<Date>(initStart);
+  const endTimeRef   = React.useRef<Date>(initEnd);
+  const setStartTimeSafe = (d: Date) => { startTimeRef.current = d; setStartTime(d); };
+  const setEndTimeSafe   = (d: Date) => { endTimeRef.current   = d; setEndTime(d); };
   const [breaks, setBreaks] = useState<BreakEntry[]>([]);
   const [notes, setNotes] = useState(initNotes);
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -470,9 +476,9 @@ export default function AddEditSessionScreen() {
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     const sTime = new Date(date);
-    sTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+    sTime.setHours(startTimeRef.current.getHours(), startTimeRef.current.getMinutes(), 0, 0);
     const eTime = new Date(date);
-    eTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+    eTime.setHours(endTimeRef.current.getHours(), endTimeRef.current.getMinutes(), 0, 0);
 
     if (eTime <= sTime) { showToast('שעת סיום חייבת להיות אחרי שעת התחלה', 'error'); return; }
 
@@ -556,7 +562,7 @@ export default function AddEditSessionScreen() {
                 {'שעת התחלה'}
               </Text>
               <View style={{ alignItems: 'flex-end' }}>
-                <TimeSpinner value={startTime} onChange={(d) => { setStartTime(d); setErrors((e) => ({ ...e, time: '' })); }} />
+                <TimeSpinner value={startTime} onChange={(d) => { setStartTimeSafe(d); setErrors((e) => ({ ...e, time: '' })); }} />
               </View>
             </View>
 
@@ -566,7 +572,7 @@ export default function AddEditSessionScreen() {
                 {'שעת סיום'}
               </Text>
               <View style={{ alignItems: 'flex-end' }}>
-                <TimeSpinner value={endTime} onChange={(d) => { setEndTime(d); setErrors((e) => ({ ...e, time: '' })); }} />
+                <TimeSpinner value={endTime} onChange={(d) => { setEndTimeSafe(d); setErrors((e) => ({ ...e, time: '' })); }} />
               </View>
             </View>
 
