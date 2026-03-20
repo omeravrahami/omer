@@ -60,8 +60,12 @@ export default function AddDayRecordScreen() {
 
   const dateLabel = selectedDate.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  // Local date string (no UTC offset shift)
+  const toLocalDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   const handleSubmit = () => {
-    const dateStr = selectedDate.toISOString().slice(0, 10);
+    const dateStr = toLocalDate(selectedDate);
 
     if (sessionType === 'shift') {
       const start = new Date(selectedDate);

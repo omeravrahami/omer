@@ -466,6 +466,9 @@ export default function AddEditSessionScreen() {
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
+    const toLocalDate = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     const sTime = new Date(date);
     sTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
     const eTime = new Date(date);
@@ -473,7 +476,7 @@ export default function AddEditSessionScreen() {
 
     if (eTime <= sTime) { showToast('שעת סיום חייבת להיות אחרי שעת התחלה', 'error'); return; }
 
-    const sessionDate = sTime.toISOString().slice(0, 10);
+    const sessionDate = toLocalDate(date);
     const breakPayload = breaks.map((b) => {
       const bs = new Date(date); bs.setHours(b.startTime.getHours(), b.startTime.getMinutes(), 0, 0);
       const be = new Date(date); be.setHours(b.endTime.getHours(), b.endTime.getMinutes(), 0, 0);
