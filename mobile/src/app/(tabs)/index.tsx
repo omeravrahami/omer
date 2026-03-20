@@ -447,26 +447,26 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       {/* Ambient glow behind the time */}
       <Animated.View style={[{
         position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
+        width: 320,
+        height: 320,
+        borderRadius: 160,
         backgroundColor: '#1D4ED8',
-        top: -20,
+        top: -40,
         alignSelf: 'center',
       }, glowStyle]} />
 
       {/* Current time display */}
       <Text
         style={{
-          fontSize: 72,
-          fontWeight: '200',
+          fontSize: 80,
+          fontWeight: '300',
           color: '#FFFFFF',
           fontVariant: ['tabular-nums'],
-          letterSpacing: 4,
-          textShadowColor: 'rgba(96,165,250,0.5)',
+          letterSpacing: 6,
+          textShadowColor: 'rgba(96,165,250,0.6)',
           textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 24,
-          marginBottom: 4,
+          textShadowRadius: 32,
+          marginBottom: 6,
         }}
       >
         {currentTime}
@@ -475,13 +475,14 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       {/* Subtitle */}
       <Text
         style={{
-          color: 'rgba(255,255,255,0.38)',
-          fontSize: 13,
-          letterSpacing: 0.5,
-          marginBottom: 28,
+          color: 'rgba(255,255,255,0.55)',
+          fontSize: 15,
+          letterSpacing: 0.8,
+          fontWeight: '500',
+          marginBottom: 32,
         }}
       >
-        {'\u05DC\u05D7\u05E5 \u05DC\u05D4\u05EA\u05D7\u05DC\u05EA \u05DE\u05E9\u05DE\u05E8\u05EA'}
+        {'לחץ להתחלת משמרת'}
       </Text>
 
       {/* CTA Button — compact, centered, premium */}
@@ -499,7 +500,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
             end={{ x: 1, y: 0 }}
             style={{
               height: 52,
-              width: 220,
+              width: 240,
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row-reverse',
@@ -511,7 +512,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
             ) : (
               <>
                 <Play size={18} color="#FFF" fill="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
+                <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 }}>
                   {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
                 </Text>
               </>
@@ -724,12 +725,13 @@ export default function DashboardScreen() {
             paddingHorizontal: 20,
             paddingTop: 16,
             paddingBottom: 12,
-            flexDirection: 'row-reverse',
-            alignItems: 'flex-end',
+            flexDirection: 'row',
+            alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <View style={{ alignItems: 'flex-end' }}>
+          {/* Logo on LEFT */}
+          <View style={{ alignItems: 'flex-start' }}>
             <WorkClockLogo size="small" />
             <Text style={{ color: 'rgba(255,255,255,0.38)', fontSize: 11, marginTop: 2, letterSpacing: 0.3 }}>
               {hebrewDate}
@@ -767,52 +769,50 @@ export default function DashboardScreen() {
         >
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
-            <View
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 24,
-                marginHorizontal: 16,
-                marginBottom: 16,
-                overflow: 'hidden',
-                shadowColor: '#0B1020',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 12,
-                elevation: 4,
-              }}
-            >
-              {/* Week stat */}
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 24,
+              marginHorizontal: 16,
+              marginBottom: 16,
+              overflow: 'hidden',
+              shadowColor: '#0B1020',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.07,
+              shadowRadius: 14,
+              elevation: 4,
+            }}>
               <View style={{ flexDirection: 'row-reverse' }}>
-                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 20, alignItems: 'flex-end', borderBottomWidth: 0 }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {/* Week stat — centered */}
+                <View style={{ flex: 1, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
                     {'השבוע'}
                   </Text>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'baseline', gap: 4 }}>
-                    <Text style={{ color: '#2563EB', fontSize: 32, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 36 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 40 }}>
                       {weekStats ? weekStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#93C5FD', fontSize: 14, fontWeight: '600' }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#93C5FD', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
-                  <Text style={{ color: '#CBD5E1', fontSize: 12, marginTop: 4 }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
                     {`${weekStats?.workDaysCount ?? 0} ימי עבודה`}
                   </Text>
                 </View>
 
                 {/* Divider */}
-                <View style={{ width: 1, backgroundColor: '#F1F5F9', marginVertical: 16 }} />
+                <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 18 }} />
 
-                {/* Month stat */}
-                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 20, alignItems: 'flex-end' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {/* Month stat — centered */}
+                <View style={{ flex: 1, paddingVertical: 22, paddingHorizontal: 16, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>
                     {'החודש'}
                   </Text>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'baseline', gap: 4 }}>
-                    <Text style={{ color: '#059669', fontSize: 32, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 36 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                    <Text style={{ color: '#059669', fontSize: 36, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 40 }}>
                       {monthStats ? monthStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#6EE7B7', fontSize: 14, fontWeight: '600' }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#34D399', fontSize: 16, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
                   </View>
-                  <Text style={{ color: '#CBD5E1', fontSize: 12, marginTop: 4 }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 5, fontWeight: '500' }}>
                     {monthStats && monthStats.totalPay > 0 ? formatCurrency(monthStats.totalPay) : '—'}
                   </Text>
                 </View>
@@ -899,7 +899,7 @@ function ActionCard({
           backgroundColor: '#FFFFFF',
           borderRadius: 20,
           padding: 18,
-          alignItems: 'flex-end',
+          alignItems: 'center',
           shadowColor: '#0B1020',
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.06,
@@ -918,10 +918,10 @@ function ActionCard({
         }}>
           {icon}
         </View>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', textAlign: 'right', marginBottom: 2 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', textAlign: 'center', marginBottom: 2 }}>
           {title}
         </Text>
-        <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'right' }}>
+        <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
           {subtitle}
         </Text>
       </Pressable>
