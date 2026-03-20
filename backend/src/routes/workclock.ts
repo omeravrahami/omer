@@ -574,17 +574,18 @@ workclockRoutes.get("/api/stats/:deviceId", async (c) => {
     orderBy: { date: "asc" },
   });
 
-  const totalHours = sessions.reduce((sum, s) => sum + s.netMinutes / 60, 0);
-  const totalPay = sessions.reduce((sum, s) => sum + s.totalPay, 0);
+  const shiftSessions = sessions.filter(s => !s.sessionType || s.sessionType === 'shift');
+  const totalHours = shiftSessions.reduce((sum, s) => sum + s.netMinutes / 60, 0);
+  const totalPay = shiftSessions.reduce((sum, s) => sum + s.totalPay, 0);
 
-  // Unique work days
-  const uniqueDays = new Set(sessions.map((s) => s.date));
+  // Unique work days (shift sessions only)
+  const uniqueDays = new Set(shiftSessions.map((s) => s.date));
   const workDaysCount = uniqueDays.size;
   const avgHoursPerDay = workDaysCount > 0 ? totalHours / workDaysCount : 0;
 
-  // Daily data grouped by date
+  // Daily data grouped by date (shift sessions only)
   const dailyMap = new Map<string, { hours: number; pay: number; sessions: number }>();
-  for (const s of sessions) {
+  for (const s of shiftSessions) {
     const entry = dailyMap.get(s.date) ?? { hours: 0, pay: 0, sessions: 0 };
     entry.hours += s.netMinutes / 60;
     entry.pay += s.totalPay;

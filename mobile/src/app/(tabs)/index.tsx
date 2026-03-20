@@ -320,7 +320,7 @@ function ActiveSessionHero({
       </View>
 
       {/* Action buttons */}
-      <View style={{ flexDirection: 'row-reverse', gap: 12, paddingHorizontal: 20, marginTop: 24, paddingBottom: 8 }}>
+      <View style={{ flexDirection: 'row-reverse', gap: 12, paddingHorizontal: 20, marginTop: 24, paddingBottom: 16 }}>
         {/* End work */}
         <Animated.View style={[{ flex: 1 }, endAnimStyle]}>
           <Pressable
@@ -691,6 +691,9 @@ function TaxStatusCard() {
       <Text style={{ fontSize: 10, color: '#94A3B8', textAlign: 'right', marginTop: 8 }}>
         {'\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E7\u05D9\u05D9\u05DE\u05D9\u05DD'}
       </Text>
+      <Text style={{ fontSize: 10, color: '#CBD5E1', textAlign: 'center', marginTop: 6 }}>
+        {'לחץ לפרטי מדרגות המס ←'}
+      </Text>
     </Animated.View>
     </Pressable>
   );
@@ -770,7 +773,6 @@ export default function DashboardScreen() {
                 borderRadius: 24,
                 marginHorizontal: 16,
                 marginBottom: 16,
-                flexDirection: 'row-reverse',
                 overflow: 'hidden',
                 shadowColor: '#0B1020',
                 shadowOffset: { width: 0, height: 2 },
@@ -779,49 +781,41 @@ export default function DashboardScreen() {
                 elevation: 4,
               }}
             >
-              {/* Week */}
-              <View style={{ flex: 1, paddingVertical: 18, paddingHorizontal: 20, alignItems: 'flex-end' }}>
-                <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500', marginBottom: 4, textAlign: 'right' }}>
-                  {'\u05D4\u05E9\u05D1\u05D5\u05E2'}
-                </Text>
-                <Text
-                  style={{
-                    color: '#2563EB',
-                    fontSize: 28,
-                    fontWeight: '700',
-                    fontVariant: ['tabular-nums'],
-                    lineHeight: 32,
-                  }}
-                >
-                  {weekStats ? `${weekStats.totalHours.toFixed(1)}h` : '0h'}
-                </Text>
-                <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 3 }}>
-                  {`${weekStats?.workDaysCount ?? 0} \u05D9\u05DE\u05D9\u05DD`}
-                </Text>
-              </View>
+              {/* Week stat */}
+              <View style={{ flexDirection: 'row-reverse' }}>
+                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 20, alignItems: 'flex-end', borderBottomWidth: 0 }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {'השבוע'}
+                  </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'baseline', gap: 4 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 32, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 36 }}>
+                      {weekStats ? weekStats.totalHours.toFixed(1) : '0'}
+                    </Text>
+                    <Text style={{ color: '#93C5FD', fontSize: 14, fontWeight: '600' }}>{'שע׳'}</Text>
+                  </View>
+                  <Text style={{ color: '#CBD5E1', fontSize: 12, marginTop: 4 }}>
+                    {`${weekStats?.workDaysCount ?? 0} ימי עבודה`}
+                  </Text>
+                </View>
 
-              {/* Separator */}
-              <View style={{ width: 1, backgroundColor: '#F1F5F9', marginVertical: 14 }} />
+                {/* Divider */}
+                <View style={{ width: 1, backgroundColor: '#F1F5F9', marginVertical: 16 }} />
 
-              {/* Month */}
-              <View style={{ flex: 1, paddingVertical: 18, paddingHorizontal: 20, alignItems: 'flex-end' }}>
-                <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500', marginBottom: 4, textAlign: 'right' }}>
-                  {'\u05D4\u05D7\u05D5\u05D3\u05E9'}
-                </Text>
-                <Text
-                  style={{
-                    color: '#059669',
-                    fontSize: 28,
-                    fontWeight: '700',
-                    fontVariant: ['tabular-nums'],
-                    lineHeight: 32,
-                  }}
-                >
-                  {monthStats ? `${monthStats.totalHours.toFixed(1)}h` : '0h'}
-                </Text>
-                <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 3 }}>
-                  {monthStats ? formatCurrency(monthStats.totalPay) : formatCurrency(0)}
-                </Text>
+                {/* Month stat */}
+                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 20, alignItems: 'flex-end' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {'החודש'}
+                  </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'baseline', gap: 4 }}>
+                    <Text style={{ color: '#059669', fontSize: 32, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 36 }}>
+                      {monthStats ? monthStats.totalHours.toFixed(1) : '0'}
+                    </Text>
+                    <Text style={{ color: '#6EE7B7', fontSize: 14, fontWeight: '600' }}>{'שע׳'}</Text>
+                  </View>
+                  <Text style={{ color: '#CBD5E1', fontSize: 12, marginTop: 4 }}>
+                    {monthStats && monthStats.totalPay > 0 ? formatCurrency(monthStats.totalPay) : '—'}
+                  </Text>
+                </View>
               </View>
             </View>
           </Animated.View>
