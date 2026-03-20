@@ -31,7 +31,7 @@ import {
   Shield,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
-import { useSettingsStore } from '@/lib/state/settings-store';
+import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
 import {
   useActiveSession,
   useStartWork,
@@ -53,6 +53,7 @@ import {
   calcIsraeliTax,
   getBracketInfo,
   getSmartTips,
+  type TaxResult,
 } from '@/lib/utils/tax-calc';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import type { WorkSession } from '@/lib/types';
@@ -554,6 +555,162 @@ function AdBanner() {
   );
 }
 
+// ─── Monthly Salary Breakdown Card ────────────────────────────────────────────
+
+function MonthlySalaryCard({
+  baseGross,
+  taxResult,
+  carBenefitMonthly,
+  carGrossupMonthly,
+  bonusAdditions,
+  giftAdditions,
+}: {
+  baseGross: number;
+  taxResult: TaxResult;
+  carBenefitMonthly: number;
+  carGrossupMonthly: number;
+  bonusAdditions: OneTimeAddition[];
+  giftAdditions: OneTimeAddition[];
+}) {
+  if (taxResult.taxableGross <= 0 && baseGross <= 0) return null;
+
+  type RowKind = 'income' | 'deduction' | 'neutral' | 'total';
+
+  const rows: { label: string; value: number; kind: RowKind; icon: string }[] = [
+    { label: 'ברוטו שכר', value: baseGross, kind: 'income', icon: '💰' },
+    ...(taxResult.employerPension > 0
+      ? [{ label: 'הפרשות מעסיק לפנסיה', value: taxResult.employerPension, kind: 'income' as RowKind, icon: '🏦' }]
+      : []),
+    ...(carBenefitMonthly > 0
+      ? [{ label: 'שווי שימוש רכב למס', value: carBenefitMonthly, kind: 'neutral' as RowKind, icon: '🚗' }]
+      : []),
+    ...(carGrossupMonthly > 0
+      ? [{ label: 'גילום רכב', value: carGrossupMonthly, kind: 'neutral' as RowKind, icon: '🚗' }]
+      : []),
+    ...bonusAdditions.map(a => ({ label: a.name, value: a.amount, kind: 'income' as RowKind, icon: '💎' })),
+    ...giftAdditions.map(a => ({ label: a.name, value: a.amount, kind: 'neutral' as RowKind, icon: '🎁' })),
+  ];
+
+  const deductionRows: { label: string; value: number; kind: RowKind; icon: string }[] = [
+    { label: 'מס הכנסה', value: taxResult.incomeTax, kind: 'deduction', icon: '📊' },
+    { label: 'ביטוח לאומי', value: taxResult.nationalInsurance, kind: 'deduction', icon: '🏥' },
+    { label: 'ביטוח בריאות', value: taxResult.healthInsurance, kind: 'deduction', icon: '🏥' },
+    ...(taxResult.trainingFundDeduction > 0
+      ? [{ label: 'קרן השתלמות', value: taxResult.trainingFundDeduction, kind: 'deduction' as RowKind, icon: '🏦' }]
+      : []),
+  ];
+
+  const rowColor = (kind: RowKind) => {
+    if (kind === 'income') return '#22C55E';
+    if (kind === 'deduction') return '#F87171';
+    if (kind === 'total') return '#F0F6FF';
+    return '#94A3B8';
+  };
+
+  const Row = ({ label, value, kind, icon }: { label: string; value: number; kind: RowKind; icon: string }) => (
+    <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, flex: 1 }}>
+        <Text style={{ fontSize: 14 }}>{icon}</Text>
+        <Text style={{ fontSize: 13, color: '#CBD5E1', textAlign: 'right', flex: 1 }}>{label}</Text>
+      </View>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: rowColor(kind), fontVariant: ['tabular-nums'] }}>
+        {kind === 'deduction' ? `-${formatCurrency(value)}` : formatCurrency(value)}
+      </Text>
+    </View>
+  );
+
+  const Divider = () => (
+    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4 }} />
+  );
+
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(180).duration(400)}
+      style={{
+        backgroundColor: '#0D1526',
+        borderRadius: 20,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        padding: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(59,130,246,0.15)',
+        shadowColor: '#3B82F6',
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+      }}
+      testID="monthly-salary-card"
+    >
+      {/* Header */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 16 }}>{'💼'}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#F0F6FF', textAlign: 'right' }}>{'פירוט משכורת חודש נוכחי'}</Text>
+        </View>
+      </View>
+
+      {/* Income rows */}
+      {rows.map((r, i) => <Row key={i} {...r} />)}
+
+      {/* ברוטו למס summary */}
+      <Divider />
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#F0F6FF', textAlign: 'right' }}>{'ברוטו למס'}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: '#F0F6FF', fontVariant: ['tabular-nums'] }}>
+          {formatCurrency(taxResult.taxableGross)}
+        </Text>
+      </View>
+      <Divider />
+
+      {/* Deduction rows */}
+      {deductionRows.map((r, i) => <Row key={i} {...r} />)}
+
+      {/* Net pay subtotal */}
+      <Divider />
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
+        <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>{'נטו לפני תוספות'}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#F0F6FF', fontVariant: ['tabular-nums'] }}>
+          {formatCurrency(taxResult.netPay)}
+        </Text>
+      </View>
+
+      {/* Transportation */}
+      {taxResult.transportationAllowance > 0 ? (
+        <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 14 }}>{'🚌'}</Text>
+            <Text style={{ fontSize: 13, color: '#CBD5E1' }}>{'סיבוס / נסיעות'}</Text>
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
+            {`+${formatCurrency(taxResult.transportationAllowance)}`}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Final take-home */}
+      <View style={{
+        backgroundColor: 'rgba(34,197,94,0.1)',
+        borderRadius: 12,
+        padding: 14,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(34,197,94,0.2)',
+        flexDirection: 'row-reverse',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#F0F6FF' }}>{'נטו לקבלה'}</Text>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
+          {formatCurrency(taxResult.finalTakeHome)}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 // ─── Tax Status Card ──────────────────────────────────────────────────────────
 
 function TaxStatusCard() {
@@ -918,6 +1075,16 @@ export default function DashboardScreen() {
               </View>
             </View>
           </Animated.View>
+
+          {/* Monthly Salary Breakdown */}
+          <MonthlySalaryCard
+            baseGross={baseMonthlyGross}
+            taxResult={homeTaxResult}
+            carBenefitMonthly={carBenefitHome}
+            carGrossupMonthly={carGrossupHome}
+            bonusAdditions={oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'bonus')}
+            giftAdditions={oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'gift')}
+          />
 
           {/* Tax Status Card */}
           <TaxStatusCard />
