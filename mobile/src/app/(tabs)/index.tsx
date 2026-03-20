@@ -403,16 +403,31 @@ function ActiveSessionHero({
 function EmptySessionHero({ deviceId }: { deviceId: string }) {
   const startWork = useStartWork(deviceId);
   const showToast = useToastStore((s) => s.showToast);
+  const [currentTime, setCurrentTime] = useState(() => {
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const n = new Date();
+      setCurrentTime(`${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, []);
 
   const scale = useSharedValue(1);
+  const glowOpacity = useSharedValue(0.15);
+
+  useEffect(() => {
+    glowOpacity.value = withRepeat(withTiming(0.35, { duration: 2500 }), -1, true);
+  }, [glowOpacity]);
 
   const handleStart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     startWork.mutate(undefined, {
-      onSuccess: () =>
-        showToast('\u05DE\u05E9\u05DE\u05E8\u05EA \u05D4\u05EA\u05D7\u05D9\u05DC\u05D4!'),
-      onError: () =>
-        showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D4\u05EA\u05D7\u05DC\u05EA \u05DE\u05E9\u05DE\u05E8\u05EA', 'error'),
+      onSuccess: () => showToast('\u05DE\u05E9\u05DE\u05E8\u05EA \u05D4\u05EA\u05D7\u05D9\u05DC\u05D4!'),
+      onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D4\u05EA\u05D7\u05DC\u05EA \u05DE\u05E9\u05DE\u05E8\u05EA', 'error'),
     });
   }, [startWork, showToast]);
 
@@ -420,140 +435,84 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
     transform: [{ scale: scale.value }],
   }));
 
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
+
   return (
     <Animated.View
       entering={FadeInDown.duration(600)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 24, paddingBottom: 8 }}
+      style={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 }}
     >
-      {/* Icon area */}
-      <View
-        style={{
-          width: 120,
-          height: 120,
-          borderRadius: 60,
-          backgroundColor: 'rgba(37,99,235,0.08)',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.08)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 24,
-        }}
-      >
-        {/* Outer ring */}
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            borderWidth: 2,
-            borderColor: 'rgba(96,165,250,0.3)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {/* Inner ring */}
-          <View
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              borderWidth: 2,
-              borderColor: 'rgba(96,165,250,0.6)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* Clock hands */}
-            <View
-              style={{
-                width: 2,
-                height: 14,
-                backgroundColor: '#60A5FA',
-                borderRadius: 1,
-                position: 'absolute',
-                top: 8,
-                alignSelf: 'center',
-              }}
-            />
-            <View
-              style={{
-                width: 10,
-                height: 2,
-                backgroundColor: '#60A5FA',
-                borderRadius: 1,
-                position: 'absolute',
-                left: 13,
-                alignSelf: 'center',
-              }}
-            />
-            <View
-              style={{
-                width: 4,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: '#60A5FA',
-                alignSelf: 'center',
-              }}
-            />
-          </View>
-        </View>
-      </View>
+      {/* Ambient glow behind the time */}
+      <Animated.View style={[{
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: '#1D4ED8',
+        top: -20,
+        alignSelf: 'center',
+      }, glowStyle]} />
 
+      {/* Current time display */}
       <Text
         style={{
+          fontSize: 72,
+          fontWeight: '200',
           color: '#FFFFFF',
-          fontSize: 20,
-          fontWeight: '700',
-          textAlign: 'center',
-          marginBottom: 8,
-          letterSpacing: 0.3,
+          fontVariant: ['tabular-nums'],
+          letterSpacing: 4,
+          textShadowColor: 'rgba(96,165,250,0.5)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 24,
+          marginBottom: 4,
         }}
       >
-        {'\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05D4\u05EA\u05D7\u05DC\u05EA\u05DD \u05DE\u05E9\u05DE\u05E8\u05EA'}
-      </Text>
-      <Text
-        style={{
-          color: 'rgba(255,255,255,0.45)',
-          fontSize: 14,
-          textAlign: 'center',
-          marginBottom: 32,
-        }}
-      >
-        {'\u05DC\u05D7\u05E6\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D9\u05DC \u05DC\u05E2\u05E7\u05D5\u05D1'}
+        {currentTime}
       </Text>
 
-      {/* CTA Button */}
-      <Animated.View style={[{ width: '100%' }, animStyle]}>
+      {/* Subtitle */}
+      <Text
+        style={{
+          color: 'rgba(255,255,255,0.38)',
+          fontSize: 13,
+          letterSpacing: 0.5,
+          marginBottom: 28,
+        }}
+      >
+        {'\u05DC\u05D7\u05E5 \u05DC\u05D4\u05EA\u05D7\u05DC\u05EA \u05DE\u05E9\u05DE\u05E8\u05EA'}
+      </Text>
+
+      {/* CTA Button — compact, centered, premium */}
+      <Animated.View style={animStyle}>
         <Pressable
-          onPressIn={() => { scale.value = withSpring(0.96, { damping: 15 }); }}
+          onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
           onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
           onPress={handleStart}
           testID="start-work-button"
-          style={{ borderRadius: 18, overflow: 'hidden' }}
+          style={{ borderRadius: 99, overflow: 'hidden' }}
         >
           <LinearGradient
-            colors={['#2563EB', '#1D4ED8']}
+            colors={['#3B82F6', '#1D4ED8']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
-              height: 64,
+              height: 52,
+              width: 220,
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'row-reverse',
               gap: 10,
-              shadowColor: '#2563EB',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.5,
-              shadowRadius: 20,
             }}
           >
             {startWork.isPending ? (
               <ActivityIndicator color="#FFF" size="small" />
             ) : (
               <>
-                <Play size={22} color="#FFF" fill="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '700', letterSpacing: 0.5 }}>
+                <Play size={18} color="#FFF" fill="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 }}>
                   {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
                 </Text>
               </>
@@ -768,7 +727,7 @@ export default function DashboardScreen() {
         </Animated.View>
 
         {/* Hero content */}
-        <View style={{ paddingTop: 20, paddingBottom: 32, minHeight: 300, justifyContent: 'center' }}>
+        <View style={{ paddingTop: 12, paddingBottom: 24, minHeight: 180, justifyContent: 'center' }}>
           {isLoading ? (
             <View style={{ alignItems: 'center', paddingVertical: 40 }}>
               <ActivityIndicator size="large" color="#60A5FA" testID="loading-indicator" />

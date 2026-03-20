@@ -41,7 +41,7 @@ export default function AddDayRecordScreen() {
       const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
       if (todayKey === month) return today;
       const [y, m] = month.split('-').map(Number);
-      return new Date(y!, m! - 1, 1);
+      return new Date(y!, m!, 0);
     }
     return today;
   }, [month]);
