@@ -38,9 +38,7 @@ interface Preset {
   amount: number;
 }
 
-const PRESETS: Preset[] = [
-  { name: 'שווי שימוש ברכב', type: 'fixed', amount: 0 },
-  { name: 'סיבוס', type: 'fixed', amount: 0 },
+const STATIC_PRESETS: Preset[] = [
   { name: 'פנסיה', type: 'percent', amount: 6 },
   { name: 'קרן השלמות', type: 'percent', amount: 2.5 },
 ];
@@ -104,6 +102,15 @@ function DeductionsSection() {
   const deductions = useSettingsStore((s) => s.deductions);
   const addDeduction = useSettingsStore((s) => s.addDeduction);
   const removeDeduction = useSettingsStore((s) => s.removeDeduction);
+  const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const transportationValue = useSettingsStore((s) => s.transportationValue);
+  const transportationType = useSettingsStore((s) => s.transportationType);
+
+  const PRESETS: Preset[] = [
+    { name: 'שווי שימוש ברכב', type: 'fixed', amount: carBenefitMonthly },
+    { name: 'סיבוס', type: transportationType, amount: transportationValue },
+    ...STATIC_PRESETS,
+  ];
 
   const [expanded, setExpanded] = useState(false);
   const [newName, setNewName] = useState('');
