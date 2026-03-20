@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import {
   SlidersHorizontal,
   Coffee,
   CircleCheck,
+  Shield,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
@@ -39,6 +40,7 @@ import {
   useStartBreak,
   useEndBreak,
   useStats,
+  useSessions,
 } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import {
@@ -48,6 +50,10 @@ import {
   getTimerDisplay,
   formatHours,
 } from '@/lib/utils';
+import {
+  getBracketInfo,
+  getSmartTips,
+} from '@/lib/utils/tax-calc';
 import type { WorkSession } from '@/lib/types';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
@@ -587,6 +593,142 @@ function AdBanner() {
   );
 }
 
+// ─── Tax Status Card ──────────────────────────────────────────────────────────
+
+function TaxStatusCard() {
+  const deviceId = useDeviceId();
+  const hourlyRate = useSettingsStore((s) => s.hourlyRate);
+  const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
+  const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
+
+  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const { data: sessions } = useSessions(deviceId, currentMonth);
+
+  const totalNetHours = useMemo(
+    () => (sessions ?? []).reduce((sum, s) => sum + s.netMinutes / 60, 0),
+    [sessions]
+  );
+  const currentMonthlyGross = useMemo(
+    () => totalNetHours * hourlyRate,
+    [totalNetHours, hourlyRate]
+  );
+
+  const bracketInfo = useMemo(
+    () => getBracketInfo(currentMonthlyGross, hourlyRate, carBenefitMonthly),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly]
+  );
+
+  const tips = useMemo(
+    () => getSmartTips(currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours * 20, totalNetHours),
+    [currentMonthlyGross, hourlyRate, carBenefitMonthly, taxCreditPoints, dailyGoalHours, totalNetHours]
+  );
+
+  const bracketRate = Math.round(bracketInfo.currentRate * 100);
+  const isHighBracket = bracketRate >= 31;
+  const badgeColor = isHighBracket ? '#F59E0B' : '#3B82F6';
+  const badgeBg = isHighBracket ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)';
+
+  // Progress toward next bracket (0–1)
+  const progress = useMemo(() => {
+    if (bracketInfo.isTopBracket || bracketInfo.monthlyAmountToNextBracket === null) return 1;
+    // Find the current bracket threshold (monthly)
+    // We know gross is before threshold by monthlyAmountToNextBracket
+    const currentBracketMonthlyThreshold = currentMonthlyGross + bracketInfo.monthlyAmountToNextBracket;
+    if (currentBracketMonthlyThreshold <= 0) return 0;
+    // Find previous bracket threshold to compute span
+    // Use tax config brackets (annual / 12)
+    const annualBrackets = [0, 84120, 120720, 193800, 269280, 558240, 721560];
+    const annualTaxable = (currentMonthlyGross + carBenefitMonthly) * 12;
+    let prevThreshold = 0;
+    for (let i = 0; i < annualBrackets.length; i++) {
+      if (annualTaxable <= annualBrackets[i + 1] || i === annualBrackets.length - 1) {
+        prevThreshold = annualBrackets[i] / 12;
+        break;
+      }
+    }
+    const span = currentBracketMonthlyThreshold - prevThreshold;
+    if (span <= 0) return 0;
+    return Math.min(1, Math.max(0, (currentMonthlyGross - prevThreshold) / span));
+  }, [bracketInfo, currentMonthlyGross, carBenefitMonthly]);
+
+  const firstTip = tips[0] ?? null;
+
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(150).duration(400)}
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        padding: 18,
+        shadowColor: '#0B1020',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 5,
+      }}
+      testID="tax-status-card"
+    >
+      {/* Header row */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(6,182,212,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+            <Shield size={17} color="#06B6D4" strokeWidth={2} />
+          </View>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A', textAlign: 'right' }}>
+            {'\u05DE\u05E6\u05D1 \u05DE\u05E1 \u05D4\u05D7\u05D5\u05D3\u05E9'}
+          </Text>
+        </View>
+        {/* Bracket badge */}
+        <View style={{ backgroundColor: badgeBg, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: badgeColor }}>
+            {`\u05DE\u05D3\u05E8\u05D2\u05D4 ${bracketInfo.currentLabel}`}
+          </Text>
+        </View>
+      </View>
+
+      {/* Progress bar */}
+      <View style={{ marginBottom: 10 }}>
+        <View style={{ height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
+          <View
+            style={{
+              height: 6,
+              borderRadius: 3,
+              width: `${Math.round(progress * 100)}%`,
+              backgroundColor: '#06B6D4',
+            }}
+          />
+        </View>
+      </View>
+
+      {/* Hours to next bracket */}
+      {!bracketInfo.isTopBracket && bracketInfo.hoursToNextBracket !== null ? (
+        <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', textAlign: 'right', marginBottom: 8 }}>
+          {`\u05E0\u05E9\u05D0\u05E8\u05D5 ${Math.ceil(bracketInfo.hoursToNextBracket).toFixed(0)} \u05E9\u05E2\u05D5\u05EA \u05DC\u05DE\u05D3\u05E8\u05D2\u05D4 \u05D4\u05D1\u05D0\u05D4 (${bracketInfo.nextLabel ?? ''})`}
+        </Text>
+      ) : (
+        <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', textAlign: 'right', marginBottom: 8 }}>
+          {'\u05D0\u05EA\u05D4 \u05D1\u05DE\u05D3\u05E8\u05D2\u05EA \u05D4\u05DE\u05E1 \u05D4\u05D2\u05D1\u05D5\u05D4\u05D4 \u05D1\u05D9\u05D5\u05EA\u05E8'}
+        </Text>
+      )}
+
+      {/* Smart insight */}
+      {firstTip ? (
+        <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'right', lineHeight: 18 }}>
+          {firstTip}
+        </Text>
+      ) : null}
+
+      {/* Disclaimer */}
+      <Text style={{ fontSize: 10, color: '#94A3B8', textAlign: 'right', marginTop: 8 }}>
+        {'\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D1\u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E7\u05D9\u05D9\u05DE\u05D9\u05DD'}
+      </Text>
+    </Animated.View>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
@@ -717,6 +859,9 @@ export default function DashboardScreen() {
             </View>
           </Animated.View>
 
+          {/* Tax Status Card */}
+          <TaxStatusCard />
+
           {/* Quick action pills */}
           <Animated.View entering={FadeInUp.delay(200).duration(400)}>
             <ScrollView
@@ -739,7 +884,7 @@ export default function DashboardScreen() {
               />
               <QuickPill
                 icon={<BarChart3 size={16} color="#7C3AED" />}
-                label={'\u05E1\u05D9\u05DB\u05D5\u05DE\u05D9\u05DD'}
+                label={'\u05EA\u05D5\u05D1\u05E0\u05D5\u05EA'}
                 onPress={() => router.push('/(tabs)/reports' as never)}
                 testID="quick-reports"
               />
