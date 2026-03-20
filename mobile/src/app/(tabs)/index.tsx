@@ -28,7 +28,7 @@ import {
   BarChart3,
   SlidersHorizontal,
   Coffee,
-  CheckCircle,
+  CircleCheck,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
@@ -74,7 +74,7 @@ function WorkClockLogo({ size }: { size: 'small' | 'large' }) {
       <View style={{ width: iconSize + 6, height: iconSize + 6, alignItems: 'center', justifyContent: 'center' }}>
         <Clock size={iconSize} color="#38BDF8" strokeWidth={2} />
         <View style={{ position: 'absolute', bottom: -1, right: -1 }}>
-          <CheckCircle size={isSmall ? 12 : 16} color="#4ADE80" fill="#0B1020" strokeWidth={2.5} />
+          <CircleCheck size={isSmall ? 12 : 16} color="#4ADE80" fill="#0B1020" strokeWidth={2.5} />
         </View>
       </View>
       {/* Brand text */}
