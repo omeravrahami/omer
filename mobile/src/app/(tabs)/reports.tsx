@@ -712,9 +712,9 @@ export default function ReportsScreen() {
             </Text>
           </View>
           <View style={{ flex: 1, backgroundColor: BG_CARD, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: BORDER, alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 10, color: TEXT_SECONDARY, marginBottom: 4 }}>{'ברוטו'}</Text>
+            <Text style={{ fontSize: 10, color: TEXT_SECONDARY, marginBottom: 4 }}>{'ברוטו למס'}</Text>
             <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>
-              {formatCurrency(currentMonthlyGross)}
+              {formatCurrency(taxResult.taxableGross)}
             </Text>
           </View>
           <View style={{ flex: 1, backgroundColor: BG_CARD, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: BORDER, alignItems: 'flex-end' }}>
