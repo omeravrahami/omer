@@ -11,25 +11,157 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ChevronLeft, ChevronRight, Clock, Calendar, TrendingDown, Pencil } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
-import { useSettingsStore, calcDeductions } from '@/lib/state/settings-store';
+import { useSettingsStore } from '@/lib/state/settings-store';
 import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatTime, formatCurrency, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
+import { calcTaxForHours } from '@/lib/utils/tax-calc';
 import type { WorkSession } from '@/lib/types';
 
 // ─── Dark theme ───────────────────────────────────────────────────────────────
 
 const BG_DEEP = '#080E1A';
 const BG_CARD = '#0F1729';
-const BG_INPUT = '#1A2540';
 const BORDER = 'rgba(255,255,255,0.08)';
 const TEXT_PRIMARY = '#F0F6FF';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.5)';
 const ACCENT_BLUE = '#3B82F6';
 const ACCENT_GREEN = '#22C55E';
+const COLOR_RED = '#F87171';
+const COLOR_AMBER = '#FBBF24';
+const DIVIDER = 'rgba(255,255,255,0.06)';
+
+// ─── Tax Summary Card ─────────────────────────────────────────────────────────
+
+function TaxSummaryCard({
+  totalNetHours,
+  days,
+  hourlyRate,
+  carBenefitMonthly,
+  taxCreditPoints,
+  currency,
+  monthLabel,
+}: {
+  totalNetHours: number;
+  days: number;
+  hourlyRate: number;
+  carBenefitMonthly: number;
+  taxCreditPoints: number;
+  currency: string;
+  monthLabel: string;
+}) {
+  const tax = useMemo(
+    () => calcTaxForHours(totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints),
+    [totalNetHours, hourlyRate, carBenefitMonthly, taxCreditPoints]
+  );
+
+  const fmt = (n: number) => formatCurrency(Math.round(n), currency);
+
+  return (
+    <View
+      style={{
+        backgroundColor: '#0F1729',
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(6,182,212,0.25)',
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 20,
+        elevation: 10,
+      }}
+      testID="tax-summary-card"
+    >
+      {/* Header row */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right' }}>
+          {monthLabel}
+        </Text>
+        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(6,182,212,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+          <Clock size={18} color="#06B6D4" />
+        </View>
+      </View>
+
+      {/* Hours row */}
+      <TaxRow label="שעות עבודה" value={`${totalNetHours.toFixed(1)} שעות`} valueColor={TEXT_PRIMARY} />
+      <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
+        {`${days} ימי עבודה`}
+      </Text>
+
+      <Divider />
+
+      {/* Gross */}
+      <TaxRow label="ברוטו" value={fmt(tax.grossPay)} valueColor={TEXT_PRIMARY} />
+      {carBenefitMonthly > 0 && tax.taxableGross > tax.grossPay ? (
+        <TaxRow label="שווי רכב למס" value={fmt(tax.taxableGross - tax.grossPay)} valueColor={COLOR_AMBER} />
+      ) : null}
+
+      <Divider />
+
+      {/* Deductions */}
+      <TaxRow label="מס הכנסה" value={`-${fmt(tax.incomeTax)}`} valueColor={COLOR_RED} dot="#F87171" />
+      <TaxRow label="ביטוח לאומי" value={`-${fmt(tax.nationalInsurance)}`} valueColor={COLOR_AMBER} dot="#FBBF24" />
+      <TaxRow label="ביטוח בריאות" value={`-${fmt(tax.healthInsurance)}`} valueColor={COLOR_AMBER} dot="#FBBF24" />
+
+      <Divider />
+
+      {/* Net pay box */}
+      <View
+        style={{
+          backgroundColor: 'rgba(34,197,94,0.1)',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#22C55E',
+          padding: 16,
+          flexDirection: 'row-reverse',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: 4,
+          marginBottom: 12,
+        }}
+      >
+        <Text style={{ fontSize: 15, fontWeight: '700', color: '#22C55E', textAlign: 'right' }}>
+          {'נטו לקבלה'}
+        </Text>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
+          {fmt(tax.netPay)}
+        </Text>
+      </View>
+
+      {/* Effective tax rate badge */}
+      <View style={{ alignItems: 'flex-start' }}>
+        <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
+          <Text style={{ fontSize: 12, color: TEXT_SECONDARY, fontVariant: ['tabular-nums'] }}>
+            {`שיעור מס: ${tax.effectiveTaxRate.toFixed(1)}%`}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function TaxRow({ label, value, valueColor, dot }: { label: string; value: string; valueColor: string; dot?: string }) {
+  return (
+    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 7 }}>
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+        {dot ? (
+          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: dot }} />
+        ) : null}
+        <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'right' }}>{label}</Text>
+      </View>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: valueColor, fontVariant: ['tabular-nums'] }}>{value}</Text>
+    </View>
+  );
+}
+
+function Divider() {
+  return <View style={{ height: 1, backgroundColor: DIVIDER, marginVertical: 6 }} />;
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HistoryScreen() {
   const deviceId = useDeviceId();
@@ -37,7 +169,9 @@ export default function HistoryScreen() {
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
   const isPro = useSettingsStore((s) => s.isPro);
-  const deductions = useSettingsStore((s) => s.deductions);
+  const hourlyRate = useSettingsStore((s) => s.hourlyRate);
+  const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
@@ -55,15 +189,12 @@ export default function HistoryScreen() {
   };
 
   const totals = useMemo(() => {
-    if (!sessions) return { hours: 0, grossPay: 0, netPay: 0, deductionsTotal: 0, days: 0 };
+    if (!sessions) return { hours: 0, days: 0 };
     const completed = sessions.filter((s) => s.status === 'completed');
     const hours = completed.reduce((sum, s) => sum + s.netMinutes / 60, 0);
-    const grossPay = completed.reduce((sum, s) => sum + s.totalPay, 0);
-    const deductionsTotal = calcDeductions(grossPay, deductions);
-    const netPay = Math.max(0, grossPay - deductionsTotal);
     const days = new Set(completed.map((s) => s.date)).size;
-    return { hours, grossPay, netPay, deductionsTotal, days };
-  }, [sessions, deductions]);
+    return { hours, days };
+  }, [sessions]);
 
   const grouped = useMemo(() => {
     if (!sessions) return {} as Record<string, WorkSession[]>;
@@ -108,8 +239,6 @@ export default function HistoryScreen() {
     );
   };
 
-  const hasDeductions = deductions.length > 0;
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG_DEEP }} testID="history-screen">
       {/* Month selector */}
@@ -132,61 +261,18 @@ export default function HistoryScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Monthly Summary Card */}
+        {/* Monthly Tax Summary Card */}
         {!isLoading && (
           <Animated.View entering={FadeInDown.duration(350)} style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 12 }}>
-            <View style={{ borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 }}>
-              <LinearGradient
-                colors={['#0B1020', '#1E3A5F']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={{ padding: 24 }}
-              >
-                {/* Hours + gross pay */}
-                <View style={{ flexDirection: 'row-reverse', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5, marginBottom: 4 }}>
-                      {'סה״כ שעות'}
-                    </Text>
-                    <Text style={{ color: '#FFFFFF', fontSize: 40, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 44 }}>
-                      {totals.hours.toFixed(1)}
-                      <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>h</Text>
-                    </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 }}>
-                      {`${totals.days} ימי עבודה`}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5, marginBottom: 4 }}>
-                      {hasDeductions ? 'שכר ברוטו' : 'סה״כ שכר'}
-                    </Text>
-                    <Text style={{ color: '#60A5FA', fontSize: 32, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 36 }}>
-                      {formatCurrency(totals.grossPay, currency)}
-                    </Text>
-                  </View>
-                </View>
-
-                {hasDeductions ? (
-                  <>
-                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 16 }} />
-                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
-                        <TrendingDown size={14} color="rgba(255,255,255,0.45)" />
-                        <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>{'ניכויים'}</Text>
-                      </View>
-                      <Text style={{ color: '#FCA5A5', fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
-                        {`- ${formatCurrency(totals.deductionsTotal, currency)}`}
-                      </Text>
-                    </View>
-                    <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}>{'נטו לקבלה'}</Text>
-                      <Text style={{ color: '#4ADE80', fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>
-                        {formatCurrency(totals.netPay, currency)}
-                      </Text>
-                    </View>
-                  </>
-                ) : null}
-              </LinearGradient>
-            </View>
+            <TaxSummaryCard
+              totalNetHours={totals.hours}
+              days={totals.days}
+              hourlyRate={hourlyRate}
+              carBenefitMonthly={carBenefitMonthly}
+              taxCreditPoints={taxCreditPoints}
+              currency={currency}
+              monthLabel={getHebrewMonthYear(currentDate)}
+            />
           </Animated.View>
         )}
 

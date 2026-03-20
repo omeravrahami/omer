@@ -393,6 +393,8 @@ export default function SettingsScreen() {
   const defaultBreakMinutes = useSettingsStore((s) => s.defaultBreakMinutes);
   const showSalaryOnDashboard = useSettingsStore((s) => s.showSalaryOnDashboard);
   const isPro = useSettingsStore((s) => s.isPro);
+  const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
+  const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -463,6 +465,39 @@ export default function SettingsScreen() {
                 ))}
               </View>
             </SettingRow>
+
+          </SectionCard>
+        </Animated.View>
+
+        {/* Tax calculation section */}
+        <Animated.View entering={FadeInDown.delay(120).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <SectionCard title={'חישוב מס'}>
+
+            <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <SettingRow label={'נקודות זיכוי'}>
+                <NumericInput
+                  storeValue={taxCreditPoints}
+                  onCommit={(val) => save({ taxCreditPoints: val })}
+                  testID="tax-credit-points-input"
+                />
+              </SettingRow>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'ברירת מחדל: 2.25 לרווק/ה'}
+              </Text>
+            </View>
+
+            <View style={{ paddingVertical: 14 }}>
+              <SettingRow label={'שווי שימוש ברכב (חודשי)'} last>
+                <NumericInput
+                  storeValue={carBenefitMonthly}
+                  onCommit={(val) => save({ carBenefitMonthly: val })}
+                  testID="car-benefit-input"
+                />
+              </SettingRow>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'מגדיל את הברוטו החייב במס בלבד'}
+              </Text>
+            </View>
 
           </SectionCard>
         </Animated.View>
