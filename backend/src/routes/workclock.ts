@@ -40,6 +40,17 @@ const updateSessionSchema = z.object({
   status: z.enum(["active", "completed"]).optional(),
 });
 
+const editSessionSchema = z.object({
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+  date: z.string().optional(),
+  notes: z.string().optional(),
+  breaks: z.array(z.object({
+    startTime: z.string().datetime(),
+    endTime: z.string().datetime(),
+  })).optional(),
+});
+
 const startBreakSchema = z.object({
   startTime: z.string().datetime().optional(),
 });
@@ -309,6 +320,79 @@ workclockRoutes.put(
     const updated = await db.workSession.update({
       where: { id },
       data: updateData,
+      include: { breaks: true },
+    });
+    return c.json({ data: updated });
+  }
+);
+
+// PATCH /api/sessions/:deviceId/:id/edit — fully replace a completed session's times and breaks
+workclockRoutes.patch(
+  "/api/sessions/:deviceId/:id/edit",
+  zValidator("json", editSessionSchema),
+  async (c) => {
+    const { deviceId, id } = c.req.param();
+    const body = c.req.valid("json");
+
+    const session = await db.workSession.findFirst({ where: { id, deviceId } });
+    if (!session) {
+      return c.json({ error: { message: "משמרת לא נמצאה", code: "NOT_FOUND" } }, 404);
+    }
+
+    const startTime = new Date(body.startTime);
+    const endTime = new Date(body.endTime);
+
+    if (endTime <= startTime) {
+      return c.json(
+        { error: { message: "שעת סיום חייבת להיות אחרי שעת התחלה", code: "INVALID_TIMES" } },
+        400
+      );
+    }
+
+    const date = body.date ?? startTime.toISOString().slice(0, 10);
+
+    // Delete all existing breaks for this session
+    await db.breakSession.deleteMany({ where: { workSessionId: id } });
+
+    // Update the session's core fields
+    await db.workSession.update({
+      where: { id },
+      data: {
+        startTime,
+        endTime,
+        date,
+        notes: body.notes ?? session.notes,
+        status: "completed",
+      },
+    });
+
+    // Recreate breaks from request body
+    if (body.breaks && body.breaks.length > 0) {
+      for (const b of body.breaks) {
+        const bs = new Date(b.startTime);
+        const be = new Date(b.endTime);
+        const dur = Math.max(0, (be.getTime() - bs.getTime()) / 60000);
+        await db.breakSession.create({
+          data: {
+            workSessionId: id,
+            startTime: bs,
+            endTime: be,
+            durationMinutes: dur,
+          },
+        });
+      }
+    }
+
+    // Recalculate totals
+    const settings = await db.settings.findUnique({ where: { deviceId } });
+    const hourlyRate = settings?.hourlyRate ?? 50;
+    const totals = await calculateSessionTotals(id, hourlyRate);
+    if (totals) {
+      await db.workSession.update({ where: { id }, data: totals });
+    }
+
+    const updated = await db.workSession.findUnique({
+      where: { id },
       include: { breaks: true },
     });
     return c.json({ data: updated });

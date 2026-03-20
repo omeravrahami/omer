@@ -17,6 +17,17 @@ import { useSettingsStore, Deduction } from '@/lib/state/settings-store';
 import { useUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 
+// ─── Dark theme colors ────────────────────────────────────────────────────────
+
+const BG_DEEP = '#080E1A';
+const BG_CARD = '#0F1729';
+const BG_INPUT = '#1A2540';
+const BORDER = 'rgba(255,255,255,0.08)';
+const TEXT_PRIMARY = '#F0F6FF';
+const TEXT_SECONDARY = 'rgba(255,255,255,0.5)';
+const ACCENT_BLUE = '#3B82F6';
+const ACCENT_GREEN = '#22C55E';
+
 const CURRENCIES = ['ILS', 'USD', 'EUR'];
 
 // ─── Quick-add presets ────────────────────────────────────────────────────────
@@ -35,9 +46,6 @@ const PRESETS: Preset[] = [
 ];
 
 // ─── Numeric field with local string state ────────────────────────────────────
-// The key fix: never bind TextInput.value directly to a Zustand number.
-// Doing so causes the picker to re-render mid-keystroke, resetting the cursor.
-// Instead we keep a local string, commit on blur, and only then update the store.
 
 function NumericInput({
   storeValue,
@@ -50,7 +58,6 @@ function NumericInput({
 }) {
   const [local, setLocal] = useState(String(storeValue));
 
-  // Keep in sync if the store value changes from somewhere else
   const prevStoreRef = useRef(storeValue);
   if (prevStoreRef.current !== storeValue) {
     prevStoreRef.current = storeValue;
@@ -62,7 +69,6 @@ function NumericInput({
     if (!isNaN(parsed) && parsed >= 0) {
       onCommit(parsed);
     } else {
-      // Revert to current store value if invalid
       setLocal(String(storeValue));
     }
   }, [local, storeValue, onCommit]);
@@ -76,15 +82,17 @@ function NumericInput({
       returnKeyType="done"
       testID={testID}
       style={{
-        backgroundColor: '#F1F5F9',
+        backgroundColor: BG_INPUT,
         borderRadius: 12,
         paddingHorizontal: 16,
         paddingVertical: 8,
         fontSize: 16,
         fontWeight: '700',
-        color: '#0F172A',
+        color: TEXT_PRIMARY,
         minWidth: 80,
-        textAlign: 'left',
+        textAlign: 'center',
+        borderWidth: 1,
+        borderColor: BORDER,
       }}
     />
   );
@@ -133,13 +141,13 @@ function DeductionsSection() {
     <SectionCard title={'ניכויים'}>
       {/* Existing deductions list */}
       {deductions.length === 0 ? (
-        <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-          <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>
+        <View style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+          <Text style={{ fontSize: 13, color: TEXT_SECONDARY, textAlign: 'right' }}>
             אין ניכויים מוגדרים
           </Text>
         </View>
       ) : (
-        deductions.map((d: Deduction, index: number) => (
+        deductions.map((d: Deduction) => (
           <View
             key={d.id}
             style={{
@@ -148,18 +156,18 @@ function DeductionsSection() {
               justifyContent: 'space-between',
               paddingVertical: 12,
               borderBottomWidth: 1,
-              borderBottomColor: '#F1F5F9',
+              borderBottomColor: BORDER,
             }}
             testID={`deduction-row-${d.id}`}
           >
             {/* Name + badge on the right */}
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', textAlign: 'right' }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
                 {d.name}
               </Text>
               <View
                 style={{
-                  backgroundColor: d.type === 'percent' ? '#EFF6FF' : '#F0FDF4',
+                  backgroundColor: d.type === 'percent' ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)',
                   borderRadius: 8,
                   paddingHorizontal: 8,
                   paddingVertical: 3,
@@ -169,7 +177,7 @@ function DeductionsSection() {
                   style={{
                     fontSize: 12,
                     fontWeight: '700',
-                    color: d.type === 'percent' ? '#2563EB' : '#16A34A',
+                    color: d.type === 'percent' ? ACCENT_BLUE : ACCENT_GREEN,
                   }}
                 >
                   {d.type === 'percent' ? `${d.amount}%` : `₪${d.amount}`}
@@ -191,8 +199,8 @@ function DeductionsSection() {
       )}
 
       {/* Quick-add preset buttons */}
-      <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-        <Text style={{ fontSize: 11, fontWeight: '600', color: '#94A3B8', textAlign: 'right', marginBottom: 8 }}>
+      <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
           הוסף מהיר
         </Text>
         <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 }}>
@@ -202,19 +210,21 @@ function DeductionsSection() {
               onPress={() => handlePreset(preset)}
               testID={`preset-${preset.name}`}
               style={{
-                backgroundColor: '#F1F5F9',
+                backgroundColor: BG_INPUT,
                 borderRadius: 20,
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 flexDirection: 'row-reverse',
                 alignItems: 'center',
                 gap: 4,
+                borderWidth: 1,
+                borderColor: BORDER,
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: TEXT_PRIMARY }}>
                 {preset.name}
               </Text>
-              <Text style={{ fontSize: 11, color: '#94A3B8' }}>
+              <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
                 {preset.type === 'percent' ? `${preset.amount}%` : '₪'}
               </Text>
             </Pressable>
@@ -237,12 +247,12 @@ function DeductionsSection() {
         }}
       >
         <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-          <Plus size={16} color="#2563EB" />
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB', textAlign: 'right' }}>
+          <Plus size={16} color={ACCENT_BLUE} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT_BLUE, textAlign: 'right' }}>
             הוסף ניכוי
           </Text>
         </View>
-        <Text style={{ fontSize: 14, color: '#94A3B8' }}>{expanded ? '▲' : '▼'}</Text>
+        <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>{expanded ? '▲' : '▼'}</Text>
       </Pressable>
 
       {expanded ? (
@@ -252,17 +262,19 @@ function DeductionsSection() {
             value={newName}
             onChangeText={setNewName}
             placeholder="שם הניכוי"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={TEXT_SECONDARY}
             returnKeyType="next"
             testID="deduction-name-input"
             style={{
-              backgroundColor: '#F1F5F9',
+              backgroundColor: BG_INPUT,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
               fontSize: 15,
-              color: '#0F172A',
+              color: TEXT_PRIMARY,
               textAlign: 'right',
+              borderWidth: 1,
+              borderColor: BORDER,
             }}
           />
 
@@ -273,20 +285,22 @@ function DeductionsSection() {
               value={newAmount}
               onChangeText={setNewAmount}
               placeholder="סכום"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={TEXT_SECONDARY}
               keyboardType="decimal-pad"
               returnKeyType="done"
               testID="deduction-amount-input"
               style={{
                 flex: 1,
-                backgroundColor: '#F1F5F9',
+                backgroundColor: BG_INPUT,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 fontSize: 15,
                 fontWeight: '700',
-                color: '#0F172A',
+                color: TEXT_PRIMARY,
                 textAlign: 'right',
+                borderWidth: 1,
+                borderColor: BORDER,
               }}
             />
 
@@ -299,17 +313,19 @@ function DeductionsSection() {
                 }}
                 testID="deduction-type-fixed"
                 style={{
-                  backgroundColor: newType === 'fixed' ? '#2563EB' : '#F1F5F9',
+                  backgroundColor: newType === 'fixed' ? ACCENT_BLUE : BG_INPUT,
                   borderRadius: 10,
                   paddingHorizontal: 14,
                   paddingVertical: 10,
+                  borderWidth: 1,
+                  borderColor: newType === 'fixed' ? ACCENT_BLUE : BORDER,
                 }}
               >
                 <Text
                   style={{
                     fontSize: 13,
                     fontWeight: '700',
-                    color: newType === 'fixed' ? '#FFF' : '#64748B',
+                    color: newType === 'fixed' ? '#FFF' : TEXT_SECONDARY,
                   }}
                 >
                   ₪ קבוע
@@ -322,17 +338,19 @@ function DeductionsSection() {
                 }}
                 testID="deduction-type-percent"
                 style={{
-                  backgroundColor: newType === 'percent' ? '#2563EB' : '#F1F5F9',
+                  backgroundColor: newType === 'percent' ? ACCENT_BLUE : BG_INPUT,
                   borderRadius: 10,
                   paddingHorizontal: 14,
                   paddingVertical: 10,
+                  borderWidth: 1,
+                  borderColor: newType === 'percent' ? ACCENT_BLUE : BORDER,
                 }}
               >
                 <Text
                   style={{
                     fontSize: 13,
                     fontWeight: '700',
-                    color: newType === 'percent' ? '#FFF' : '#64748B',
+                    color: newType === 'percent' ? '#FFF' : TEXT_SECONDARY,
                   }}
                 >
                   % מברוטו
@@ -346,7 +364,7 @@ function DeductionsSection() {
             onPress={handleAdd}
             testID="deduction-add-confirm"
             style={{
-              backgroundColor: '#2563EB',
+              backgroundColor: ACCENT_BLUE,
               borderRadius: 14,
               paddingVertical: 14,
               alignItems: 'center',
@@ -394,7 +412,7 @@ export default function SettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }} testID="settings-screen">
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG_DEEP }} testID="settings-screen">
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -402,7 +420,7 @@ export default function SettingsScreen() {
       >
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(400)} style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
-          <Text style={{ fontSize: 26, fontWeight: '700', color: '#0F172A', textAlign: 'right' }}>
+          <Text style={{ fontSize: 26, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right' }}>
             {'הגדרות'}
           </Text>
         </Animated.View>
@@ -429,14 +447,16 @@ export default function SettingsScreen() {
                       save({ currency: c });
                     }}
                     style={{
-                      backgroundColor: currency === c ? '#2563EB' : '#F1F5F9',
+                      backgroundColor: currency === c ? ACCENT_BLUE : BG_INPUT,
                       borderRadius: 12,
                       paddingHorizontal: 16,
                       paddingVertical: 8,
+                      borderWidth: 1,
+                      borderColor: currency === c ? ACCENT_BLUE : BORDER,
                     }}
                     testID={`currency-${c}`}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: currency === c ? '#FFF' : '#64748B' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: currency === c ? '#FFF' : TEXT_SECONDARY }}>
                       {c}
                     </Text>
                   </Pressable>
@@ -486,8 +506,8 @@ export default function SettingsScreen() {
               <Switch
                 value={showSalaryOnDashboard}
                 onValueChange={(val) => save({ showSalaryOnDashboard: val })}
-                trackColor={{ false: '#E2E8F0', true: '#93C5FD' }}
-                thumbColor={showSalaryOnDashboard ? '#2563EB' : '#94A3B8'}
+                trackColor={{ false: 'rgba(255,255,255,0.12)', true: 'rgba(59,130,246,0.5)' }}
+                thumbColor={showSalaryOnDashboard ? ACCENT_BLUE : 'rgba(255,255,255,0.4)'}
                 testID="show-salary-toggle"
               />
             </SettingRow>
@@ -505,27 +525,27 @@ export default function SettingsScreen() {
           <Pressable
             onPress={() => router.push('/premium' as never)}
             style={{
-              backgroundColor: '#FEF3C7',
+              backgroundColor: 'rgba(245,158,11,0.1)',
               borderRadius: 20,
               padding: 20,
               borderWidth: 1,
-              borderColor: '#FDE68A',
+              borderColor: 'rgba(245,158,11,0.25)',
             }}
             testID="premium-link"
           >
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
-                <Crown size={24} color="#D97706" />
+                <Crown size={24} color="#F59E0B" />
                 <View>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#92400E', textAlign: 'right' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FCD34D', textAlign: 'right' }}>
                     {isPro ? 'PRO פעיל' : 'שדרגו ל-PRO'}
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#B45309', textAlign: 'right', marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, color: 'rgba(252,211,77,0.6)', textAlign: 'right', marginTop: 2 }}>
                     {isPro ? 'אתם נהנים מכל התכונות' : 'ייצוא, ללא פרסומות ועוד'}
                   </Text>
                 </View>
               </View>
-              <ChevronLeft size={18} color="#D97706" />
+              <ChevronLeft size={18} color="#F59E0B" />
             </View>
           </Pressable>
         </Animated.View>
@@ -540,22 +560,19 @@ function SectionCard({ title, children }: { title: string; children: React.React
   return (
     <View
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: BG_CARD,
         borderRadius: 20,
         paddingHorizontal: 20,
         paddingBottom: 4,
-        shadowColor: '#0B1020',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: BORDER,
       }}
     >
       <Text
         style={{
           fontSize: 11,
           fontWeight: '600',
-          color: '#94A3B8',
+          color: TEXT_SECONDARY,
           textAlign: 'right',
           paddingTop: 14,
           paddingBottom: 4,
@@ -570,7 +587,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-// ─── Setting Row ──────────────────────────────────────────────────────────────
+// ─── Setting Row (RTL fixed) ──────────────────────────────────────────────────
 
 function SettingRow({
   label,
@@ -584,19 +601,22 @@ function SettingRow({
   return (
     <View
       style={{
-        flexDirection: 'row',
+        flexDirection: 'row-reverse',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: 14,
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: BORDER,
       }}
     >
-      {/* Label on the right (RTL) */}
-      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', flex: 1, textAlign: 'right', marginLeft: 12 }}>
+      {/* Label on the right (RTL: first child in row-reverse) */}
+      <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, flex: 1, textAlign: 'right' }}>
         {label}
       </Text>
-      {children}
+      {/* Value/control shrinks to content, does not compress label */}
+      <View style={{ flexShrink: 0 }}>
+        {children}
+      </View>
     </View>
   );
 }

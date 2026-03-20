@@ -10,42 +10,58 @@ import { useStats } from '@/lib/api/workclock-api';
 import { formatCurrency, getHebrewMonthYear } from '@/lib/utils';
 import { useToastStore } from '@/lib/state/toast-store';
 
+// ─── Dark theme ───────────────────────────────────────────────────────────────
+
+const BG_DEEP = '#080E1A';
+const BG_CARD = '#0F1729';
+const BORDER = 'rgba(255,255,255,0.08)';
+const TEXT_PRIMARY = '#F0F6FF';
+const TEXT_SECONDARY = 'rgba(255,255,255,0.5)';
+const ACCENT_BLUE = '#3B82F6';
+const ACCENT_GREEN = '#22C55E';
+const ACCENT_AMBER = '#F59E0B';
+const ACCENT_PURPLE = '#A78BFA';
+
+// ─── Progress Bar ─────────────────────────────────────────────────────────────
+
 function ProgressBar({ progress, color, label }: { progress: number; color: string; label: string }) {
   const pct = Math.min(100, Math.max(0, progress * 100));
   return (
-    <View className="mb-4">
-      <View className="flex-row-reverse justify-between mb-1">
-        <Text className="text-sm font-medium" style={{ color: '#0F172A', textAlign: 'right' }}>{label}</Text>
-        <Text className="text-sm font-bold" style={{ color, fontVariant: ['tabular-nums'] }}>{Math.round(pct)}%</Text>
+    <View style={{ marginBottom: 16 }}>
+      <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 6 }}>
+        <Text style={{ fontSize: 13, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>{label}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color, fontVariant: ['tabular-nums'] }}>{Math.round(pct)}%</Text>
       </View>
-      <View className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: '#E2E8F0' }}>
-        <View className="h-3 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      <View style={{ height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.07)' }}>
+        <View style={{ height: 8, borderRadius: 4, width: `${pct}%`, backgroundColor: color }} />
       </View>
     </View>
   );
 }
 
+// ─── Bar Chart ────────────────────────────────────────────────────────────────
+
 function BarChart({ data }: { data: { date: string; hours: number }[] }) {
   const maxHours = Math.max(...data.map((d) => d.hours), 1);
   return (
-    <View className="flex-row-reverse items-end justify-between h-32 mt-2">
+    <View style={{ flexDirection: 'row-reverse', alignItems: 'flex-end', justifyContent: 'space-between', height: 128, marginTop: 8 }}>
       {data.slice(-7).map((item, i) => {
         const height = Math.max(4, (item.hours / maxHours) * 100);
         const dayLabel = new Date(item.date + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'narrow' });
         return (
-          <View key={item.date || i} className="items-center flex-1 mx-0.5">
-            <Text className="text-xs font-bold mb-1" style={{ color: '#0F172A', fontVariant: ['tabular-nums'] }}>
-              {item.hours > 0 ? item.hours.toFixed(1) : null}
+          <View key={item.date || i} style={{ alignItems: 'center', flex: 1, marginHorizontal: 2 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', marginBottom: 4, color: item.hours > 0 ? TEXT_PRIMARY : 'transparent', fontVariant: ['tabular-nums'] }}>
+              {item.hours > 0 ? item.hours.toFixed(1) : ' '}
             </Text>
             <View
-              className="w-full rounded-t-lg"
               style={{
+                width: '100%', borderRadius: 6,
                 height: `${height}%`,
-                backgroundColor: item.hours > 0 ? '#2563EB' : '#E2E8F0',
+                backgroundColor: item.hours > 0 ? ACCENT_BLUE : 'rgba(255,255,255,0.06)',
                 minHeight: 4,
               }}
             />
-            <Text className="text-xs mt-1" style={{ color: '#94A3B8' }}>{dayLabel}</Text>
+            <Text style={{ fontSize: 11, marginTop: 6, color: TEXT_SECONDARY }}>{dayLabel}</Text>
           </View>
         );
       })}
@@ -53,30 +69,21 @@ function BarChart({ data }: { data: { date: string; hours: number }[] }) {
   );
 }
 
-function StatBox({
-  icon,
-  label,
-  value,
-  delay,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  delay: number;
-}) {
+// ─── Stat Box ─────────────────────────────────────────────────────────────────
+
+function StatBox({ icon, label, value, delay }: { icon: React.ReactNode; label: string; value: string; delay: number }) {
   return (
-    <Animated.View entering={FadeInUp.delay(delay).duration(400)} className="flex-1">
-      <View
-        className="rounded-2xl p-4 items-center"
-        style={{ backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 }}
-      >
-        <View className="mb-2">{icon}</View>
-        <Text className="text-2xl font-bold" style={{ color: '#0F172A', fontVariant: ['tabular-nums'] }}>{value}</Text>
-        <Text className="text-xs mt-1" style={{ color: '#64748B', textAlign: 'center' }}>{label}</Text>
+    <Animated.View entering={FadeInUp.delay(delay).duration(400)} style={{ flex: 1 }}>
+      <View style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: BORDER }}>
+        <View style={{ marginBottom: 8 }}>{icon}</View>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>{value}</Text>
+        <Text style={{ fontSize: 11, marginTop: 4, color: TEXT_SECONDARY, textAlign: 'center' }}>{label}</Text>
       </View>
     </Animated.View>
   );
 }
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ReportsScreen() {
   const deviceId = useDeviceId();
@@ -93,138 +100,113 @@ export default function ReportsScreen() {
   const now = new Date();
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8FAFC' }} testID="reports-screen">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG_DEEP }} testID="reports-screen">
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
-        <Animated.View entering={FadeInDown.duration(400)} className="px-5 pt-4 pb-2">
-          <Text className="text-2xl font-bold" style={{ color: '#0F172A', textAlign: 'right' }}>
-            {'\u05E1\u05D9\u05DB\u05D5\u05DE\u05D9\u05DD'}
+        <Animated.View entering={FadeInDown.duration(400)} style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 26, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right' }}>
+            {'סיכומים'}
           </Text>
-          <Text className="text-sm mt-1" style={{ color: '#64748B', textAlign: 'right' }}>
+          <Text style={{ fontSize: 13, marginTop: 2, color: TEXT_SECONDARY, textAlign: 'right' }}>
             {getHebrewMonthYear(now)}
           </Text>
         </Animated.View>
 
         {monthLoading ? (
-          <View className="p-12 items-center">
-            <ActivityIndicator size="large" color="#2563EB" testID="loading-indicator" />
+          <View style={{ padding: 48, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={ACCENT_BLUE} testID="loading-indicator" />
           </View>
         ) : (
           <>
-            {/* Top Stats */}
-            <View className="flex-row-reverse gap-3 px-4 mt-4 mb-6">
+            {/* Stats row 1 */}
+            <View style={{ flexDirection: 'row-reverse', gap: 12, paddingHorizontal: 16, marginTop: 16, marginBottom: 12 }}>
               <StatBox
-                icon={<Clock size={22} color="#2563EB" />}
-                label={'\u05E1\u05D4\u05F4\u05DB \u05E9\u05E2\u05D5\u05EA'}
+                icon={<Clock size={22} color={ACCENT_BLUE} />}
+                label={'סה״כ שעות'}
                 value={monthStats ? monthStats.totalHours.toFixed(1) : '0'}
                 delay={0}
               />
               <StatBox
-                icon={<DollarSign size={22} color="#059669" />}
-                label={'\u05E1\u05D4\u05F4\u05DB \u05E9\u05DB\u05E8'}
+                icon={<DollarSign size={22} color={ACCENT_GREEN} />}
+                label={'סה״כ שכר'}
                 value={monthStats ? formatCurrency(monthStats.totalPay, currency) : formatCurrency(0, currency)}
                 delay={100}
               />
             </View>
 
-            <View className="flex-row-reverse gap-3 px-4 mb-6">
+            {/* Stats row 2 */}
+            <View style={{ flexDirection: 'row-reverse', gap: 12, paddingHorizontal: 16, marginBottom: 16 }}>
               <StatBox
-                icon={<TrendingUp size={22} color="#D97706" />}
-                label={'\u05DE\u05DE\u05D5\u05E6\u05E2 \u05DC\u05D9\u05D5\u05DD'}
+                icon={<TrendingUp size={22} color={ACCENT_AMBER} />}
+                label={'ממוצע ליום'}
                 value={monthStats ? `${monthStats.avgHoursPerDay.toFixed(1)}h` : '0h'}
                 delay={200}
               />
               <StatBox
-                icon={<Calendar size={22} color="#7C3AED" />}
-                label={'\u05D9\u05DE\u05D9 \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                icon={<Calendar size={22} color={ACCENT_PURPLE} />}
+                label={'ימי עבודה'}
                 value={String(monthStats?.workDaysCount ?? 0)}
                 delay={300}
               />
             </View>
 
             {/* Goal Progress */}
-            <Animated.View entering={FadeInDown.delay(200).duration(400)} className="mx-4 mb-6">
-              <View
-                className="rounded-2xl p-5"
-                style={{ backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 }}
-              >
-                <View className="flex-row-reverse items-center gap-2 mb-4">
-                  <Target size={20} color="#2563EB" />
-                  <Text className="text-base font-bold" style={{ color: '#0F172A' }}>
-                    {'\u05D9\u05E2\u05D3\u05D9\u05DD'}
-                  </Text>
+            <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
+              <View style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: BORDER }}>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <Target size={20} color={ACCENT_BLUE} />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY }}>{'יעדים'}</Text>
                 </View>
                 <ProgressBar
                   progress={monthStats?.dailyGoalProgress ?? 0}
-                  color="#2563EB"
-                  label={`\u05D9\u05E2\u05D3 \u05D9\u05D5\u05DE\u05D9 (${dailyGoal} \u05E9\u05E2\u05D5\u05EA)`}
+                  color={ACCENT_BLUE}
+                  label={`יעד יומי (${dailyGoal} שעות)`}
                 />
                 <ProgressBar
                   progress={monthStats?.weeklyGoalProgress ?? 0}
-                  color="#059669"
-                  label={`\u05D9\u05E2\u05D3 \u05E9\u05D1\u05D5\u05E2\u05D9 (${weeklyGoal} \u05E9\u05E2\u05D5\u05EA)`}
+                  color={ACCENT_GREEN}
+                  label={`יעד שבועי (${weeklyGoal} שעות)`}
                 />
               </View>
             </Animated.View>
 
             {/* Weekly Chart */}
-            <Animated.View entering={FadeInDown.delay(300).duration(400)} className="mx-4 mb-6">
-              <View
-                className="rounded-2xl p-5"
-                style={{ backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 }}
-              >
-                <Text className="text-base font-bold mb-2" style={{ color: '#0F172A', textAlign: 'right' }}>
-                  {'\u05E9\u05E2\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D9\u05D5\u05DD'}
+            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
+              <View style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: BORDER }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right', marginBottom: 4 }}>
+                  {'שעות לפי יום'}
                 </Text>
                 {weekStats?.dailyData && weekStats.dailyData.length > 0 ? (
                   <BarChart data={weekStats.dailyData} />
                 ) : (
-                  <Text className="text-center py-8 text-sm" style={{ color: '#94A3B8' }}>
-                    {'\u05D0\u05D9\u05DF \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05DC\u05D4\u05E6\u05D9\u05D2'}
+                  <Text style={{ textAlign: 'center', paddingVertical: 32, fontSize: 13, color: TEXT_SECONDARY }}>
+                    {'אין נתונים להציג'}
                   </Text>
                 )}
               </View>
             </Animated.View>
 
-            {/* Export */}
-            <Animated.View entering={FadeInDown.delay(400).duration(400)} className="mx-4 mb-6">
-              <View className="flex-row-reverse gap-3">
+            {/* Export buttons */}
+            <Animated.View entering={FadeInDown.delay(400).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
                 <Pressable
-                  onPress={() => {
-                    if (!isPro) {
-                      router.push('/premium' as never);
-                    } else {
-                      showToast('\u05D9\u05D9\u05E6\u05D5\u05D0 PDF \u05D1\u05E7\u05E8\u05D5\u05D1', 'info');
-                    }
-                  }}
-                  className="flex-1 rounded-2xl py-3 items-center"
-                  style={{ backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#DBEAFE' }}
+                  onPress={() => { isPro ? showToast('ייצוא PDF בקרוב', 'info') : router.push('/premium' as never); }}
+                  style={{ flex: 1, backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 18, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.2)' }}
                   testID="export-pdf-button"
                 >
-                  <View className="flex-row-reverse items-center gap-2">
-                    <Download size={16} color="#2563EB" />
-                    <Text className="text-sm font-semibold" style={{ color: '#2563EB' }}>
-                      {'\u05D9\u05D9\u05E6\u05D5\u05D0 PDF'}
-                    </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                    <Download size={16} color={ACCENT_BLUE} />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT_BLUE }}>{'ייצוא PDF'}</Text>
                   </View>
                 </Pressable>
                 <Pressable
-                  onPress={() => {
-                    if (!isPro) {
-                      router.push('/premium' as never);
-                    } else {
-                      showToast('\u05D9\u05D9\u05E6\u05D5\u05D0 CSV \u05D1\u05E7\u05E8\u05D5\u05D1', 'info');
-                    }
-                  }}
-                  className="flex-1 rounded-2xl py-3 items-center"
-                  style={{ backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#DCFCE7' }}
+                  onPress={() => { isPro ? showToast('ייצוא CSV בקרוב', 'info') : router.push('/premium' as never); }}
+                  style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 18, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}
                   testID="export-csv-button"
                 >
-                  <View className="flex-row-reverse items-center gap-2">
-                    <Download size={16} color="#059669" />
-                    <Text className="text-sm font-semibold" style={{ color: '#059669' }}>
-                      {'\u05D9\u05D9\u05E6\u05D5\u05D0 CSV'}
-                    </Text>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                    <Download size={16} color={ACCENT_GREEN} />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT_GREEN }}>{'ייצוא CSV'}</Text>
                   </View>
                 </Pressable>
               </View>

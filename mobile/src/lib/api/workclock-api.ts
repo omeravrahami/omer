@@ -148,3 +148,23 @@ export function useCreateSession(deviceId: string) {
     },
   });
 }
+
+export interface EditSessionPayload {
+  startTime: string;
+  endTime: string;
+  date?: string;
+  notes?: string;
+  breaks: Array<{ startTime: string; endTime: string }>;
+}
+
+export function useEditSession(deviceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: EditSessionPayload }) =>
+      api.patch<WorkSession>(`/api/sessions/${deviceId}/${sessionId}/edit`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sessions', deviceId] });
+      qc.invalidateQueries({ queryKey: ['stats', deviceId] });
+    },
+  });
+}

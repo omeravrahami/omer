@@ -6,7 +6,6 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
-  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -29,6 +28,7 @@ import {
   BarChart3,
   SlidersHorizontal,
   Coffee,
+  CheckCircle,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
@@ -49,6 +49,48 @@ import {
   formatHours,
 } from '@/lib/utils';
 import type { WorkSession } from '@/lib/types';
+
+// ─── WorkClock Logo ───────────────────────────────────────────────────────────
+
+function WorkClockLogo({ size }: { size: 'small' | 'large' }) {
+  const isSmall = size === 'small';
+  const iconSize = isSmall ? 22 : 32;
+  const fontSize = isSmall ? 18 : 26;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        gap: 8,
+        shadowColor: '#38BDF8',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 6,
+      }}
+    >
+      {/* Icon: Clock with Check overlay */}
+      <View style={{ width: iconSize + 6, height: iconSize + 6, alignItems: 'center', justifyContent: 'center' }}>
+        <Clock size={iconSize} color="#38BDF8" strokeWidth={2} />
+        <View style={{ position: 'absolute', bottom: -1, right: -1 }}>
+          <CheckCircle size={isSmall ? 12 : 16} color="#4ADE80" fill="#0B1020" strokeWidth={2.5} />
+        </View>
+      </View>
+      {/* Brand text */}
+      <Text
+        style={{
+          fontSize,
+          fontWeight: '800',
+          letterSpacing: 0.3,
+        }}
+      >
+        <Text style={{ color: '#60A5FA' }}>Work</Text>
+        <Text style={{ color: '#4ADE80' }}>Clock</Text>
+      </Text>
+    </View>
+  );
+}
 
 // ─── Pulsing Status Dot ───────────────────────────────────────────────────────
 
@@ -576,20 +618,7 @@ export default function DashboardScreen() {
           }}
         >
           <View style={{ alignItems: 'flex-end' }}>
-            <View
-              style={{
-                shadowColor: '#38BDF8',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.55,
-                shadowRadius: 12,
-                elevation: 8,
-              }}
-            >
-              <Image
-                source={require('@/assets/logo_transparent.png')}
-                style={{ width: 130, height: 40, resizeMode: 'contain' }}
-              />
-            </View>
+            <WorkClockLogo size="small" />
             <Text style={{ color: 'rgba(255,255,255,0.38)', fontSize: 11, marginTop: 2, letterSpacing: 0.3 }}>
               {hebrewDate}
             </Text>
