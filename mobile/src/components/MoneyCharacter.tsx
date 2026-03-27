@@ -22,7 +22,8 @@ const mascotMap = {
 
 export default function MoneyCharacter({ state = 'idle', size = 560 }: MoneyCharacterProps) {
   // Map app states → asset keys
-  const key = state === 'working' ? 'active' : state === 'sleeping' ? 'done' : state;
+  // sleeping → idle (no sleeping asset exists; done is reserved for completed shifts only)
+  const key = state === 'working' ? 'active' : state === 'sleeping' ? 'idle' : state;
 
   // ── Float animation (gentle bob) ──────────────────────────────────────────
   const floatY = useSharedValue(0);
