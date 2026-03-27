@@ -516,17 +516,16 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
         {/* mascot */}
         {showCharacterEmpty ? (
-          <View style={{ alignItems: 'center', marginTop: -6 }}>
+          <View style={{ alignItems: 'center', marginTop: -20 }}>
             <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
 
         {/* button */}
-        <Animated.View style={[pulseStyle, { marginTop: 6 }]}>
-          <Animated.View style={animStyle}>
-            <Pressable
-              onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
-              onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true); }}
+        <Animated.View style={[animStyle, { marginTop: 6 }]}>
+          <Pressable
+              onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
+              onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
               onPress={handleStart}
               testID="start-work-button"
               style={{ borderRadius: 99, overflow: 'hidden' }}
@@ -556,7 +555,6 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
                 )}
               </LinearGradient>
             </Pressable>
-          </Animated.View>
         </Animated.View>
 
       </View>
