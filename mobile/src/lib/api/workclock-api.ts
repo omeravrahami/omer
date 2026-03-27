@@ -414,3 +414,139 @@ export function useAuthCreateDayRecord(token: string) {
   });
 }
 
+// ─── Smart hooks: use device routes for guests, auth routes for logged-in ────
+
+export function useSmartSessions(opts: { deviceId: string; token: string; isGuest: boolean; month?: string }) {
+  const guest = useSessions(opts.deviceId, opts.month);
+  const auth = useAuthSessions(opts.token, opts.month);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartActiveSession(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useActiveSession(opts.deviceId);
+  const auth = useAuthActiveSession(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartStats(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useStats(opts.deviceId, 'week');
+  const auth = useAuthStats(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartSettings(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useSettings(opts.deviceId);
+  const auth = useAuthSettings(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartUpdateSettings(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useUpdateSettings(opts.deviceId);
+  const auth = useAuthUpdateSettings(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartStartWork(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useStartWork(opts.deviceId);
+  const auth = useAuthStartWork(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartEndWork(opts: { deviceId: string; token: string; isGuest: boolean; sessionId: string }) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (opts.isGuest) {
+        return api.put<WorkSession>(`/api/sessions/${opts.deviceId}/${opts.sessionId}`, {
+          status: 'completed',
+          endTime: new Date().toISOString(),
+        });
+      }
+      return authRequest<WorkSession>('PUT', `/api/user/sessions/${opts.sessionId}`, opts.token, {
+        status: 'completed',
+        endTime: new Date().toISOString(),
+      });
+    },
+    onSuccess: () => {
+      if (opts.isGuest) {
+        qc.invalidateQueries({ queryKey: ['active-session', opts.deviceId] });
+        qc.invalidateQueries({ queryKey: ['sessions', opts.deviceId] });
+        qc.invalidateQueries({ queryKey: ['stats', opts.deviceId] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['user-active-session-v2', opts.token] });
+        qc.invalidateQueries({ queryKey: ['user-sessions-v2', opts.token] });
+        qc.invalidateQueries({ queryKey: ['user-stats-v2', opts.token] });
+      }
+    },
+  });
+}
+
+export function useSmartStartBreak(opts: { deviceId: string; token: string; isGuest: boolean; sessionId: string }) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (opts.isGuest) {
+        return api.post<WorkSession>(`/api/sessions/${opts.deviceId}/${opts.sessionId}/breaks`, {});
+      }
+      return authRequest<WorkSession>('POST', `/api/user/sessions/${opts.sessionId}/breaks`, opts.token, {});
+    },
+    onSuccess: () => {
+      if (opts.isGuest) {
+        qc.invalidateQueries({ queryKey: ['active-session', opts.deviceId] });
+        qc.invalidateQueries({ queryKey: ['sessions', opts.deviceId] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['user-active-session-v2', opts.token] });
+        qc.invalidateQueries({ queryKey: ['user-sessions-v2', opts.token] });
+      }
+    },
+  });
+}
+
+export function useSmartEndBreak(opts: { deviceId: string; token: string; isGuest: boolean; sessionId: string; breakId: string }) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (opts.isGuest) {
+        return api.put<WorkSession>(`/api/sessions/${opts.deviceId}/${opts.sessionId}/breaks/${opts.breakId}`, {
+          endTime: new Date().toISOString(),
+        });
+      }
+      return authRequest<WorkSession>('PUT', `/api/user/sessions/${opts.sessionId}/breaks/${opts.breakId}`, opts.token, {
+        endTime: new Date().toISOString(),
+      });
+    },
+    onSuccess: () => {
+      if (opts.isGuest) {
+        qc.invalidateQueries({ queryKey: ['active-session', opts.deviceId] });
+        qc.invalidateQueries({ queryKey: ['sessions', opts.deviceId] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['user-active-session-v2', opts.token] });
+        qc.invalidateQueries({ queryKey: ['user-sessions-v2', opts.token] });
+      }
+    },
+  });
+}
+
+export function useSmartDeleteSession(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useDeleteSession(opts.deviceId);
+  const auth = useAuthDeleteSessionById(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartCreateSession(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useCreateSession(opts.deviceId);
+  const auth = useAuthCreateSession(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartEditSession(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useEditSession(opts.deviceId);
+  const auth = useAuthEditSession(opts.token);
+  return opts.isGuest ? guest : auth;
+}
+
+export function useSmartCreateDayRecord(opts: { deviceId: string; token: string; isGuest: boolean }) {
+  const guest = useCreateDayRecord(opts.deviceId);
+  const auth = useAuthCreateDayRecord(opts.token);
+  return opts.isGuest ? guest : auth;
+}

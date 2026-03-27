@@ -34,14 +34,15 @@ import {
 } from 'lucide-react-native';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
 import {
-  useAuthActiveSession,
-  useAuthStartWork,
-  useAuthEndWork,
-  useAuthStartBreak,
-  useAuthEndBreak,
-  useAuthStats,
-  useAuthSessions,
+  useSmartActiveSession,
+  useSmartStartWork,
+  useSmartEndWork,
+  useSmartStartBreak,
+  useSmartEndBreak,
+  useSmartStats,
+  useSmartSessions,
 } from '@/lib/api/workclock-api';
+import { useDeviceId } from '@/lib/state/device-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { useToastStore } from '@/lib/state/toast-store';
 import {
@@ -160,9 +161,13 @@ function AmbientGlow({ isOnBreak }: { isOnBreak: boolean }) {
 function ActiveSessionHero({
   session,
   token,
+  deviceId,
+  isGuest,
 }: {
   session: WorkSession;
   token: string;
+  deviceId: string;
+  isGuest: boolean;
 }) {
   const [timer, setTimer] = useState('00:00:00');
   const showSalary = useSettingsStore((s) => s.showSalaryOnDashboard);
@@ -174,9 +179,9 @@ function ActiveSessionHero({
   const activeBreak = session.breaks?.find((b) => !b.endTime);
   const isOnBreak = !!activeBreak;
 
-  const endWork = useAuthEndWork(token, session.id);
-  const startBreakMut = useAuthStartBreak(token, session.id);
-  const endBreakMut = useAuthEndBreak(token, session.id, activeBreak?.id ?? '');
+  const endWork = useSmartEndWork({ deviceId, token, isGuest, sessionId: session.id });
+  const startBreakMut = useSmartStartBreak({ deviceId, token, isGuest, sessionId: session.id });
+  const endBreakMut = useSmartEndBreak({ deviceId, token, isGuest, sessionId: session.id, breakId: activeBreak?.id ?? '' });
 
   const endScale = useSharedValue(1);
   const breakScale = useSharedValue(1);
@@ -412,8 +417,8 @@ function ActiveSessionHero({
 
 // ─── Empty State (Hero) ───────────────────────────────────────────────────────
 
-function EmptySessionHero({ token }: { token: string }) {
-  const startWork = useAuthStartWork(token);
+function EmptySessionHero({ token, deviceId, isGuest }: { token: string; deviceId: string; isGuest: boolean }) {
+  const startWork = useSmartStartWork({ deviceId, token, isGuest });
   const showToast = useToastStore((s) => s.showToast);
   const showCharacterEmpty = useSettingsStore((s) => s.showCharacter);
   const [currentTime, setCurrentTime] = useState(() => {
@@ -782,6 +787,8 @@ function MonthlySalaryCard({
 
 function TaxStatusCard() {
   const token = useAuthStore((s) => s.token) ?? '';
+  const deviceId = useDeviceId();
+  const isGuest = useAuthStore((s) => s.isGuest);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
@@ -793,16 +800,16 @@ function TaxStatusCard() {
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
-  const { data: sessions } = useAuthSessions(token, currentMonth);
+  const { data: sessions } = useSmartSessions({ deviceId, token, isGuest, month: currentMonth });
 
   // Filter out sick/vacation — same as reports page
   const shiftSessions = useMemo(
-    () => (sessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
+    () => (sessions ?? []).filter((s: WorkSession) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
     [sessions]
   );
 
   const totalNetHours = useMemo(
-    () => shiftSessions.reduce((sum, s) => sum + s.netMinutes / 60, 0),
+    () => shiftSessions.reduce((sum: number, s: WorkSession) => sum + s.netMinutes / 60, 0),
     [shiftSessions]
   );
 
@@ -820,7 +827,7 @@ function TaxStatusCard() {
   const currentMonthlyGross = useMemo(() => {
     if (!overtimeEnabled) return totalNetHours * hourlyRate;
     if (overtimeMode === 'daily') return calcOvertimePayMonthly(shiftSessions, hourlyRate);
-    const totalNetMinutes = shiftSessions.reduce((sum, s) => sum + s.netMinutes, 0);
+    const totalNetMinutes = shiftSessions.reduce((sum: number, s: WorkSession) => sum + s.netMinutes, 0);
     return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
   }, [shiftSessions, totalNetHours, hourlyRate, overtimeEnabled, overtimeMode]);
 
@@ -953,11 +960,13 @@ function TaxStatusCard() {
 
 export default function DashboardScreen() {
   const token = useAuthStore((s) => s.token) ?? '';
+  const deviceId = useDeviceId();
+  const isGuest = useAuthStore((s) => s.isGuest);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: activeSession, isLoading } = useAuthActiveSession(token);
-  const { data: weekStats } = useAuthStats(token);
+  const { data: activeSession, isLoading } = useSmartActiveSession({ deviceId, token, isGuest });
+  const { data: weekStats } = useSmartStats({ deviceId, token, isGuest });
 
   const currentMonthKey = useMemo(() => {
     const n = new Date();
@@ -965,7 +974,7 @@ export default function DashboardScreen() {
   }, []);
 
   // Fetch current-month sessions directly (same source as reports page)
-  const { data: currentMonthSessions } = useAuthSessions(token, currentMonthKey);
+  const { data: currentMonthSessions } = useSmartSessions({ deviceId, token, isGuest, month: currentMonthKey });
 
   const hourlyRateHome   = useSettingsStore((s) => s.hourlyRate);
   const carBenefitHome   = useSettingsStore((s) => s.carBenefitMonthly);
@@ -982,15 +991,15 @@ export default function DashboardScreen() {
 
   // Filter shifts — same as reports page
   const currentMonthShifts = useMemo(
-    () => (currentMonthSessions ?? []).filter(s => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
+    () => (currentMonthSessions ?? []).filter((s: WorkSession) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
     [currentMonthSessions]
   );
 
   // Base gross (overtime-aware) — identical logic to reports page
   const baseMonthlyGross = useMemo(() => {
-    if (!overtimeEnabledHome) return currentMonthShifts.reduce((t, s) => t + (s.netMinutes / 60) * hourlyRateHome, 0);
+    if (!overtimeEnabledHome) return currentMonthShifts.reduce((t: number, s: WorkSession) => t + (s.netMinutes / 60) * hourlyRateHome, 0);
     if (overtimeModeHome === 'daily') return calcOvertimePayMonthly(currentMonthShifts, hourlyRateHome);
-    const totalNetMinutes = currentMonthShifts.reduce((t, s) => t + s.netMinutes, 0);
+    const totalNetMinutes = currentMonthShifts.reduce((t: number, s: WorkSession) => t + s.netMinutes, 0);
     return calcOvertimePay(totalNetMinutes, hourlyRateHome, 'monthly');
   }, [currentMonthShifts, hourlyRateHome, overtimeEnabledHome, overtimeModeHome]);
 
@@ -1004,7 +1013,7 @@ export default function DashboardScreen() {
   );
 
   const totalNetHoursHome = useMemo(
-    () => currentMonthShifts.reduce((t, s) => t + s.netMinutes / 60, 0),
+    () => currentMonthShifts.reduce((t: number, s: WorkSession) => t + s.netMinutes / 60, 0),
     [currentMonthShifts]
   );
 
@@ -1034,7 +1043,7 @@ export default function DashboardScreen() {
   const dynamicMonthlyGross = homeTaxResult.regularGross;
 
   // Keep weekStats for the week column
-  const { data: monthStats } = useAuthStats(token);
+  const { data: monthStats } = useSmartStats({ deviceId, token, isGuest });
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -1071,9 +1080,9 @@ export default function DashboardScreen() {
               <ActivityIndicator size="large" color="#60A5FA" testID="loading-indicator" />
             </View>
           ) : activeSession ? (
-            <ActiveSessionHero session={activeSession} token={token} />
+            <ActiveSessionHero session={activeSession} token={token} deviceId={deviceId} isGuest={isGuest} />
           ) : (
-            <EmptySessionHero token={token} />
+            <EmptySessionHero token={token} deviceId={deviceId} isGuest={isGuest} />
           )}
         </View>
       </View>
