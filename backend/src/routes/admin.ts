@@ -505,6 +505,14 @@ adminRoutes.put(
       update: { value, ...(description !== undefined ? { description } : {}) },
     });
 
+    await auditLog({
+      userId: c.get("userId"),
+      action: "CONFIG_UPDATED",
+      resource: "config",
+      details: { key, value },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     return c.json({ data: config });
   }
 );
@@ -581,3 +589,456 @@ adminRoutes.get("/audit-logs", async (c) => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/admin/dashboard
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/dashboard", async (c) => {
+  const now = new Date();
+
+  const todayMidnight = new Date(now);
+  todayMidnight.setHours(0, 0, 0, 0);
+
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalUsers,
+    newUsersToday,
+    newUsersThisWeek,
+    newUsersThisMonth,
+    dauToday,
+    wauThisWeek,
+    totalWorkSessionsToday,
+    totalWorkSessionsThisWeek,
+    totalWorkSessionsAllTime,
+    completedSessionsThisMonth,
+    accountDeletionRequests,
+    totalAuditLogs,
+    adsEnabledConfig,
+  ] = await Promise.all([
+    db.user.count(),
+    db.user.count({ where: { createdAt: { gte: todayMidnight } } }),
+    db.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+    db.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    db.user.count({ where: { lastLoginAt: { gte: todayMidnight } } }),
+    db.user.count({ where: { lastLoginAt: { gte: sevenDaysAgo } } }),
+    db.workSession.count({ where: { createdAt: { gte: todayMidnight } } }),
+    db.workSession.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+    db.workSession.count(),
+    db.workSession.findMany({
+      where: {
+        status: "completed",
+        startTime: { gte: thirtyDaysAgo },
+        endTime: { not: null },
+      },
+      select: { startTime: true, endTime: true },
+    }),
+    db.passwordResetToken.count({ where: { type: "ACCOUNT_DELETION" } }).catch(() => 0),
+    db.auditLog.count(),
+    db.appConfig.findUnique({ where: { key: "ads_enabled" } }),
+  ]);
+
+  const avgHoursPerActiveUser =
+    completedSessionsThisMonth.length === 0
+      ? 0
+      : completedSessionsThisMonth.reduce((sum, s) => {
+          return sum + (new Date(s.endTime!).getTime() - new Date(s.startTime).getTime()) / (1000 * 60 * 60);
+        }, 0) / completedSessionsThisMonth.length;
+
+  const adsEnabled = adsEnabledConfig?.value === "true";
+
+  return c.json({
+    data: {
+      totalUsers,
+      newUsersToday,
+      newUsersThisWeek,
+      newUsersThisMonth,
+      dauToday,
+      wauThisWeek,
+      totalWorkSessionsToday,
+      totalWorkSessionsThisWeek,
+      totalWorkSessionsAllTime,
+      avgHoursPerActiveUser,
+      accountDeletionRequests,
+      totalAuditLogs,
+      adsEnabled,
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/users/:id/status
+// ---------------------------------------------------------------------------
+
+const patchUserStatusSchema = z.object({
+  status: z.enum(["ACTIVE", "SUSPENDED", "DISABLED"]),
+});
+
+adminRoutes.patch(
+  "/users/:id/status",
+  zValidator("json", patchUserStatusSchema),
+  async (c) => {
+    const { id } = c.req.param();
+    const { status } = c.req.valid("json");
+
+    const existing = await db.user.findUnique({ where: { id } });
+    if (!existing) {
+      return c.json({ error: { message: "User not found", code: "NOT_FOUND" } }, 404);
+    }
+
+    const user = await db.user.update({
+      where: { id },
+      data: { status },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        lastLoginAt: true,
+        isEmailVerified: true,
+      },
+    });
+
+    const action = status === "SUSPENDED" ? "USER_BLOCKED" : "USER_UNBLOCKED";
+    await auditLog({
+      userId: c.get("userId"),
+      action,
+      resource: "user",
+      details: { targetUserId: id, status },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
+    return c.json({ data: user });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/users/:id/role
+// ---------------------------------------------------------------------------
+
+const patchUserRoleSchema = z.object({
+  role: z.enum(["USER", "ADMIN"]),
+});
+
+adminRoutes.patch(
+  "/users/:id/role",
+  zValidator("json", patchUserRoleSchema),
+  async (c) => {
+    const { id } = c.req.param();
+    const { role } = c.req.valid("json");
+    const adminId = c.get("userId");
+
+    if (adminId === id) {
+      return c.json({ error: { message: "Cannot change your own role", code: "SELF_ROLE_CHANGE" } }, 400);
+    }
+
+    const existing = await db.user.findUnique({ where: { id } });
+    if (!existing) {
+      return c.json({ error: { message: "User not found", code: "NOT_FOUND" } }, 404);
+    }
+
+    const user = await db.user.update({
+      where: { id },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        lastLoginAt: true,
+        isEmailVerified: true,
+      },
+    });
+
+    await auditLog({
+      userId: adminId,
+      action: "ROLE_CHANGED",
+      resource: "user",
+      details: { targetUserId: id, oldRole: existing.role, newRole: role },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
+    return c.json({ data: user });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/usage-analytics
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/usage-analytics", async (c) => {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const [
+    recentSessions,
+    last14DaysSessions,
+    totalWorkSessions,
+    totalBreakSessions,
+    totalUsers,
+    completedSessionsCount,
+    manualSessionsCount,
+  ] = await Promise.all([
+    db.workSession.findMany({
+      where: { startTime: { gte: thirtyDaysAgo } },
+      select: { userId: true, startTime: true },
+    }),
+    db.workSession.findMany({
+      where: { startTime: { gte: fourteenDaysAgo } },
+      select: { startTime: true },
+    }),
+    db.workSession.count(),
+    db.breakSession.count(),
+    db.user.count(),
+    db.workSession.count({ where: { status: "completed" } }),
+    db.workSession.count({
+      where: {
+        OR: [
+          { sessionType: { not: "shift" } },
+          { notes: { not: "" } },
+        ],
+      },
+    }),
+  ]);
+
+  // Aggregate dailyActiveUsers: group by date, count unique userIds
+  const dauByDate = new Map<string, Set<string>>();
+  for (const s of recentSessions) {
+    const date = s.startTime.toISOString().slice(0, 10);
+    if (!dauByDate.has(date)) dauByDate.set(date, new Set());
+    dauByDate.get(date)!.add(s.userId);
+  }
+  const dailyActiveUsers = Array.from(dauByDate.entries())
+    .map(([date, users]) => ({ date, count: users.size }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Aggregate sessionsPerDay for last 14 days
+  const spdByDate = new Map<string, number>();
+  for (const s of last14DaysSessions) {
+    const date = s.startTime.toISOString().slice(0, 10);
+    spdByDate.set(date, (spdByDate.get(date) ?? 0) + 1);
+  }
+  const sessionsPerDay = Array.from(spdByDate.entries())
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const avgSessionsPerUser = totalWorkSessions / Math.max(totalUsers, 1);
+
+  return c.json({
+    data: {
+      dailyActiveUsers,
+      sessionsPerDay,
+      totalWorkSessions,
+      totalBreakSessions,
+      avgSessionsPerUser,
+      completedSessions: completedSessionsCount,
+      manualSessions: manualSessionsCount,
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/salary-analytics
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/salary-analytics", async (c) => {
+  const [
+    totalUsersWithSalaryConfigured,
+    allUserSettings,
+    totalCompletedSessions,
+    completedSessionsForAvg,
+  ] = await Promise.all([
+    db.userSettings.count({ where: { hourlyRate: { gt: 0 } } }),
+    db.userSettings.findMany({
+      where: { hourlyRate: { gt: 0 } },
+      select: { hourlyRate: true },
+    }),
+    db.workSession.count({ where: { status: "completed" } }),
+    db.workSession.findMany({
+      where: { status: "completed", endTime: { not: null } },
+      select: { startTime: true, endTime: true },
+      take: 1000,
+    }),
+  ]);
+
+  const avgHourlyRate =
+    allUserSettings.length === 0
+      ? 0
+      : allUserSettings.reduce((sum, s) => sum + s.hourlyRate, 0) / allUserSettings.length;
+
+  const avgSessionDurationMinutes =
+    completedSessionsForAvg.length === 0
+      ? 0
+      : completedSessionsForAvg.reduce(
+          (sum, s) =>
+            sum +
+            (new Date(s.endTime!).getTime() - new Date(s.startTime).getTime()) / 60000,
+          0
+        ) / completedSessionsForAvg.length;
+
+  return c.json({
+    data: {
+      totalUsersWithSalaryConfigured,
+      avgHourlyRate,
+      totalCompletedSessions,
+      avgSessionDurationMinutes,
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/ads
+// ---------------------------------------------------------------------------
+
+const ADS_DEFAULTS: Record<string, string> = {
+  ads_enabled: "false",
+  ads_test_mode: "true",
+  banner_enabled: "false",
+  interstitial_enabled: "false",
+  rewarded_enabled: "false",
+  banner_unit_id: "",
+  interstitial_unit_id: "",
+  rewarded_unit_id: "",
+};
+
+async function getAdsConfig() {
+  const keys = Object.keys(ADS_DEFAULTS);
+  const configs = await db.appConfig.findMany({ where: { key: { in: keys } } });
+  const map = new Map(configs.map((c) => [c.key, c.value]));
+
+  return {
+    adsEnabled: (map.get("ads_enabled") ?? ADS_DEFAULTS.ads_enabled) === "true",
+    testMode: (map.get("ads_test_mode") ?? ADS_DEFAULTS.ads_test_mode) === "true",
+    bannerEnabled: (map.get("banner_enabled") ?? ADS_DEFAULTS.banner_enabled) === "true",
+    interstitialEnabled: (map.get("interstitial_enabled") ?? ADS_DEFAULTS.interstitial_enabled) === "true",
+    rewardedEnabled: (map.get("rewarded_enabled") ?? ADS_DEFAULTS.rewarded_enabled) === "true",
+    bannerUnitId: map.get("banner_unit_id") ?? ADS_DEFAULTS.banner_unit_id,
+    interstitialUnitId: map.get("interstitial_unit_id") ?? ADS_DEFAULTS.interstitial_unit_id,
+    rewardedUnitId: map.get("rewarded_unit_id") ?? ADS_DEFAULTS.rewarded_unit_id,
+  };
+}
+
+adminRoutes.get("/ads", async (c) => {
+  const config = await getAdsConfig();
+  return c.json({ data: config });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/admin/ads
+// ---------------------------------------------------------------------------
+
+const putAdsSchema = z.object({
+  adsEnabled: z.boolean().optional(),
+  testMode: z.boolean().optional(),
+  bannerEnabled: z.boolean().optional(),
+  interstitialEnabled: z.boolean().optional(),
+  rewardedEnabled: z.boolean().optional(),
+  bannerUnitId: z.string().optional(),
+  interstitialUnitId: z.string().optional(),
+  rewardedUnitId: z.string().optional(),
+});
+
+adminRoutes.put(
+  "/ads",
+  zValidator("json", putAdsSchema),
+  async (c) => {
+    const body = c.req.valid("json");
+
+    const keyMap: Array<[keyof typeof body, string]> = [
+      ["adsEnabled", "ads_enabled"],
+      ["testMode", "ads_test_mode"],
+      ["bannerEnabled", "banner_enabled"],
+      ["interstitialEnabled", "interstitial_enabled"],
+      ["rewardedEnabled", "rewarded_enabled"],
+      ["bannerUnitId", "banner_unit_id"],
+      ["interstitialUnitId", "interstitial_unit_id"],
+      ["rewardedUnitId", "rewarded_unit_id"],
+    ];
+
+    for (const [field, key] of keyMap) {
+      const val = body[field];
+      if (val === undefined) continue;
+      const value = typeof val === "boolean" ? (val ? "true" : "false") : String(val);
+      await db.appConfig.upsert({
+        where: { key },
+        create: { key, value },
+        update: { value },
+      });
+    }
+
+    await auditLog({
+      userId: c.get("userId"),
+      action: "ADS_CONFIG_UPDATED",
+      resource: "config",
+      details: body as object,
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
+    const config = await getAdsConfig();
+    return c.json({ data: config });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/system-stats
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/system-stats", async (c) => {
+  const [
+    databaseConnected,
+    totalAuditLogs,
+    totalUserSessions,
+    totalUsers,
+    totalWorkSessions,
+  ] = await Promise.all([
+    db.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
+    db.auditLog.count(),
+    db.userSession.count(),
+    db.user.count(),
+    db.workSession.count(),
+  ]);
+
+  return c.json({
+    data: {
+      environment: env.NODE_ENV,
+      databaseConnected,
+      totalAuditLogs,
+      totalUserSessions,
+      totalUsers,
+      totalWorkSessions,
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/errors
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/errors", async (c) => {
+  const where = {
+    OR: [
+      { action: { startsWith: "ERROR" } },
+      { action: { startsWith: "FAIL" } },
+    ],
+  };
+
+  const [errorLogs, totalErrors] = await Promise.all([
+    db.auditLog.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    db.auditLog.count({ where }),
+  ]);
+
+  return c.json({ data: { logs: errorLogs, totalErrors } });
+});

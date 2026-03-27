@@ -47,6 +47,22 @@ export default function AdminLayout() {
         name="audit-logs"
         options={{ title: 'לוג ביקורת', headerBackTitle: 'חזרה' }}
       />
+      <Stack.Screen
+        name="analytics"
+        options={{ title: 'אנליטיקות שימוש', headerBackTitle: 'חזרה' }}
+      />
+      <Stack.Screen
+        name="salaries"
+        options={{ title: 'אנליטיקות שכר', headerBackTitle: 'חזרה' }}
+      />
+      <Stack.Screen
+        name="ads"
+        options={{ title: 'ניהול פרסומות', headerBackTitle: 'חזרה' }}
+      />
+      <Stack.Screen
+        name="health"
+        options={{ title: 'בריאות המערכת', headerBackTitle: 'חזרה' }}
+      />
     </Stack>
   );
 }

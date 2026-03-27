@@ -162,3 +162,105 @@ export const getAdminAuditLogs = (page = 1, limit = 30): Promise<AuditLogsResult
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   return adminGet<AuditLogsResult>(`/api/admin/audit-logs?${params.toString()}`);
 };
+
+export interface DashboardStats {
+  totalUsers: number;
+  newUsersToday: number;
+  newUsersThisWeek: number;
+  newUsersThisMonth: number;
+  dauToday: number;
+  wauThisWeek: number;
+  totalWorkSessionsToday: number;
+  totalWorkSessionsThisWeek: number;
+  totalWorkSessionsAllTime: number;
+  avgHoursPerActiveUser: number;
+  accountDeletionRequests: number;
+  totalAuditLogs: number;
+  adsEnabled: boolean;
+}
+
+export interface UsageAnalytics {
+  dailyActiveUsers: { date: string; count: number }[];
+  sessionsPerDay: { date: string; count: number }[];
+  totalWorkSessions: number;
+  totalBreakSessions: number;
+  avgSessionsPerUser: number;
+  completedSessions: number;
+  manualSessions: number;
+}
+
+export interface SalaryAnalytics {
+  totalUsersWithSalaryConfigured: number;
+  avgHourlyRate: number;
+  totalCompletedSessions: number;
+  avgSessionDurationMinutes: number;
+}
+
+export interface AdsConfig {
+  adsEnabled: boolean;
+  testMode: boolean;
+  bannerEnabled: boolean;
+  interstitialEnabled: boolean;
+  rewardedEnabled: boolean;
+  bannerUnitId: string;
+  interstitialUnitId: string;
+  rewardedUnitId: string;
+}
+
+export interface SystemStats {
+  environment: string;
+  databaseConnected: boolean;
+  totalAuditLogs: number;
+  totalUserSessions: number;
+  totalUsers: number;
+  totalWorkSessions: number;
+  uptime: number;
+  nodeVersion: string;
+  timestamp: string;
+}
+
+async function adminPatch<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 204) return undefined as unknown as T;
+  const json = await response.json();
+  if (!response.ok) {
+    const message = json?.error?.message ?? json?.message ?? 'שגיאת שרת';
+    throw new Error(message);
+  }
+  return (json.data ?? json) as T;
+}
+
+export const getAdminDashboard = (): Promise<DashboardStats> =>
+  adminGet<DashboardStats>('/api/admin/dashboard');
+
+export const getUsageAnalytics = (): Promise<UsageAnalytics> =>
+  adminGet<UsageAnalytics>('/api/admin/analytics/usage');
+
+export const getSalaryAnalytics = (): Promise<SalaryAnalytics> =>
+  adminGet<SalaryAnalytics>('/api/admin/analytics/salary');
+
+export const getAdsConfig = (): Promise<AdsConfig> =>
+  adminGet<AdsConfig>('/api/admin/ads');
+
+export const updateAdsConfig = (body: Partial<AdsConfig>): Promise<AdsConfig> =>
+  adminPut<AdsConfig>('/api/admin/ads', body as Record<string, unknown>);
+
+export const getSystemStats = (): Promise<SystemStats> =>
+  adminGet<SystemStats>('/api/admin/system/stats');
+
+export const patchUserStatus = (userId: string, status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED'): Promise<void> =>
+  adminPatch<void>(`/api/admin/users/${userId}/status`, { status });
+
+export const patchUserRole = (userId: string, role: 'USER' | 'ADMIN'): Promise<void> =>
+  adminPatch<void>(`/api/admin/users/${userId}/role`, { role });
+
+export const deleteUser = (userId: string): Promise<void> =>
+  adminDelete<void>(`/api/admin/users/${userId}`);

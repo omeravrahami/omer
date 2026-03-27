@@ -10,10 +10,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Users, ShieldAlert, Activity, Server, ChevronLeft, Settings2, Download, MessageSquare, Database, CheckCircle, ClipboardList } from 'lucide-react-native';
+import {
+  Users,
+  ShieldAlert,
+  Activity,
+  Server,
+  ChevronLeft,
+  Settings2,
+  Download,
+  MessageSquare,
+  Database,
+  CheckCircle,
+  ClipboardList,
+  BarChart2,
+  Tv,
+  Calendar,
+  TrendingUp,
+} from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
-import { getAdminStats, AdminStats } from '@/lib/api/admin-api';
+import { getAdminDashboard, getAdminStats, DashboardStats, AdminStats } from '@/lib/api/admin-api';
 import { useToastStore } from '@/lib/state/toast-store';
 
 const BG = '#0B1020';
@@ -94,14 +110,86 @@ function MiniBarChart({ data }: { data: { date: string; count: number }[] }) {
   );
 }
 
+interface NavCardProps {
+  testId: string;
+  route: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+}
+
+function NavCard({ testId, route, icon, iconBg, title, subtitle, accentColor }: NavCardProps) {
+  const router = useRouter();
+  return (
+    <Pressable
+      testID={testId}
+      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(route as any); }}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? `${accentColor}08` : BG_CARD,
+        borderRadius: 16,
+        padding: 18,
+        borderWidth: 1,
+        borderColor: BORDER,
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+      })}
+    >
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </View>
+        <View>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{title}</Text>
+          <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{subtitle}</Text>
+        </View>
+      </View>
+      <ChevronLeft size={18} color={TEXT_SECONDARY} />
+    </Pressable>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
 
-  const { data: stats, isLoading, isError, refetch, isRefetching } = useQuery<AdminStats>({
+  // Try new dashboard endpoint first, fall back to stats
+  const {
+    data: dashboardStats,
+    isLoading: dashLoading,
+    isError: dashError,
+    refetch: refetchDash,
+    isRefetching: dashRefetching,
+  } = useQuery<DashboardStats>({
+    queryKey: ['admin', 'dashboard'],
+    queryFn: getAdminDashboard,
+    retry: 1,
+  });
+
+  const {
+    data: legacyStats,
+    isLoading: legacyLoading,
+    isError: legacyError,
+    refetch: refetchLegacy,
+    isRefetching: legacyRefetching,
+  } = useQuery<AdminStats>({
     queryKey: ['admin', 'stats'],
     queryFn: getAdminStats,
+    enabled: dashError,
+    retry: 1,
   });
+
+  const isLoading = dashLoading || (dashError && legacyLoading);
+  const isError = dashError && legacyError;
+  const isRefetching = dashRefetching || legacyRefetching;
+
+  function refetch() {
+    refetchDash();
+    if (dashError) refetchLegacy();
+  }
 
   const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
   const maskedUrl = backendUrl.length > 12
@@ -110,6 +198,14 @@ export default function AdminDashboard() {
 
   const today = new Date();
   const deployDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+
+  // Determine which stats to use
+  const hasDashboard = dashboardStats != null;
+  const hasLegacy = legacyStats != null;
+
+  const totalUsers = hasDashboard
+    ? dashboardStats.totalUsers
+    : (hasLegacy ? legacyStats.totalUsers : null);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['bottom']} testID="admin-dashboard-screen">
@@ -193,21 +289,72 @@ export default function AdminDashboard() {
           </Animated.View>
         ) : null}
 
-        {/* Stat cards grid */}
-        {stats !== null && stats !== undefined ? (
+        {/* Stat cards grid — dashboard stats */}
+        {hasDashboard ? (
           <>
             <View style={{ flexDirection: 'row-reverse', gap: 12, marginBottom: 12 }}>
               <StatCard
                 icon={<Users size={20} color="#60A5FA" />}
                 label="סה״כ משתמשים"
-                value={stats.totalUsers}
+                value={dashboardStats.totalUsers}
+                color="#60A5FA"
+                delay={0}
+              />
+              <StatCard
+                icon={<TrendingUp size={20} color="#34D399" />}
+                label="משתמשים חדשים היום"
+                value={dashboardStats.newUsersToday}
+                color="#34D399"
+                delay={80}
+              />
+            </View>
+            <View style={{ flexDirection: 'row-reverse', gap: 12, marginBottom: 12 }}>
+              <StatCard
+                icon={<Activity size={20} color="#FBBF24" />}
+                label="משתמשים פעילים היום"
+                value={dashboardStats.dauToday}
+                color="#FBBF24"
+                delay={160}
+              />
+              <StatCard
+                icon={<Calendar size={20} color="#F472B6" />}
+                label="משמרות היום"
+                value={dashboardStats.totalWorkSessionsToday}
+                color="#F472B6"
+                delay={240}
+              />
+            </View>
+            <View style={{ flexDirection: 'row-reverse', gap: 12, marginBottom: 24 }}>
+              <StatCard
+                icon={<Database size={20} color="#A78BFA" />}
+                label="כל המשמרות"
+                value={dashboardStats.totalWorkSessionsAllTime}
+                color="#A78BFA"
+                delay={320}
+              />
+              <StatCard
+                icon={<ShieldAlert size={20} color="#FB923C" />}
+                label="בקשות מחיקת חשבון"
+                value={dashboardStats.accountDeletionRequests}
+                color="#FB923C"
+                delay={400}
+              />
+            </View>
+          </>
+        ) : hasLegacy ? (
+          <>
+            <View style={{ flexDirection: 'row-reverse', gap: 12, marginBottom: 12 }}>
+              <StatCard
+                icon={<Users size={20} color="#60A5FA" />}
+                label="סה״כ משתמשים"
+                value={legacyStats.totalUsers}
                 color="#60A5FA"
                 delay={0}
               />
               <StatCard
                 icon={<Activity size={20} color="#34D399" />}
                 label="משתמשים פעילים"
-                value={stats.activeUsers}
+                value={legacyStats.activeUsers}
                 color="#34D399"
                 delay={80}
               />
@@ -216,21 +363,20 @@ export default function AdminDashboard() {
               <StatCard
                 icon={<ShieldAlert size={20} color="#FBBF24" />}
                 label="מושהים"
-                value={stats.suspendedUsers}
+                value={legacyStats.suspendedUsers}
                 color="#FBBF24"
                 delay={160}
               />
               <StatCard
                 icon={<Server size={20} color="#A78BFA" />}
                 label="סשנים פעילים"
-                value={stats.totalSessions}
+                value={legacyStats.totalSessions}
                 color="#A78BFA"
                 delay={240}
               />
             </View>
 
-            {/* Recent registrations chart */}
-            {stats.recentRegistrations.length > 0 ? (
+            {legacyStats.recentRegistrations.length > 0 ? (
               <Animated.View
                 entering={FadeInDown.delay(320).duration(400)}
                 style={{
@@ -245,19 +391,18 @@ export default function AdminDashboard() {
                 <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right', marginBottom: 16 }}>
                   {'הרשמות ב-7 ימים אחרונים'}
                 </Text>
-                <MiniBarChart data={stats.recentRegistrations} />
+                <MiniBarChart data={legacyStats.recentRegistrations} />
               </Animated.View>
             ) : null}
           </>
         ) : null}
 
         {/* Quick Actions */}
-        <Animated.View entering={FadeInDown.delay(380).duration(400)} style={{ marginBottom: 20 }}>
+        <Animated.View entering={FadeInDown.delay(460).duration(400)} style={{ marginBottom: 20 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10, letterSpacing: 0.4 }}>
             {'פעולות מהירות'}
           </Text>
           <View style={{ gap: 8 }}>
-            {/* Export users */}
             <Pressable
               testID="export-users-button"
               onPress={() => {
@@ -281,7 +426,6 @@ export default function AdminDashboard() {
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#22C55E' }}>{'ייצוא רשימת משתמשים'}</Text>
             </Pressable>
 
-            {/* Broadcast message */}
             <Pressable
               testID="broadcast-message-button"
               onPress={() => {
@@ -305,7 +449,6 @@ export default function AdminDashboard() {
               <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT }}>{'שלח הודעה לכולם'}</Text>
             </Pressable>
 
-            {/* Backup */}
             <Pressable
               testID="backup-button"
               onPress={() => {
@@ -332,90 +475,80 @@ export default function AdminDashboard() {
         </Animated.View>
 
         {/* Quick links */}
-        <Animated.View entering={FadeInDown.delay(440).duration(400)}>
+        <Animated.View entering={FadeInDown.delay(500).duration(400)}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10, letterSpacing: 0.4 }}>
             {'ניהול'}
           </Text>
 
-          <Pressable
-            testID="goto-users"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/admin/users' as any); }}
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? 'rgba(96,165,250,0.08)' : BG_CARD,
-              borderRadius: 16,
-              padding: 18,
-              borderWidth: 1,
-              borderColor: BORDER,
-              flexDirection: 'row-reverse',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 10,
-            })}
-          >
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(96,165,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={20} color={ACCENT} />
-              </View>
-              <View>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'ניהול משתמשים'}</Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'צפה, ערוך וחסום משתמשים'}</Text>
-              </View>
-            </View>
-            <ChevronLeft size={18} color={TEXT_SECONDARY} />
-          </Pressable>
+          <NavCard
+            testId="goto-users"
+            route="/admin/users"
+            icon={<Users size={20} color={ACCENT} />}
+            iconBg="rgba(96,165,250,0.12)"
+            title="ניהול משתמשים"
+            subtitle="צפה, ערוך וחסום משתמשים"
+            accentColor={ACCENT}
+          />
 
-          <Pressable
-            testID="goto-config"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/admin/config' as any); }}
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? 'rgba(96,165,250,0.08)' : BG_CARD,
-              borderRadius: 16,
-              padding: 18,
-              borderWidth: 1,
-              borderColor: BORDER,
-              flexDirection: 'row-reverse',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 10,
-            })}
-          >
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(167,139,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <Settings2 size={20} color="#A78BFA" />
-              </View>
-              <View>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'הגדרות מערכת'}</Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'מדרגות מס 2026 — ניהול הגדרות ופרמטרים'}</Text>
-              </View>
-            </View>
-            <ChevronLeft size={18} color={TEXT_SECONDARY} />
-          </Pressable>
+          <NavCard
+            testId="goto-config"
+            route="/admin/config"
+            icon={<Settings2 size={20} color="#A78BFA" />}
+            iconBg="rgba(167,139,250,0.12)"
+            title="הגדרות מערכת"
+            subtitle="מדרגות מס 2026 — ניהול הגדרות ופרמטרים"
+            accentColor="#A78BFA"
+          />
 
-          <Pressable
-            testID="goto-audit-logs"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/admin/audit-logs' as any); }}
-            style={({ pressed }) => ({
-              backgroundColor: pressed ? 'rgba(251,191,36,0.08)' : BG_CARD,
-              borderRadius: 16,
-              padding: 18,
-              borderWidth: 1,
-              borderColor: BORDER,
-              flexDirection: 'row-reverse',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            })}
-          >
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(251,191,36,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <ClipboardList size={20} color="#FBBF24" />
-              </View>
-              <View>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'לוג ביקורת'}</Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'פעולות מערכת ואירועי אבטחה'}</Text>
-              </View>
-            </View>
-            <ChevronLeft size={18} color={TEXT_SECONDARY} />
-          </Pressable>
+          <NavCard
+            testId="goto-audit-logs"
+            route="/admin/audit-logs"
+            icon={<ClipboardList size={20} color="#FBBF24" />}
+            iconBg="rgba(251,191,36,0.12)"
+            title="לוג ביקורת"
+            subtitle="פעולות מערכת ואירועי אבטחה"
+            accentColor="#FBBF24"
+          />
+
+          <NavCard
+            testId="goto-analytics"
+            route="/admin/analytics"
+            icon={<Activity size={20} color="#34D399" />}
+            iconBg="rgba(52,211,153,0.12)"
+            title="אנליטיקות שימוש"
+            subtitle="נתוני פעילות ומשמרות"
+            accentColor="#34D399"
+          />
+
+          <NavCard
+            testId="goto-salaries"
+            route="/admin/salaries"
+            icon={<BarChart2 size={20} color="#FBBF24" />}
+            iconBg="rgba(251,191,36,0.12)"
+            title="אנליטיקות שכר"
+            subtitle="נתוני שכר ומשמרות מצרפיים"
+            accentColor="#FBBF24"
+          />
+
+          <NavCard
+            testId="goto-ads"
+            route="/admin/ads"
+            icon={<Tv size={20} color="#F472B6" />}
+            iconBg="rgba(244,114,182,0.12)"
+            title="ניהול פרסומות"
+            subtitle="הגדרות פרסומות ו-Unit IDs"
+            accentColor="#F472B6"
+          />
+
+          <NavCard
+            testId="goto-health"
+            route="/admin/health"
+            icon={<Server size={20} color="#A78BFA" />}
+            iconBg="rgba(167,139,250,0.12)"
+            title="בריאות המערכת"
+            subtitle="סטטוס שירותים ומסד נתונים"
+            accentColor="#A78BFA"
+          />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
