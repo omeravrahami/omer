@@ -267,9 +267,9 @@ function ActiveSessionHero({
         </View>
       </View>
 
-      {/* MoneyCharacter mascot */}
+      {/* MoneyCharacter mascot — overlaps bottom of timer */}
       {showCharacterActive ? (
-        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ alignItems: 'center', marginTop: -50, marginBottom: -12 }}>
           <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={260} />
         </View>
       ) : null}
@@ -470,7 +470,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
     <Animated.View
       entering={FadeInDown.duration(600)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 }}
+      style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 0, paddingBottom: 8 }}
     >
       {/* Ambient glow behind the time */}
       <Animated.View style={[{
@@ -494,7 +494,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
           textShadowColor: 'rgba(96,165,250,0.6)',
           textShadowOffset: { width: 0, height: 0 },
           textShadowRadius: 32,
-          marginBottom: 6,
+          marginBottom: 2,
         }}
       >
         {currentTime}
@@ -504,18 +504,18 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       <Text
         style={{
           color: 'rgba(255,255,255,0.55)',
-          fontSize: 15,
+          fontSize: 14,
           letterSpacing: 0.8,
           fontWeight: '500',
-          marginBottom: 24,
+          marginBottom: 0,
         }}
       >
         {'לחץ להתחלת משמרת'}
       </Text>
 
-      {/* Money character - idle or sleeping based on time */}
+      {/* Money character — top half overlaps the clock glow */}
       {showCharacterEmpty ? (
-        <View style={{ marginBottom: 20 }}>
+        <View style={{ marginTop: -60, marginBottom: -16 }}>
           <MoneyCharacter state={characterState} size={260} />
         </View>
       ) : null}
