@@ -1320,9 +1320,9 @@ export default function SettingsScreen() {
         ) : null}
         {/* Account / Auth section */}
         <Animated.View entering={FadeInDown.delay(420).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
-          {authIsGuest ? (
+          {!authToken ? (
             <Pressable
-              testID="register-account-button"
+              testID="login-button"
               onPress={() => router.push('/auth/login' as any)}
               style={{
                 backgroundColor: 'rgba(96,165,250,0.1)',
@@ -1335,7 +1335,7 @@ export default function SettingsScreen() {
               <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>
-                    {'הרשמה לחשבון'}
+                    {'התחבר / הרשמה'}
                   </Text>
                   <Text style={{ fontSize: 12, color: 'rgba(96,165,250,0.6)', textAlign: 'right', marginTop: 2 }}>
                     {'שמור את הנתונים שלך בענן'}
