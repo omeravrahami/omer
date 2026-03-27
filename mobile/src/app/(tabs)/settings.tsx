@@ -67,7 +67,7 @@ function getCurrentMonth(): string {
 
 function offsetMonth(month: string, delta: number): string {
   const parts = month.split('-');
-  const year = parseInt(parts[0] ?? '2024', 10);
+  const year = parseInt(parts[0] ?? '2026', 10);
   const m = parseInt(parts[1] ?? '1', 10);
   const date = new Date(year, m - 1 + delta, 1);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -1373,6 +1373,40 @@ export default function SettingsScreen() {
             </Pressable>
           )}
         </Animated.View>
+
+        {/* Version footer */}
+        <Animated.View entering={FadeInDown.delay(450).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16, alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.3)' }}>
+            {'WorkClock v1.0.0'}
+          </Text>
+          <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>
+            {'מס 2026 | \u00A9 2026 WorkClock'}
+          </Text>
+          <View style={{ flexDirection: 'row-reverse', gap: 16, marginTop: 4 }}>
+            <Pressable
+              testID="privacy-link"
+              onPress={() => router.push('/privacy' as never)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
+              <Text style={{ fontSize: 11, color: ACCENT_BLUE, fontWeight: '600' }}>
+                {'פרטיות ותנאי שימוש'}
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="support-link"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                showToast('support@workclock.app');
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            >
+              <Text style={{ fontSize: 11, color: ACCENT_BLUE, fontWeight: '600' }}>
+                {'עזרה ויצירת קשר'}
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+
       </ScrollView>
     </SafeAreaView>
   );

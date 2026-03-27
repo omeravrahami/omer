@@ -410,7 +410,7 @@ function SalaryBreakdownCard({
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 17, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>{'פירוט שכר מלא'}</Text>
-          <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 1 }}>{'חישוב מס ישראלי 2024 — 3 שכבות'}</Text>
+          <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 1 }}>{'חישוב מס ישראלי 2026 — 3 שכבות'}</Text>
         </View>
       </View>
 
@@ -1096,7 +1096,7 @@ export default function ReportsScreen() {
             {'תובנות פיננסיות'}
           </Text>
           <Text style={{ fontSize: 13, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
-            {'הכסף שלך, בצורה ברורה — חישוב מס 2024'}
+            {'הכסף שלך, בצורה ברורה — חישוב מס 2026'}
           </Text>
         </Animated.View>
 
@@ -1231,7 +1231,7 @@ export default function ReportsScreen() {
             >
               <Info size={14} color={TEXT_MUTED} style={{ marginTop: 1 }} />
               <Text style={{ flex: 1, fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', lineHeight: 17 }}>
-                {'החישובים מבוססים על מדרגות מס 2024 ונתוני הגדרות אישיים. הערכות בלבד לצורך יידועי — לייעוץ מקצועי פנה לרואה חשבון.'}
+                {'החישובים מבוססים על מדרגות מס 2026 ונתוני הגדרות אישיים. הערכות בלבד לצורך יידועי — לייעוץ מקצועי פנה לרואה חשבון.'}
               </Text>
             </Animated.View>
 

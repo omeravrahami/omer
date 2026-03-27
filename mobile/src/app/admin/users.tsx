@@ -63,6 +63,7 @@ function UserRow({ user, onPress }: { user: AdminUser; onPress: () => void }) {
   const initials = getInitials(user);
   const statusColor = STATUS_COLORS[user.status] ?? '#60A5FA';
   const roleColor = ROLE_COLORS[user.role] ?? '#60A5FA';
+  const activeSessionCount = user.sessions?.length ?? 0;
 
   return (
     <Pressable
@@ -133,6 +134,17 @@ function UserRow({ user, onPress }: { user: AdminUser; onPress: () => void }) {
           <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
             {formatDate(user.createdAt)}
           </Text>
+          {activeSessionCount > 0 ? (
+            <>
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>{' • '}</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
+                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#34D399' }} />
+                <Text style={{ fontSize: 11, color: '#34D399', fontWeight: '600' }}>
+                  {`${activeSessionCount} מכשיר${activeSessionCount !== 1 ? 'ים' : ''} פעיל${activeSessionCount !== 1 ? 'ים' : ''}`}
+                </Text>
+              </View>
+            </>
+          ) : null}
         </View>
       </View>
 

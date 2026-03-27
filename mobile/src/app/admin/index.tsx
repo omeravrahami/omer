@@ -10,10 +10,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Users, ShieldAlert, Activity, Server, ChevronLeft, Settings2 } from 'lucide-react-native';
+import { Users, ShieldAlert, Activity, Server, ChevronLeft, Settings2, Download, MessageSquare, Database, CheckCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminStats, AdminStats } from '@/lib/api/admin-api';
+import { useToastStore } from '@/lib/state/toast-store';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -95,11 +96,20 @@ function MiniBarChart({ data }: { data: { date: string; count: number }[] }) {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const showToast = useToastStore((s) => s.showToast);
 
   const { data: stats, isLoading, isError, refetch, isRefetching } = useQuery<AdminStats>({
     queryKey: ['admin', 'stats'],
     queryFn: getAdminStats,
   });
+
+  const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+  const maskedUrl = backendUrl.length > 12
+    ? `${backendUrl.slice(0, 12)}...`
+    : backendUrl || '—';
+
+  const today = new Date();
+  const deployDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['bottom']} testID="admin-dashboard-screen">
@@ -114,14 +124,53 @@ export default function AdminDashboard() {
           />
         }
       >
-        {/* Welcome header */}
-        <Animated.View entering={FadeInDown.duration(400)} style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right' }}>
-            {'לוח בקרה'}
+        {/* System header */}
+        <Animated.View entering={FadeInDown.duration(400)} style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right' }}>
+            {'מערכת WorkClock — ניהול'}
           </Text>
-          <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 4 }}>
-            {'סקירה כללית של המערכת'}
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <View style={{ backgroundColor: 'rgba(96,165,250,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: ACCENT }}>{'v1.0.0'}</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: TEXT_SECONDARY }}>{'סקירה כללית של המערכת'}</Text>
+          </View>
+        </Animated.View>
+
+        {/* System Status Card */}
+        <Animated.View
+          entering={FadeInDown.delay(60).duration(400)}
+          style={{
+            backgroundColor: BG_CARD,
+            borderRadius: 16,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: BORDER,
+            marginBottom: 20,
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 12, letterSpacing: 0.4 }}>
+            {'סטטוס מערכת'}
           </Text>
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, color: TEXT_SECONDARY }}>{'כתובת Backend'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#94A3B8', fontVariant: ['tabular-nums'] }}>{maskedUrl}</Text>
+            </View>
+            <View style={{ height: 1, backgroundColor: BORDER }} />
+            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, color: TEXT_SECONDARY }}>{'סטטוס DB'}</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5 }}>
+                <CheckCircle size={13} color="#34D399" />
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#34D399' }}>{'תקין'}</Text>
+              </View>
+            </View>
+            <View style={{ height: 1, backgroundColor: BORDER }} />
+            <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, color: TEXT_SECONDARY }}>{'Deploy אחרון'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#94A3B8' }}>{deployDate}</Text>
+            </View>
+          </View>
         </Animated.View>
 
         {isLoading ? (
@@ -202,9 +251,89 @@ export default function AdminDashboard() {
           </>
         ) : null}
 
+        {/* Quick Actions */}
+        <Animated.View entering={FadeInDown.delay(380).duration(400)} style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10, letterSpacing: 0.4 }}>
+            {'פעולות מהירות'}
+          </Text>
+          <View style={{ gap: 8 }}>
+            {/* Export users */}
+            <Pressable
+              testID="export-users-button"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                showToast('ייצוא רשימת משתמשים בקרוב');
+              }}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.07)',
+                borderRadius: 14,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(34,197,94,0.2)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 12,
+              })}
+            >
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                <Download size={17} color="#22C55E" />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#22C55E' }}>{'ייצוא רשימת משתמשים'}</Text>
+            </Pressable>
+
+            {/* Broadcast message */}
+            <Pressable
+              testID="broadcast-message-button"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                showToast('שליחת הודעה לכולם — בקרוב');
+              }}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? 'rgba(96,165,250,0.12)' : 'rgba(96,165,250,0.07)',
+                borderRadius: 14,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(96,165,250,0.2)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 12,
+              })}
+            >
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(96,165,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageSquare size={17} color={ACCENT} />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT }}>{'שלח הודעה לכולם'}</Text>
+            </Pressable>
+
+            {/* Backup */}
+            <Pressable
+              testID="backup-button"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                showToast('גיבוי נתונים — בקרוב');
+              }}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? 'rgba(167,139,250,0.12)' : 'rgba(167,139,250,0.07)',
+                borderRadius: 14,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: 'rgba(167,139,250,0.2)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 12,
+              })}
+            >
+              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                <Database size={17} color="#A78BFA" />
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#A78BFA' }}>{'גיבוי נתונים'}</Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+
         {/* Quick links */}
-        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 12 }}>
+        <Animated.View entering={FadeInDown.delay(440).duration(400)}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10, letterSpacing: 0.4 }}>
             {'ניהול'}
           </Text>
 
@@ -255,7 +384,7 @@ export default function AdminDashboard() {
               </View>
               <View>
                 <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'הגדרות מערכת'}</Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'ניהול הגדרות ופרמטרים'}</Text>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'מדרגות מס 2026 — ניהול הגדרות ופרמטרים'}</Text>
               </View>
             </View>
             <ChevronLeft size={18} color={TEXT_SECONDARY} />

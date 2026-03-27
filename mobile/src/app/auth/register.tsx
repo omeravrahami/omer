@@ -15,8 +15,9 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Eye, EyeOff, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/lib/state/auth-store';
-import { register as registerApi } from '@/lib/api/auth-api';
+import { register as registerApi, syncUserSettings } from '@/lib/api/auth-api';
 import { useToastStore } from '@/lib/state/toast-store';
+import { useSettingsStore } from '@/lib/state/settings-store';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -40,6 +41,16 @@ export default function RegisterScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const showToast = useToastStore((s) => s.showToast);
+  const localSettings = useSettingsStore((s) => ({
+    hourlyRate: s.hourlyRate,
+    currency: s.currency,
+    dailyGoalHours: s.dailyGoalHours,
+    weeklyGoalHours: s.weeklyGoalHours,
+    defaultBreakMinutes: s.defaultBreakMinutes,
+    showSalaryOnDashboard: s.showSalaryOnDashboard,
+    themeMode: s.themeMode,
+    onboardingCompleted: s.onboardingCompleted,
+  }));
 
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -93,6 +104,15 @@ export default function RegisterScreen() {
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('החשבון נוצר בהצלחה!', 'success');
+        // Sync local settings to the new account in the background
+        try {
+          await syncUserSettings(localSettings as Record<string, unknown>);
+          if (localSettings.hourlyRate > 0) {
+            showToast('הנתונים שלך גובו בהצלחה', 'success');
+          }
+        } catch {
+          // Sync failure is non-critical — user is still logged in
+        }
         router.replace('/(tabs)');
       } else {
         setError('שגיאה ביצירת החשבון, נסה שוב');

@@ -251,6 +251,23 @@ export default function AdminConfigScreen() {
           <Text style={{ fontSize: 13, color: TEXT_SECONDARY, textAlign: 'right' }}>
             {'ניהול פרמטרים והגדרות של האפליקציה'}
           </Text>
+          <View style={{
+            marginTop: 10,
+            backgroundColor: 'rgba(34,197,94,0.08)',
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(34,197,94,0.2)',
+            flexDirection: 'row-reverse',
+            alignItems: 'center',
+            gap: 6,
+          }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E' }} />
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#4ADE80', textAlign: 'right' }}>
+              {'מדרגות מס 2026 פעילות'}
+            </Text>
+          </View>
         </Animated.View>
 
         {isLoading ? (

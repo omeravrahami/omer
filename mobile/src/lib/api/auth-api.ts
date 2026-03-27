@@ -129,3 +129,6 @@ export const getActiveSessions = (): Promise<Session[]> =>
 
 export const revokeSession = (sessionId: string): Promise<void> =>
   authRequest<void>('DELETE', `/api/auth/sessions/${sessionId}`);
+
+export const syncUserSettings = (settings: Record<string, unknown>): Promise<{ success: boolean }> =>
+  authRequest<{ success: boolean }>('PUT', '/api/auth/user-settings', settings);

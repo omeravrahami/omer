@@ -60,8 +60,6 @@ import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-ca
 import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
 import { MoneyCharacter, type MoneyCharacterState } from '@/components/MoneyCharacter';
 import { InsightsCards } from '@/components/InsightsCards';
-import { SalaryBreakdownCard } from '@/components/SalaryBreakdownCard';
-import { calcSalaryBreakdown, type SalaryInput } from '@/lib/utils/salary-engine';
 import type { WorkSession } from '@/lib/types';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
@@ -679,17 +677,17 @@ function MonthlySalaryCard({
 
       {/* 3-pill stat strip */}
       <View style={{ flexDirection: 'row-reverse', gap: 8, marginBottom: 14 }}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(59,130,246,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.15)' }}>
-          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'ברוטו רגיל'}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+        <View style={{ flex: 1, backgroundColor: 'rgba(59,130,246,0.05)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.1)' }}>
+          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{'ברוטו רגיל'}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(96,165,250,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
         </View>
-        <View style={{ flex: 1, backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(245,158,11,0.15)' }}>
-          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'ברוטו למס'}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+        <View style={{ flex: 1, backgroundColor: 'rgba(245,158,11,0.05)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(245,158,11,0.1)' }}>
+          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{'ברוטו למס'}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(245,158,11,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
         </View>
-        <View style={{ flex: 1, backgroundColor: 'rgba(34,197,94,0.08)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.15)' }}>
-          <Text style={{ fontSize: 9, color: '#94A3B8', marginBottom: 3 }}>{'נטו לקבלה'}</Text>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxResult.finalTakeHome)}</Text>
+        <View style={{ flex: 1.4, backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}>
+          <Text style={{ fontSize: 9, color: '#86EFAC', marginBottom: 3, fontWeight: '700' }}>{'נטו לקבלה'}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#22c55e', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>{formatCurrency(taxResult.finalTakeHome)}</Text>
         </View>
       </View>
 
@@ -770,7 +768,7 @@ function MonthlySalaryCard({
         alignItems: 'center',
       }}>
         <Text style={{ fontSize: 14, fontWeight: '700', color: '#F0F6FF' }}>{'נטו לקבלה'}</Text>
-        <Text style={{ fontSize: 22, fontWeight: '800', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
+        <Text style={{ fontSize: 22, fontWeight: '800', color: '#22c55e', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>
           {formatCurrency(taxResult.finalTakeHome)}
         </Text>
       </View>
@@ -1131,49 +1129,25 @@ export default function DashboardScreen() {
                   {'נטו לקבלה — חודש נוכחי'}
                 </Text>
                 <Text style={{
-                  color: '#34D399',
+                  color: '#22c55e',
                   fontSize: 52,
                   fontWeight: '800',
                   textAlign: 'right',
                   fontVariant: ['tabular-nums'],
                   letterSpacing: 1,
-                  textShadowColor: 'rgba(52,211,153,0.4)',
+                  textShadowColor: 'rgba(34,197,94,0.4)',
                   textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 24,
+                  textShadowRadius: 12,
                   lineHeight: 58,
                 }}>
                   {formatCurrency(homeTaxResult.finalTakeHome)}
                 </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13, textAlign: 'right', marginTop: 8, fontVariant: ['tabular-nums'] }}>
+                <Text style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'right', marginTop: 8, fontVariant: ['tabular-nums'] }}>
                   {`ברוטו: ${formatCurrency(homeTaxResult.regularGross)}  |  מסים: ${formatCurrency(homeTaxResult.totalDeductions)}`}
                 </Text>
               </LinearGradient>
             </Animated.View>
           ) : null}
-
-          {/* SalaryBreakdownCard — detailed component breakdown */}
-          {homeTaxResult.finalTakeHome > 0 ? (() => {
-            const breakdownInput: SalaryInput = {
-              baseMonthlyGross: baseMonthlyGross,
-              carBenefitMonthly: carBenefitHome,
-              carGrossupMonthly: carGrossupHome,
-              oneTimeBonus: oneTimeBonusTotalHome,
-              oneTimeGifts: oneTimeGiftTotalHome,
-              transportationMonthly: transportationTypeHome === 'fixed' ? transportationValueHome : 0,
-              mealBenefitMonthly: 0,
-              trainingFundEmployeeRate: trainingFundValueHome,
-              trainingFundType: trainingFundTypeHome,
-              creditPoints: taxCreditPointsHome,
-              employerPensionRate: employerPensionRateHome / 100,
-              totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
-            };
-            const breakdown = calcSalaryBreakdown(breakdownInput);
-            return (
-              <Animated.View entering={FadeInUp.delay(60).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
-                <SalaryBreakdownCard breakdown={breakdown} />
-              </Animated.View>
-            );
-          })() : null}
 
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>

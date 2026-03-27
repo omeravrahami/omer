@@ -206,7 +206,7 @@ export default function TaxBracketsScreen() {
         }}
       >
         <Text style={{ fontSize: 20, fontWeight: '700', color: TEXT_PRIMARY }}>
-          {'מדרגות מס בישראל 2024'}
+          {'מדרגות מס בישראל 2026'}
         </Text>
         <Pressable
           onPress={() => router.back()}
@@ -344,7 +344,7 @@ export default function TaxBracketsScreen() {
         </Animated.View>
 
         <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textAlign: 'right', marginTop: 8 }}>
-          {'הערכה בלבד לפי נתוני רשות המסים 2024. אינו תחליף לייעוץ מס.'}
+          {'הערכה בלבד לפי נתוני רשות המסים 2026. אינו תחליף לייעוץ מס.'}
         </Text>
       </ScrollView>
     </SafeAreaView>
