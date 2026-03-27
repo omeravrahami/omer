@@ -468,10 +468,9 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
   }));
 
   const { width: SCREEN_W } = Dimensions.get('window');
-  // Circle fits the screen — cap at 360 so it stays a clean circle on large phones
-  const CIRCLE   = Math.round(Math.min(SCREEN_W * 0.86, 360));
-  const CLOCK_FONT = 72;   // fixed — always fits horizontally with paddingHorizontal:20
-  const MASCOT_W   = 155;  // safe: verified to fit inside circle without clipping
+  const PILL_W   = Math.min(SCREEN_W * 0.86, 340);
+  const MASCOT_W = 172; // bigger — visible and prominent
+  const BTN_W    = PILL_W - 48; // button fills pill width minus horizontal padding
 
   return (
     <Animated.View
@@ -479,16 +478,17 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       testID="empty-session-card"
       style={{ width: '100%', alignItems: 'center', paddingBottom: 16 }}
     >
-      {/* ── heroCircle ── */}
+      {/* ── Pill: clock + mascot + button all inside ── */}
       <View style={{
-        width: CIRCLE,
-        height: CIRCLE,
-        borderRadius: CIRCLE / 2,
+        width: PILL_W,
+        borderRadius: 999,
         backgroundColor: '#142766',
-        overflow: 'hidden',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 64,
+        paddingTop: 40,
+        paddingBottom: 40,
+        paddingHorizontal: 24,
+        gap: 14,
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.45,
@@ -496,17 +496,16 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
         elevation: 14,
       }}>
 
-        {/* clockBlock — flex: 0, sits at top */}
+        {/* clock */}
         <Text style={{
           width: '100%',
           textAlign: 'center',
-          fontSize: CLOCK_FONT,
-          lineHeight: CLOCK_FONT,
+          fontSize: 72,
+          lineHeight: 72,
           fontWeight: '300',
           color: '#FFFFFF',
           fontVariant: ['tabular-nums'],
           letterSpacing: -1,
-          paddingHorizontal: 20,
           textShadowColor: 'rgba(96,165,250,0.5)',
           textShadowOffset: { width: 0, height: 0 },
           textShadowRadius: 16,
@@ -514,66 +513,52 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
           {currentTime}
         </Text>
 
-        {/* mascotStage — flex:1, mascot pushed to bottom with paddingBottom */}
+        {/* mascot — centered, no absolute positioning */}
         {showCharacterEmpty ? (
-          <View style={{
-            flex: 1,
-            width: '100%',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingBottom: 28,
-          }}>
+          <View style={{ alignItems: 'center' }}>
             <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
-      </View>
 
-      {/* ── startButton — outside circle, 18px gap ── */}
-      <Animated.View style={[pulseStyle, { marginTop: 18 }]}>
-        <Animated.View style={animStyle}>
-          <Pressable
-            onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
-            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true); }}
-            onPress={handleStart}
-            testID="start-work-button"
-            style={{
-              borderRadius: 99,
-              overflow: 'hidden',
-              shadowColor: '#3B82F6',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.6,
-              shadowRadius: 18,
-              elevation: 8,
-            }}
-          >
-            <LinearGradient
-              colors={['#3B82F6', '#1D4ED8']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                height: 60,
-                width: Math.min(280, SCREEN_W * 0.78),
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row-reverse',
-                gap: 10,
-              }}
+        {/* button — inside the pill, below mascot */}
+        <Animated.View style={pulseStyle}>
+          <Animated.View style={animStyle}>
+            <Pressable
+              onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
+              onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true); }}
+              onPress={handleStart}
+              testID="start-work-button"
+              style={{ borderRadius: 99, overflow: 'hidden' }}
             >
-              {startWork.isPending ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <Play size={20} color="#FFF" fill="#FFF" />
-                  <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '700', letterSpacing: 0.3 }}>
-                    {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
-                  </Text>
-                </>
-              )}
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={['#3B82F6', '#1D4ED8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  height: 56,
+                  width: BTN_W,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row-reverse',
+                  gap: 10,
+                }}
+              >
+                {startWork.isPending ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <>
+                    <Play size={18} color="#FFF" fill="#FFF" />
+                    <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 }}>
+                      {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                    </Text>
+                  </>
+                )}
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+
+      </View>
     </Animated.View>
   );
 }
