@@ -937,6 +937,7 @@ export default function SettingsScreen() {
   const weeklyGoalHours = useSettingsStore((s) => s.weeklyGoalHours);
   const defaultBreakMinutes = useSettingsStore((s) => s.defaultBreakMinutes);
   const showSalaryOnDashboard = useSettingsStore((s) => s.showSalaryOnDashboard);
+  const showCharacter = useSettingsStore((s) => s.showCharacter);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
@@ -1215,13 +1216,23 @@ export default function SettingsScreen() {
         <Animated.View entering={FadeInDown.delay(240).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <SectionCard title={'תצוגה'}>
 
-            <SettingRow label={'הצג שכר בדשבורד'} last>
+            <SettingRow label={'הצג שכר בדשבורד'}>
               <Switch
                 value={showSalaryOnDashboard}
                 onValueChange={(val) => save({ showSalaryOnDashboard: val })}
                 trackColor={{ false: 'rgba(255,255,255,0.12)', true: 'rgba(59,130,246,0.5)' }}
                 thumbColor={showSalaryOnDashboard ? ACCENT_BLUE : 'rgba(255,255,255,0.4)'}
                 testID="show-salary-toggle"
+              />
+            </SettingRow>
+
+            <SettingRow label={'דמות שטר חיה'} last>
+              <Switch
+                value={showCharacter}
+                onValueChange={(val) => save({ showCharacter: val })}
+                trackColor={{ false: 'rgba(255,255,255,0.12)', true: 'rgba(59,130,246,0.5)' }}
+                thumbColor={showCharacter ? ACCENT_BLUE : 'rgba(255,255,255,0.4)'}
+                testID="show-character-toggle"
               />
             </SettingRow>
 

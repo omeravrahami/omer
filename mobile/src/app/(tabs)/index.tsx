@@ -29,6 +29,7 @@ import {
   Coffee,
   CircleCheck,
   Shield,
+  BarChart2,
 } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
@@ -57,6 +58,10 @@ import {
 } from '@/lib/utils/tax-calc';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
+import { MoneyCharacter, type MoneyCharacterState } from '@/components/MoneyCharacter';
+import { InsightsCards } from '@/components/InsightsCards';
+import { SalaryBreakdownCard } from '@/components/SalaryBreakdownCard';
+import { calcSalaryBreakdown, type SalaryInput } from '@/lib/utils/salary-engine';
 import type { WorkSession } from '@/lib/types';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
@@ -162,6 +167,7 @@ function ActiveSessionHero({
 }) {
   const [timer, setTimer] = useState('00:00:00');
   const showSalary = useSettingsStore((s) => s.showSalaryOnDashboard);
+  const showCharacterActive = useSettingsStore((s) => s.showCharacter);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const currency = useSettingsStore((s) => s.currency);
   const showToast = useToastStore((s) => s.showToast);
@@ -239,7 +245,7 @@ function ActiveSessionHero({
       <AmbientGlow isOnBreak={isOnBreak} />
 
       {/* Status badge */}
-      <View style={{ alignItems: 'center', marginBottom: 20 }}>
+      <View style={{ alignItems: 'center', marginBottom: 16 }}>
         <View
           style={{
             flexDirection: 'row-reverse',
@@ -262,6 +268,13 @@ function ActiveSessionHero({
           <PulsingDot color={isOnBreak ? '#FCD34D' : '#4ADE80'} />
         </View>
       </View>
+
+      {/* MoneyCharacter mascot */}
+      {showCharacterActive ? (
+        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={72} />
+        </View>
+      ) : null}
 
       {/* Timer */}
       <Text
@@ -406,10 +419,16 @@ function ActiveSessionHero({
 function EmptySessionHero({ deviceId }: { deviceId: string }) {
   const startWork = useStartWork(deviceId);
   const showToast = useToastStore((s) => s.showToast);
+  const showCharacterEmpty = useSettingsStore((s) => s.showCharacter);
   const [currentTime, setCurrentTime] = useState(() => {
     const n = new Date();
     return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
   });
+
+  const characterState: MoneyCharacterState = useMemo(() => {
+    const h = new Date().getHours();
+    return h >= 22 || h < 6 ? 'sleeping' : 'idle';
+  }, []);
 
   useEffect(() => {
     const iv = setInterval(() => {
@@ -490,11 +509,18 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
           fontSize: 15,
           letterSpacing: 0.8,
           fontWeight: '500',
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         {'לחץ להתחלת משמרת'}
       </Text>
+
+      {/* Money character - idle or sleeping based on time */}
+      {showCharacterEmpty ? (
+        <View style={{ marginBottom: 20 }}>
+          <MoneyCharacter state={characterState} size={72} />
+        </View>
+      ) : null}
 
       {/* CTA Button — pulsing breathing animation when idle */}
       <Animated.View style={pulseStyle}>
@@ -1125,6 +1151,30 @@ export default function DashboardScreen() {
             </Animated.View>
           ) : null}
 
+          {/* SalaryBreakdownCard — detailed component breakdown */}
+          {homeTaxResult.finalTakeHome > 0 ? (() => {
+            const breakdownInput: SalaryInput = {
+              baseMonthlyGross: baseMonthlyGross,
+              carBenefitMonthly: carBenefitHome,
+              carGrossupMonthly: carGrossupHome,
+              oneTimeBonus: oneTimeBonusTotalHome,
+              oneTimeGifts: oneTimeGiftTotalHome,
+              transportationMonthly: transportationTypeHome === 'fixed' ? transportationValueHome : 0,
+              mealBenefitMonthly: 0,
+              trainingFundEmployeeRate: trainingFundValueHome,
+              trainingFundType: trainingFundTypeHome,
+              creditPoints: taxCreditPointsHome,
+              employerPensionRate: employerPensionRateHome / 100,
+              totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
+            };
+            const breakdown = calcSalaryBreakdown(breakdownInput);
+            return (
+              <Animated.View entering={FadeInUp.delay(60).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16 }}>
+                <SalaryBreakdownCard breakdown={breakdown} />
+              </Animated.View>
+            );
+          })() : null}
+
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
             <View style={{
@@ -1224,8 +1274,54 @@ export default function DashboardScreen() {
             giftAdditions={oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'gift')}
           />
 
+          {/* Insights cards — shown when there is monthly data */}
+          {baseMonthlyGross > 0 ? (
+            <Animated.View entering={FadeInUp.delay(140).duration(400)}>
+              <InsightsCards
+                monthlyGross={baseMonthlyGross}
+                hoursWorkedThisMonth={totalNetHoursHome}
+                hourlyRate={hourlyRateHome}
+                taxResult={homeTaxResult}
+              />
+            </Animated.View>
+          ) : null}
+
           {/* Tax Status Card */}
           <TaxStatusCard />
+
+          {/* Simulator button */}
+          <Animated.View entering={FadeInUp.delay(180).duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/simulation' as never);
+              }}
+              testID="simulator-button"
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                padding: 14,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 10,
+                borderWidth: 1,
+                borderColor: 'rgba(99,102,241,0.15)',
+                shadowColor: '#6366F1',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.07,
+                shadowRadius: 8,
+                elevation: 3,
+              }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center' }}>
+                <BarChart2 size={18} color="#6366F1" strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E1B4B', textAlign: 'right' }}>{'סימולטור שעות'}</Text>
+                <Text style={{ fontSize: 11, color: '#94A3B8', textAlign: 'right', marginTop: 1 }}>{'מה יקרה אם אעבוד שעות נוספות?'}</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
 
           {/* Quick action cards */}
           <Animated.View entering={FadeInUp.delay(200).duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>

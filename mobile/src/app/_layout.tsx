@@ -126,6 +126,20 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="simulation"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="privacy"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
       </Stack>
       <Toast />
     </ThemeProvider>

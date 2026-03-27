@@ -1,6 +1,6 @@
 # WorkClock
 
-A Hebrew RTL time-tracking application for employees, freelancers, and students. The app is free and ad-supported (AdMob). It features real-time shift timers, break tracking, automatic pay calculation, session history, and analytics.
+A Hebrew RTL time-tracking application for employees, freelancers, and students. The app is free and ad-supported (AdMob). It features real-time shift timers, break tracking, automatic pay calculation, session history, analytics, and a full Israeli tax and salary engine.
 
 ---
 
@@ -8,18 +8,20 @@ A Hebrew RTL time-tracking application for employees, freelancers, and students.
 
 1. [Project Overview](#project-overview)
 2. [Architecture](#architecture)
-3. [User Management](#user-management)
-4. [Roles and Permissions](#roles-and-permissions)
-5. [Admin Panel](#admin-panel)
-6. [Database Tables](#database-tables)
-7. [API Endpoints](#api-endpoints)
-8. [Environment Variables](#environment-variables)
-9. [Email Setup (Resend)](#email-setup-resend)
-10. [Creating the First Admin](#creating-the-first-admin)
-11. [Security Features](#security-features)
-12. [QA Checklist](#qa-checklist)
-13. [Managing the System](#managing-the-system)
-14. [Deployment Notes](#deployment-notes)
+3. [Tax and Salary Engine](#tax-and-salary-engine)
+4. [Mobile Features](#mobile-features)
+5. [User Management](#user-management)
+6. [Roles and Permissions](#roles-and-permissions)
+7. [Admin Panel](#admin-panel)
+8. [Database Tables](#database-tables)
+9. [API Endpoints](#api-endpoints)
+10. [Environment Variables](#environment-variables)
+11. [Email Setup (Resend)](#email-setup-resend)
+12. [Creating the First Admin](#creating-the-first-admin)
+13. [Security Features](#security-features)
+14. [QA Checklist](#qa-checklist)
+15. [Managing the System](#managing-the-system)
+16. [Deployment Notes](#deployment-notes)
 
 ---
 
@@ -31,14 +33,85 @@ Key features:
 
 - Live shift timer with pulse animation
 - Break tracking within active sessions
-- Automatic gross/net pay calculation based on hourly rate
+- Automatic gross/net pay calculation with full Israeli tax breakdown
 - Session types: regular shift, sick day, vacation
 - Month navigation for session history
 - Weekly and monthly analytics with goal progress bars
+- Simulation screen (סימולטור שעות) — shows projected net earnings for extra hours
+- Dynamic economic insights cards on the home screen
 - User accounts with email/password, plus guest (device-only) mode
 - Cross-device sync when logged in
 - Full RTL Hebrew interface with dark mode
 - Admin panel for user and system management
+- Privacy and Terms screen
+- Ad-supported via AdMob with frequency-controlled ad manager
+
+---
+
+## Tax and Salary Engine
+
+WorkClock includes a complete Israeli payroll engine updated to **2026 tax rates**.
+
+### Tax engine (`calcTax`)
+
+- Income tax brackets updated for 2026
+- Credit point value updated for 2026
+- National Insurance (Bituach Leumi) with the 2026 ceiling
+- Health insurance deduction
+- Supports credit points (default 2.25 for a single employee)
+
+### Salary breakdown (`calcSalaryBreakdown`)
+
+Each salary component carries flags that control how it participates in calculations:
+
+| Flag | Meaning |
+|------|---------|
+| `includedInRegularGross` | Component counts toward standard gross |
+| `includedInTaxGross` | Component is taxable |
+| `includedInNet` | Component appears in the net take-home amount |
+| `includedInSocialSecurity` | Component is subject to NI / health insurance |
+
+The function returns a full breakdown: gross, taxable gross, income tax, NI, health insurance, total deductions, and net pay — with each component annotated by its flags.
+
+### Simulation screen
+
+The "סימולטור שעות" (hours simulator) screen lets a user enter additional hours and immediately see the projected gross and net impact on their next paycheck, using the same tax engine.
+
+---
+
+## Mobile Features
+
+### InsightsCards
+
+A horizontally-scrollable card strip on the home screen that surfaces dynamic economic insights (effective tax rate, monthly projection, hours-to-goal, etc.) derived from the user's real session data.
+
+### SalaryBreakdownCard
+
+Displays the detailed salary breakdown from `calcSalaryBreakdown`. Each component is shown with colored tags indicating which flags apply (taxable, included in net, etc.).
+
+### MoneyCharacter
+
+An animated ₪ bill character built with `react-native-reanimated`. Supports four states:
+
+| State | Behavior |
+|-------|---------|
+| `idle` | Gentle float/pulse |
+| `working` | Active motion |
+| `break` | Slow breathing animation |
+| `done` | Celebration bounce |
+| `sleeping` | Slow fade/droop |
+
+Visibility is controlled by the `showCharacter` toggle in user settings.
+
+### AdMob infrastructure
+
+- Test ad unit IDs wired into the AdMob components during development
+- Ad manager utility handles display frequency (prevents over-serving ads)
+- Ad components live in `mobile/src/components/ads/`
+
+### Privacy and Terms screen
+
+A dedicated in-app screen for Privacy Policy and Terms of Service, accessible from the settings tab.
 
 ---
 

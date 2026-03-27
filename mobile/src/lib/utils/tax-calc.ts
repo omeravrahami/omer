@@ -1,38 +1,44 @@
 /**
- * חישוב מס הכנסה + ביטוח לאומי + בריאות לפי חוקי ישראל (2024)
+ * חישוב מס הכנסה + ביטוח לאומי + בריאות לפי חוקי ישראל (2026)
  *
  * מקורות:
- * - מדרגות מס הכנסה 2024: רשות המסים
- * - שיעורי ביטוח לאומי ובריאות 2024: המוסד לביטוח לאומי
- * - ערך נקודת זיכוי 2024: 242 ₪/חודש
+ * - מדרגות מס הכנסה 2026: רשות המסים
+ * - שיעורי ביטוח לאומי ובריאות 2026: המוסד לביטוח לאומי
+ * - ערך נקודת זיכוי 2026: 242 ₪/חודש
  *
  * ניתן לעדכן את הערכים בסעיף TAX_CONFIG בלבד כשמשתנים החוקים.
  */
 
 // ─── קונפיגורציה — לעדכן כאן בלבד ──────────────────────────────────────────
 
-export const TAX_CONFIG = {
-  /** ערך נקודת זיכוי חודשי (2024) */
-  creditPointMonthly: 235,
+export const YEAR = 2026;
 
-  /** מדרגות מס הכנסה שנתי 2024 (₪) */
+export const TAX_CONFIG = {
+  /** ערך נקודת זיכוי חודשי (2026) */
+  creditPointMonthly: 242,
+
+  /**
+   * מדרגות מס הכנסה חודשי 2026 (₪)
+   * מחושב שנתית פנימית (×12) אך מוגדר כאן כסכומים חודשיים לנוחות.
+   */
   incomeTaxBrackets: [
-    { upTo:  81_480,  rate: 0.10, label: '10%' },
-    { upTo: 116_760,  rate: 0.14, label: '14%' },
-    { upTo: 187_440,  rate: 0.20, label: '20%' },
-    { upTo: 253_800,  rate: 0.31, label: '31%' },
-    { upTo: 663_240,  rate: 0.35, label: '35%' },
-    { upTo: Infinity, rate: 0.47, label: '47%' },
+    { upTo:   7_010 * 12, rate: 0.10, label: '10%' },
+    { upTo:  10_060 * 12, rate: 0.14, label: '14%' },
+    { upTo:  16_150 * 12, rate: 0.20, label: '20%' },
+    { upTo:  22_440 * 12, rate: 0.31, label: '31%' },
+    { upTo:  46_690 * 12, rate: 0.35, label: '35%' },
+    { upTo:  60_130 * 12, rate: 0.47, label: '47%' },
+    { upTo:  Infinity,    rate: 0.50, label: '50%' },
   ],
 
-  /** מדרגות ביטוח לאומי + בריאות (עובד שכיר, חודשי 2024) */
+  /** מדרגות ביטוח לאומי + בריאות (עובד שכיר מתחת לגיל 60, חודשי 2026) */
   ni: {
-    lowCeiling: 7_522,   // 60% מהשכר הממוצע
-    maxIncome:  45_075,  // תקרה חודשית
-    lowNI:      0.035,   // 3.5% מדרגה נמוכה
-    highNI:     0.12,    // 12% מדרגה גבוהה
+    lowCeiling: 7_420,   // סף מדרגה נמוכה
+    maxIncome:  49_030,  // תקרה חודשית (מעל — 0%)
+    lowNI:      0.004,   // 0.4% מדרגה נמוכה
+    highNI:     0.07,    // 7.0% מדרגה גבוהה
     lowHealth:  0.031,   // 3.1% מדרגה נמוכה
-    highHealth: 0.05,    // 5% מדרגה גבוהה
+    highHealth: 0.05,    // 5.0% מדרגה גבוהה
   },
 } as const;
 
@@ -94,6 +100,20 @@ export interface SimulationResult extends TaxResult {
   /** % מהתוספת ברוטו שנשאר כנטו */
   keepRate: number;
   bracketCrossed: boolean;
+}
+
+export interface NextBracketInfo {
+  nextBracketThreshold: number;
+  currentRate: number;
+  nextRate: number;
+  amountUntilNextBracket: number;
+}
+
+export interface ExtraHoursImpact {
+  additionalGross: number;
+  additionalTax: number;
+  additionalNet: number;
+  netPerExtraHour: number;
 }
 
 // ─── פונקציות עזר פנימיות ─────────────────────────────────────────────────────
@@ -300,6 +320,84 @@ export function simulateExtraHours(
   const bracketCrossed = currentBracket.currentRate !== newBracket.currentRate;
 
   return { ...newResult, extraHours, extraGross, extraNet, keepRate, bracketCrossed };
+}
+
+/** שיעור נטו אפקטיבי — כמה אחוז מהברוטו נשאר לך */
+export function calcEffectiveNetRate(gross: number): number {
+  if (gross <= 0) return 100;
+  const result = calcIsraeliTax({
+    monthlyGross: gross,
+    carBenefitMonthly: 0,
+    creditPoints: 2.25,
+  });
+  return 100 - (result.totalDeductions / gross) * 100;
+}
+
+/** מידע על המדרגה הבאה לפי הכנסה חודשית */
+export function getNextBracketInfo(monthlyGross: number): NextBracketInfo {
+  const annualGross = monthlyGross * 12;
+  const brackets = TAX_CONFIG.incomeTaxBrackets;
+
+  let currentBracketIdx = brackets.length - 1;
+  for (let i = 0; i < brackets.length; i++) {
+    if (annualGross <= brackets[i].upTo) {
+      currentBracketIdx = i;
+      break;
+    }
+  }
+
+  const current = brackets[currentBracketIdx];
+  const isTop = currentBracketIdx === brackets.length - 1;
+
+  if (isTop) {
+    // Already at top bracket — no next bracket
+    return {
+      nextBracketThreshold: Infinity,
+      currentRate: current.rate,
+      nextRate: current.rate,
+      amountUntilNextBracket: 0,
+    };
+  }
+
+  const next = brackets[currentBracketIdx + 1];
+  const annualThreshold = current.upTo;
+  const amountUntilNextBracket = Math.max(0, (annualThreshold - annualGross) / 12);
+
+  return {
+    nextBracketThreshold: annualThreshold / 12, // monthly threshold
+    currentRate: current.rate,
+    nextRate: next.rate,
+    amountUntilNextBracket,
+  };
+}
+
+/** מחשב את השפעת שעות נוספות על הנטו */
+export function calcExtraHoursImpact(
+  currentMonthlyGross: number,
+  hourlyRate: number,
+  extraHours: number,
+): ExtraHoursImpact {
+  const additionalGross = hourlyRate * extraHours;
+  const newGross = currentMonthlyGross + additionalGross;
+
+  const defaultContext: Omit<TaxInput, 'monthlyGross'> = {
+    carBenefitMonthly: 0,
+    creditPoints: 2.25,
+  };
+
+  const currentResult = calcIsraeliTax({ ...defaultContext, monthlyGross: currentMonthlyGross });
+  const newResult     = calcIsraeliTax({ ...defaultContext, monthlyGross: newGross });
+
+  const additionalTax = newResult.totalDeductions - currentResult.totalDeductions;
+  const additionalNet = newResult.finalTakeHome    - currentResult.finalTakeHome;
+  const netPerExtraHour = extraHours > 0 ? additionalNet / extraHours : 0;
+
+  return {
+    additionalGross,
+    additionalTax,
+    additionalNet,
+    netPerExtraHour,
+  };
 }
 
 /** טיפים כלכליים דינמיים לפי מצב נוכחי */

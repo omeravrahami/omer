@@ -24,6 +24,7 @@ interface SettingsState {
   weeklyGoalHours: number;
   defaultBreakMinutes: number;
   showSalaryOnDashboard: boolean;
+  showCharacter: boolean;
   themeMode: 'light' | 'dark';
   onboardingCompleted: boolean;
   deductions: Deduction[];
@@ -60,6 +61,7 @@ export const useSettingsStore = create<SettingsState>()(
       weeklyGoalHours: 40,
       defaultBreakMinutes: 30,
       showSalaryOnDashboard: true,
+      showCharacter: true,
       themeMode: 'light',
       onboardingCompleted: false,
       deductions: [],

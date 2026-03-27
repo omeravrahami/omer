@@ -6,6 +6,8 @@
  * tax base, net pay, and pension calculations.
  */
 
+import { calcIsraeliTax } from './tax-calc';
+
 // ─── Tag types ────────────────────────────────────────────────────────────────
 
 export type SalaryTag =
@@ -26,15 +28,15 @@ export type SalaryTag =
 export interface SalaryComponentDef {
   id: string;
   label: string;                          // Hebrew display name
-  explanation: string;                    // Short user-friendly explanation
-  tags: SalaryTag[];                      // Smart tags to display
-  includedInRegularGross: boolean;        // Counts toward ברוטו רגיל (cash wage)
-  includedInTaxGross: boolean;            // Counts toward ברוטו למס (taxable)
-  includedInNet: boolean;                 // Actually received as cash
+  explanationText: string;               // Short user-friendly explanation
+  tags: string[];                        // Smart tags to display
+  includedInRegularGross: boolean;       // Counts toward ברוטו רגיל (cash wage)
+  includedInTaxGross: boolean;           // Counts toward ברוטו למס (taxable)
+  includedInNet: boolean;                // Actually received as cash
   includedInEmployeePensionBase: boolean;
   includedInEmployerPensionBase: boolean;
-  taxable: boolean;                       // Subject to income tax
-  isOneTime: boolean;                     // One-time vs monthly recurring
+  taxable: boolean;                      // Subject to income tax
+  isOneTime: boolean;                    // One-time vs monthly recurring
 }
 
 // ─── Component definitions ────────────────────────────────────────────────────
@@ -42,7 +44,7 @@ export interface SalaryComponentDef {
 export const BASE_SALARY: SalaryComponentDef = {
   id: 'base_salary',
   label: 'שכר בסיס',
-  explanation: 'שכר הבסיס מהווה את ליבת השכר — נכנס לברוטו, לנטו ולבסיס ההפרשות הפנסיוניות',
+  explanationText: 'שכר הבסיס - הרכיב העיקרי של שכרך',
   tags: ['שכר בסיס', 'נכנס לנטו', 'בסיס פנסיוני'],
   includedInRegularGross: true,
   includedInTaxGross: true,
@@ -56,8 +58,8 @@ export const BASE_SALARY: SalaryComponentDef = {
 export const BONUS: SalaryComponentDef = {
   id: 'bonus',
   label: 'בונוס',
-  explanation: 'בונוס חד-פעמי — מתווסף לשכר, חייב במס, אך אינו נכלל בבסיס ההפרשות לפנסיה',
-  tags: ['נכנס לנטו', 'הטבה חייבת', 'לא נכלל בפנסיה'],
+  explanationText: 'בונוס חד-פעמי - חייב במס, לא נכלל בהפרשות',
+  tags: ['נכנס לנטו', 'הטבה חייבת', 'לא נכלל בפנסיה', 'רכיב חד פעמי'],
   includedInRegularGross: true,
   includedInTaxGross: true,
   includedInNet: true,
@@ -70,7 +72,7 @@ export const BONUS: SalaryComponentDef = {
 export const CAR_GROSSUP: SalaryComponentDef = {
   id: 'car_grossup',
   label: 'גילום רכב',
-  explanation: 'תשלום מהמעסיק לכיסוי עלות המס על הרכב — נכנס לנטו בפועל, אך אינו בסיס פנסיוני',
+  explanationText: 'גילום שווי שימוש ברכב - תשלום אמיתי לכיסוי מס הרכב',
   tags: ['נכנס לנטו', 'מגדיל בסיס מס', 'לא נכלל בפנסיה'],
   includedInRegularGross: true,
   includedInTaxGross: true,
@@ -84,8 +86,8 @@ export const CAR_GROSSUP: SalaryComponentDef = {
 export const CAR_BENEFIT: SalaryComponentDef = {
   id: 'car_benefit',
   label: 'שווי שימוש ברכב',
-  explanation: 'שווי שימוש ברכב מגדיל את חישוב המס אך אינו משולם לך בפועל — זקיפת שווי לצורכי מיסוי בלבד',
-  tags: ['לצורכי מס בלבד', 'מגדיל בסיס מס', 'לא נכלל בפנסיה'],
+  explanationText: 'שווי שימוש ברכב - לצורכי מס בלבד, לא מתקבל כמזומן',
+  tags: ['לצורכי מס בלבד', 'מגדיל בסיס מס', 'לא נכלל בפנסיה', 'לא נכנס לנטו'],
   includedInRegularGross: false,
   includedInTaxGross: true,
   includedInNet: false,
@@ -97,9 +99,9 @@ export const CAR_BENEFIT: SalaryComponentDef = {
 
 export const GIFT_CARD: SalaryComponentDef = {
   id: 'gift_card',
-  label: 'שווי מתנות / גיפטקארד',
-  explanation: 'הטבת שי/גיפטקארד — חייבת במס, מגדילה את בסיס המס, אך אינה כסף מזומן בנטו',
-  tags: ['לצורכי מס בלבד', 'הטבה חייבת', 'לא נכלל בפנסיה'],
+  label: 'גיפט קארד',
+  explanationText: 'כרטיס מתנה - מגדיל את בסיס המס אך לא מתקבל כמזומן',
+  tags: ['לצורכי מס בלבד', 'הטבה חייבת', 'לא נכלל בפנסיה', 'רכיב חד פעמי', 'לא נכנס לנטו'],
   includedInRegularGross: false,
   includedInTaxGross: true,
   includedInNet: false,
@@ -112,8 +114,8 @@ export const GIFT_CARD: SalaryComponentDef = {
 export const MEAL_BENEFIT: SalaryComponentDef = {
   id: 'meal_benefit',
   label: 'סיבוס / תן ביס',
-  explanation: 'הטבת ארוחות — משפיעה על בסיס המס כזקיפת שווי, אך אינה מזומן שנכנס לחשבונך',
-  tags: ['לצורכי מס בלבד', 'הטבת מעסיק'],
+  explanationText: 'הטבת ארוחות - מגדילה בסיס מס, לא מתקבלת כמזומן',
+  tags: ['לצורכי מס בלבד', 'הטבת מעסיק', 'לא נכנס לנטו'],
   includedInRegularGross: false,
   includedInTaxGross: true,
   includedInNet: false,
@@ -126,8 +128,8 @@ export const MEAL_BENEFIT: SalaryComponentDef = {
 export const TRANSPORTATION: SalaryComponentDef = {
   id: 'transportation',
   label: 'נסיעות / החזר הוצאות',
-  explanation: 'החזר הוצאות נסיעה — מתווסף לנטו לאחר המס, אינו נחשב הכנסה לצורכי מס',
-  tags: ['נכנס לנטו', 'הטבת מעסיק'],
+  explanationText: 'נסיעות - לא חייב במס, לא נכלל בחישובי פנסיה',
+  tags: ['נכנס לנטו', 'הטבת מעסיק', 'פטור ממס'],
   includedInRegularGross: false,
   includedInTaxGross: false,
   includedInNet: true,
@@ -177,6 +179,7 @@ export interface SalaryInput {
   oneTimeBonus: number;             // bonuses this month (cash + taxable)
   oneTimeGifts: number;             // gifts/giftcard (tax-only)
   transportationMonthly: number;    // נסיעות (net addition, not taxable)
+  mealBenefitMonthly?: number;      // סיבוס/תן ביס (tax-only)
   trainingFundEmployeeRate: number; // קרן השתלמות עובד (% of regularGross or fixed ₪)
   trainingFundType: 'percent' | 'fixed';
 
@@ -210,4 +213,116 @@ export interface SalaryResult {
   effectiveTaxRate: number;       // totalDeductions / regularGross × 100
   effectiveHourlyNet: number;     // finalTakeHome / totalHours (if hours provided)
   netToGrossRatio: number;        // finalTakeHome / regularGross
+}
+
+export interface ComponentBreakdownItem {
+  id: string;
+  name: string;
+  amount: number;
+  tags: string[];
+  explanationText: string;
+  includedInNet: boolean;
+  includedInTaxGross: boolean;
+  taxable: boolean;
+}
+
+export interface SalaryBreakdown {
+  regularGross: number;          // ברוטו רגיל
+  taxGross: number;              // ברוטו למס
+  incomeTax: number;             // מס הכנסה
+  nationalInsurance: number;     // ביטוח לאומי
+  healthInsurance: number;       // מס בריאות
+  totalDeductions: number;       // סך ניכויים
+  netSalary: number;             // נטו בפועל
+  effectiveRate: number;         // שיעור ניכוי אפקטיבי %
+  netHourlyRate: number;         // שכר אפקטיבי לשעה נטו
+  components: ComponentBreakdownItem[]; // פירוט רכיבים
+}
+
+// ─── Main calculation function ────────────────────────────────────────────────
+
+export function calcSalaryBreakdown(input: SalaryInput): SalaryBreakdown {
+  const {
+    baseMonthlyGross,
+    carBenefitMonthly,
+    carGrossupMonthly,
+    oneTimeBonus,
+    oneTimeGifts,
+    transportationMonthly,
+    mealBenefitMonthly = 0,
+    trainingFundEmployeeRate,
+    trainingFundType,
+    creditPoints,
+    employerPensionRate,
+    totalHours,
+  } = input;
+
+  // ── Build component list ──
+  const componentAmounts: Array<{ def: SalaryComponentDef; amount: number }> = [
+    { def: BASE_SALARY,    amount: baseMonthlyGross },
+    { def: BONUS,          amount: oneTimeBonus },
+    { def: CAR_GROSSUP,    amount: carGrossupMonthly },
+    { def: CAR_BENEFIT,    amount: carBenefitMonthly },
+    { def: GIFT_CARD,      amount: oneTimeGifts },
+    { def: MEAL_BENEFIT,   amount: mealBenefitMonthly },
+    { def: TRANSPORTATION, amount: transportationMonthly },
+  ].filter(c => c.amount > 0);
+
+  // ── Aggregate gross layers ──
+  const regularGross = componentAmounts
+    .filter(c => c.def.includedInRegularGross)
+    .reduce((sum, c) => sum + c.amount, 0);
+
+  const taxGross = componentAmounts
+    .filter(c => c.def.includedInTaxGross)
+    .reduce((sum, c) => sum + c.amount, 0);
+
+  // ── Run tax engine ──
+  const taxResult = calcIsraeliTax({
+    monthlyGross:       baseMonthlyGross,
+    carBenefitMonthly:  carBenefitMonthly + mealBenefitMonthly,
+    creditPoints,
+    trainingFundValue:  trainingFundEmployeeRate,
+    trainingFundType,
+    transportationValue: transportationMonthly,
+    transportationType: 'fixed',
+    carGrossupMonthly,
+    oneTimeBonusTotal:  oneTimeBonus,
+    oneTimeGiftTotal:   oneTimeGifts,
+    employerPensionRate,
+    totalHours,
+  });
+
+  const netSalary = taxResult.finalTakeHome;
+  const effectiveRate = regularGross > 0
+    ? (taxResult.totalDeductions / regularGross) * 100
+    : 0;
+  const netHourlyRate = (totalHours && totalHours > 0)
+    ? netSalary / totalHours
+    : 0;
+
+  // ── Build breakdown items ──
+  const components: ComponentBreakdownItem[] = componentAmounts.map(({ def, amount }) => ({
+    id: def.id,
+    name: def.label,
+    amount,
+    tags: def.tags,
+    explanationText: def.explanationText,
+    includedInNet: def.includedInNet,
+    includedInTaxGross: def.includedInTaxGross,
+    taxable: def.taxable,
+  }));
+
+  return {
+    regularGross,
+    taxGross,
+    incomeTax: taxResult.incomeTax,
+    nationalInsurance: taxResult.nationalInsurance,
+    healthInsurance: taxResult.healthInsurance,
+    totalDeductions: taxResult.totalDeductions,
+    netSalary,
+    effectiveRate,
+    netHourlyRate,
+    components,
+  };
 }
