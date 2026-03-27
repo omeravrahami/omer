@@ -240,7 +240,7 @@ export function useAuthSessions(token: string, month?: string) {
     queryKey: ['auth-sessions', token, month ?? 'all'],
     queryFn: () => {
       const params = month ? `?month=${month}` : '';
-      return authRequest<WorkSession[]>('GET', `/api/sessions${params}`, token);
+      return authRequest<WorkSession[]>('GET', `/api/user/sessions${params}`, token);
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
@@ -251,7 +251,7 @@ export function useAuthSessions(token: string, month?: string) {
 export function useAuthActiveSession(token: string) {
   return useQuery({
     queryKey: ['auth-active-session', token],
-    queryFn: () => authRequest<WorkSession | null>('GET', '/api/sessions/active', token),
+    queryFn: () => authRequest<WorkSession | null>('GET', '/api/user/sessions/active', token),
     enabled: !!token,
     refetchInterval: 30000,
   });
@@ -261,7 +261,7 @@ export function useAuthStartWork(token: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body?: { notes?: string; workplaceName?: string }) =>
-      authRequest<WorkSession>('POST', '/api/sessions', token, body ?? {}),
+      authRequest<WorkSession>('POST', '/api/user/sessions', token, body ?? {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
@@ -274,7 +274,7 @@ export function useAuthEndWork(token: string, sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authRequest<WorkSession>('PUT', `/api/sessions/${sessionId}`, token, {
+      authRequest<WorkSession>('PUT', `/api/user/sessions/${sessionId}`, token, {
         status: 'completed',
         endTime: new Date().toISOString(),
       }),
@@ -290,7 +290,7 @@ export function useAuthStartBreak(token: string, sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authRequest<WorkSession>('POST', `/api/sessions/${sessionId}/breaks`, token, {}),
+      authRequest<WorkSession>('POST', `/api/user/sessions/${sessionId}/breaks`, token, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
@@ -302,7 +302,7 @@ export function useAuthEndBreak(token: string, sessionId: string, breakId: strin
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authRequest<WorkSession>('PUT', `/api/sessions/${sessionId}/breaks/${breakId}`, token, {
+      authRequest<WorkSession>('PUT', `/api/user/sessions/${sessionId}/breaks/${breakId}`, token, {
         endTime: new Date().toISOString(),
       }),
     onSuccess: () => {
@@ -315,7 +315,7 @@ export function useAuthEndBreak(token: string, sessionId: string, breakId: strin
 export function useAuthStats(token: string) {
   return useQuery({
     queryKey: ['auth-stats', token],
-    queryFn: () => authRequest<Stats>('GET', '/api/stats', token),
+    queryFn: () => authRequest<Stats>('GET', '/api/user/stats', token),
     enabled: !!token,
   });
 }
@@ -323,7 +323,7 @@ export function useAuthStats(token: string) {
 export function useAuthSettings(token: string) {
   return useQuery({
     queryKey: ['auth-settings', token],
-    queryFn: () => authRequest<Settings>('GET', '/api/settings', token),
+    queryFn: () => authRequest<Settings>('GET', '/api/user/settings', token),
     enabled: !!token,
   });
 }
@@ -332,7 +332,7 @@ export function useAuthUpdateSettings(token: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Partial<Settings>) =>
-      authRequest<Settings>('PUT', '/api/settings', token, body as Record<string, unknown>),
+      authRequest<Settings>('PUT', '/api/user/settings', token, body as Record<string, unknown>),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-settings', token] });
     },
@@ -343,7 +343,7 @@ export function useAuthDeleteSession(token: string, sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      authRequest<void>('DELETE', `/api/sessions/${sessionId}`, token),
+      authRequest<void>('DELETE', `/api/user/sessions/${sessionId}`, token),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
       qc.invalidateQueries({ queryKey: ['auth-stats', token] });
@@ -356,7 +356,7 @@ export function useAuthDeleteSessionById(token: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (sessionId: string) =>
-      authRequest<void>('DELETE', `/api/sessions/${sessionId}`, token),
+      authRequest<void>('DELETE', `/api/user/sessions/${sessionId}`, token),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
       qc.invalidateQueries({ queryKey: ['auth-stats', token] });
@@ -374,7 +374,7 @@ export function useAuthCreateSession(token: string) {
       sessionType?: 'shift' | 'sick' | 'vacation';
       notes?: string;
       breaks?: { startTime: string; endTime: string }[];
-    }) => authRequest<WorkSession>('POST', '/api/sessions', token, body as Record<string, unknown>),
+    }) => authRequest<WorkSession>('POST', '/api/user/sessions', token, body as Record<string, unknown>),
     onSuccess: (_, variables) => {
       const month = variables.date.slice(0, 7);
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
@@ -388,7 +388,7 @@ export function useAuthEditSession(token: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ sessionId, data }: { sessionId: string; data: EditSessionPayload }) =>
-      authRequest<WorkSession>('PATCH', `/api/sessions/${sessionId}/edit`, token, data as unknown as Record<string, unknown>),
+      authRequest<WorkSession>('PATCH', `/api/user/sessions/${sessionId}/edit`, token, data as unknown as Record<string, unknown>),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
       qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
@@ -406,7 +406,7 @@ export function useAuthCreateDayRecord(token: string) {
       startTime?: string;
       endTime?: string;
       notes?: string;
-    }) => authRequest<WorkSession>('POST', '/api/sessions', token, body as Record<string, unknown>),
+    }) => authRequest<WorkSession>('POST', '/api/user/sessions', token, body as Record<string, unknown>),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
       qc.invalidateQueries({ queryKey: ['auth-stats', token] });
