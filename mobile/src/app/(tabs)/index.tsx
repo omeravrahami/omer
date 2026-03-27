@@ -5,8 +5,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Platform,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -126,28 +124,37 @@ function PulsingDot({ color }: { color: string }) {
   );
 }
 
-// ─── Ambient Glow ─────────────────────────────────────────────────────────────
+// ─── Animated Glow Ring ───────────────────────────────────────────────────────
 
-function AmbientGlow({ isOnBreak }: { isOnBreak: boolean }) {
-  const opacity = useSharedValue(0.08);
+function GlowRing({ color, active }: { color: string; active: boolean }) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(active ? 0.5 : 0);
 
   useEffect(() => {
-    opacity.value = withRepeat(withTiming(0.18, { duration: 3000 }), -1, true);
-  }, [opacity]);
+    if (active) {
+      scale.value = withRepeat(withTiming(1.08, { duration: 1800 }), -1, true);
+      opacity.value = withRepeat(withTiming(0.25, { duration: 1800 }), -1, true);
+    } else {
+      scale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true);
+      opacity.value = withRepeat(withTiming(0.4, { duration: 1400 }), -1, true);
+    }
+  }, [active, scale, opacity, color]);
 
-  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
 
   return (
     <Animated.View
       style={[
         {
           position: 'absolute',
-          width: 240,
-          height: 240,
-          borderRadius: 120,
-          backgroundColor: isOnBreak ? '#D97706' : '#2563EB',
-          alignSelf: 'center',
-          top: '10%',
+          width: 220,
+          height: 220,
+          borderRadius: 110,
+          borderWidth: 3,
+          borderColor: color,
         },
         style,
       ]}
@@ -165,10 +172,7 @@ function ActiveSessionHero({
   token: string;
 }) {
   const [timer, setTimer] = useState('00:00:00');
-  const showSalary = useSettingsStore((s) => s.showSalaryOnDashboard);
   const showCharacterActive = useSettingsStore((s) => s.showCharacter);
-  const hourlyRate = useSettingsStore((s) => s.hourlyRate);
-  const currency = useSettingsStore((s) => s.currency);
   const showToast = useToastStore((s) => s.showToast);
 
   const activeBreak = session.breaks?.find((b) => !b.endTime);
@@ -177,9 +181,6 @@ function ActiveSessionHero({
   const endWork = useAuthEndWork(token, session.id);
   const startBreakMut = useAuthStartBreak(token, session.id);
   const endBreakMut = useAuthEndBreak(token, session.id, activeBreak?.id ?? '');
-
-  const endScale = useSharedValue(1);
-  const breakScale = useSharedValue(1);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -195,17 +196,7 @@ function ActiveSessionHero({
     return () => clearInterval(interval);
   }, [session.startTime, session.breakMinutes, isOnBreak, activeBreak?.startTime]);
 
-  const handleEndWork = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    endWork.mutate(undefined, {
-      onSuccess: () =>
-        showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!'),
-      onError: () =>
-        showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E9\u05DE\u05E8\u05EA', 'error'),
-    });
-  }, [endWork, showToast]);
-
-  const handleBreakToggle = useCallback(() => {
+  const handleMainAction = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOnBreak && activeBreak) {
       endBreakMut.mutate(undefined, {
@@ -220,192 +211,130 @@ function ActiveSessionHero({
     }
   }, [isOnBreak, activeBreak, endBreakMut, startBreakMut, showToast]);
 
-  // Current pay calculation
-  const timerParts = timer.split(':').map(Number);
-  const netHours =
-    (timerParts[0] ?? 0) + (timerParts[1] ?? 0) / 60 + (timerParts[2] ?? 0) / 3600;
-  const currentPay = netHours * hourlyRate;
+  const handleEndWork = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    endWork.mutate(undefined, {
+      onSuccess: () => showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!'),
+      onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E9\u05DE\u05E8\u05EA', 'error'),
+    });
+  }, [endWork, showToast]);
 
-  const breaksCount = session.breaks?.length ?? 0;
+  const circleColors: [string, string] = isOnBreak
+    ? ['#D97706', '#B45309']
+    : ['#16A34A', '#15803D'];
+  const glowColor = isOnBreak ? '#FCD34D' : '#4ADE80';
+  const stateLabel = isOnBreak ? '\u05D4\u05E4\u05E1\u05E7\u05D4 \u2014 \u05DC\u05D7\u05E5 \u05DC\u05D7\u05D6\u05D5\u05E8' : '\u05E2\u05D5\u05D1\u05D3 \u2014 \u05DC\u05D7\u05E5 \u05DC\u05D4\u05E4\u05E1\u05E7\u05D4';
 
+  const scale = useSharedValue(1);
+  const endScale = useSharedValue(1);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
   const endAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: endScale.value }],
   }));
-  const breakAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: breakScale.value }],
-  }));
 
   return (
-    <Animated.View entering={FadeInDown.duration(500)} testID="active-session-card">
-      {/* Glow */}
-      <AmbientGlow isOnBreak={isOnBreak} />
+    <Animated.View
+      entering={FadeInDown.duration(500)}
+      testID="active-session-card"
+      style={{ alignItems: 'center', paddingBottom: 8 }}
+    >
+      {/* Main CTA Circle */}
+      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center' }]}>
+        <View style={{ alignItems: 'center', justifyContent: 'center', width: 220, height: 220 }}>
+          {/* Pulsing glow ring */}
+          <GlowRing color={glowColor} active />
 
-      {/* Status badge */}
-      <View style={{ alignItems: 'center', marginBottom: 16 }}>
-        <View
-          style={{
-            flexDirection: 'row-reverse',
-            alignItems: 'center',
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            borderRadius: 99,
-            paddingHorizontal: 14,
-            paddingVertical: 6,
-          }}
-        >
-          <Text
-            style={{
-              color: isOnBreak ? '#FCD34D' : '#86EFAC',
-              fontSize: 13,
-              fontWeight: '600',
-            }}
+          {/* Circle button */}
+          <Pressable
+            onPressIn={() => { scale.value = withSpring(0.96, { damping: 15 }); }}
+            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
+            onPress={handleMainAction}
+            testID="break-toggle-button"
+            style={{ width: 200, height: 200, borderRadius: 100, overflow: 'hidden' }}
           >
-            {isOnBreak ? '\u05D1\u05D4\u05E4\u05E1\u05E7\u05D4' : '\u05E2\u05D5\u05D1\u05D3'}
-          </Text>
-          <PulsingDot color={isOnBreak ? '#FCD34D' : '#4ADE80'} />
+            <LinearGradient
+              colors={circleColors}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 38,
+                  fontWeight: '700',
+                  fontVariant: ['tabular-nums'],
+                  letterSpacing: 1,
+                  textShadowColor: 'rgba(0,0,0,0.25)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 4,
+                }}
+                testID="live-timer"
+              >
+                {timer}
+              </Text>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: 13,
+                  fontWeight: '600',
+                  marginTop: 6,
+                  textAlign: 'center',
+                  paddingHorizontal: 16,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {stateLabel}
+              </Text>
+            </LinearGradient>
+          </Pressable>
         </View>
-      </View>
+      </Animated.View>
 
-      {/* MoneyCharacter mascot — overlaps bottom of timer */}
+      {/* Character — supplementary, below */}
       {showCharacterActive ? (
-        <View style={{ alignItems: 'center', marginTop: -50, marginBottom: -12 }}>
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={260} />
+        <View style={{ alignItems: 'center', marginTop: 8 }}>
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={120} />
         </View>
       ) : null}
 
-      {/* Timer */}
-      <Text
-        style={{
-          textAlign: 'center',
-          fontSize: 64,
-          fontWeight: '700',
-          color: isOnBreak ? '#FBBF24' : '#FFFFFF',
-          fontVariant: ['tabular-nums'],
-          letterSpacing: 2,
-          textShadowColor: isOnBreak ? 'rgba(251,191,36,0.4)' : 'rgba(96,165,250,0.4)',
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 20,
-        }}
-        testID="live-timer"
-      >
-        {timer}
-      </Text>
-
-      {/* Inline stats row */}
-      <View
-        style={{
-          flexDirection: 'row-reverse',
-          justifyContent: 'space-around',
-          marginTop: 20,
-          marginBottom: 4,
-          paddingHorizontal: 16,
-        }}
-      >
-        <View style={{ alignItems: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
-            {formatTime(session.startTime)}
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>
-            {'\u05E9\u05E2\u05EA \u05D4\u05EA\u05D7\u05DC\u05D4'}
-          </Text>
-        </View>
-        <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />
-        <View style={{ alignItems: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
-            {breaksCount}
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>
-            {'\u05D4\u05E4\u05E1\u05E7\u05D5\u05EA'}
-          </Text>
-        </View>
-        {showSalary ? (
-          <>
-            <View style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
-                {formatCurrency(currentPay, currency)}
-              </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 3 }}>
-                {'\u05E9\u05DB\u05E8'}
-              </Text>
-            </View>
-          </>
-        ) : null}
-      </View>
-
-      {/* Action buttons */}
-      <View style={{ flexDirection: 'row-reverse', gap: 12, paddingHorizontal: 20, marginTop: 24, paddingBottom: 16 }}>
-        {/* End work */}
-        <Animated.View style={[{ flex: 1 }, endAnimStyle]}>
-          <Pressable
-            onPressIn={() => { endScale.value = withSpring(0.96); }}
-            onPressOut={() => { endScale.value = withSpring(1); }}
-            onPress={handleEndWork}
-            testID="end-work-button"
-            style={{ borderRadius: 18, overflow: 'hidden', height: 52 }}
-          >
-            <LinearGradient
-              colors={['#DC2626', '#B91C1C']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row-reverse',
-                gap: 8,
-                shadowColor: '#DC2626',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.4,
-                shadowRadius: 12,
-              }}
-            >
-              <Square size={16} color="#FFF" fill="#FFF" />
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>
+      {/* End work — secondary small button */}
+      <Animated.View style={[endAnimStyle, { marginTop: showCharacterActive ? 4 : 20 }]}>
+        <Pressable
+          onPressIn={() => { endScale.value = withSpring(0.96); }}
+          onPressOut={() => { endScale.value = withSpring(1); }}
+          onPress={handleEndWork}
+          testID="end-work-button"
+          style={{
+            borderRadius: 99,
+            borderWidth: 1.5,
+            borderColor: 'rgba(220,38,38,0.5)',
+            paddingHorizontal: 28,
+            paddingVertical: 10,
+            flexDirection: 'row-reverse',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          {endWork.isPending ? (
+            <ActivityIndicator color="#F87171" size="small" />
+          ) : (
+            <>
+              <Square size={13} color="#F87171" fill="#F87171" />
+              <Text style={{ color: '#F87171', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 }}>
                 {'\u05E1\u05D9\u05D9\u05DD \u05E2\u05D1\u05D5\u05D3\u05D4'}
               </Text>
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
-
-        {/* Break toggle */}
-        <Animated.View style={[{ flex: 1 }, breakAnimStyle]}>
-          <Pressable
-            onPressIn={() => { breakScale.value = withSpring(0.96); }}
-            onPressOut={() => { breakScale.value = withSpring(1); }}
-            onPress={handleBreakToggle}
-            testID="break-toggle-button"
-            style={{ borderRadius: 18, overflow: 'hidden', height: 52 }}
-          >
-            <LinearGradient
-              colors={
-                isOnBreak
-                  ? ['#059669', '#047857']
-                  : ['#D97706', '#B45309']
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row-reverse',
-                gap: 8,
-              }}
-            >
-              {isOnBreak ? (
-                <Play size={16} color="#FFF" fill="#FFF" />
-              ) : (
-                <Coffee size={16} color="#FFF" />
-              )}
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>
-                {isOnBreak
-                  ? '\u05D7\u05D6\u05D5\u05E8 \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4'
-                  : '\u05D4\u05E4\u05E1\u05E7\u05D4'}
-              </Text>
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
-      </View>
+            </>
+          )}
+        </Pressable>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -435,13 +364,9 @@ function EmptySessionHero({ token }: { token: string }) {
   }, []);
 
   const scale = useSharedValue(1);
-  const glowOpacity = useSharedValue(0.15);
-  const pulseScale = useSharedValue(1);
-
-  useEffect(() => {
-    glowOpacity.value = withRepeat(withTiming(0.35, { duration: 2500 }), -1, true);
-    pulseScale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true);
-  }, [glowOpacity, pulseScale]);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const handleStart = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -451,110 +376,77 @@ function EmptySessionHero({ token }: { token: string }) {
     });
   }, [startWork, showToast]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    shadowOpacity: (pulseScale.value - 1) * 4,
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
-
-  const { width: SCREEN_W } = Dimensions.get('window');
-  const CARD_W   = Math.min(SCREEN_W * 0.86, 340);
-  const MASCOT_W = 188;              // bigger mascot
-  const BTN_W    = CARD_W - 48;     // safe width — well inside borderRadius:48 corners
-
   return (
     <Animated.View
-      entering={FadeInDown.duration(600)}
+      entering={FadeInDown.duration(500)}
       testID="empty-session-card"
-      style={{ width: '100%', alignItems: 'center', paddingBottom: 16 }}
+      style={{ alignItems: 'center', paddingBottom: 8 }}
     >
-      {/* ── Rounded card: clock + mascot + button ── */}
-      <View style={{
-        width: CARD_W,
-        borderRadius: 48,           // large radius — elegant, NOT a pill (avoids corner overflow)
-        overflow: 'hidden',         // clips bg to rounded shape; button fits safely at this radius
-        backgroundColor: '#142766',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: 28,
-        paddingBottom: 20,
-        paddingHorizontal: 24,
-        gap: 0,
-        shadowColor: '#3B82F6',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.45,
-        shadowRadius: 28,
-        elevation: 14,
-      }}>
+      {/* Main CTA Circle */}
+      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center' }]}>
+        <View style={{ alignItems: 'center', justifyContent: 'center', width: 220, height: 220 }}>
+          {/* Glow ring */}
+          <GlowRing color="#60A5FA" active={false} />
 
-        {/* clock */}
-        <Text style={{
-          width: '100%',
-          textAlign: 'center',
-          fontSize: 72,
-          lineHeight: 72,
-          fontWeight: '300',
-          color: '#FFFFFF',
-          fontVariant: ['tabular-nums'],
-          letterSpacing: -1,
-          textShadowColor: 'rgba(96,165,250,0.5)',
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 16,
-        }}>
-          {currentTime}
-        </Text>
-
-        {/* mascot */}
-        {showCharacterEmpty ? (
-          <View style={{ alignItems: 'center', marginTop: -36 }}>
-            <MoneyCharacter state={characterState} size={MASCOT_W} />
-          </View>
-        ) : null}
-
-        {/* button */}
-        <Animated.View style={[animStyle, { marginTop: 6 }]}>
+          {/* Circle button */}
           <Pressable
-              onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
-              onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
-              onPress={handleStart}
-              testID="start-work-button"
-              style={{ borderRadius: 99, overflow: 'hidden' }}
+            onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
+            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
+            onPress={handleStart}
+            testID="start-work-button"
+            style={{ width: 200, height: 200, borderRadius: 100, overflow: 'hidden' }}
+          >
+            <LinearGradient
+              colors={['#2563EB', '#1D4ED8']}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0,
+              }}
             >
-              <LinearGradient
-                colors={['#3B82F6', '#1D4ED8']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  height: 54,
-                  width: BTN_W,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row-reverse',
-                  gap: 10,
-                }}
-              >
-                {startWork.isPending ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <>
-                    <Play size={18} color="#FFF" fill="#FFF" />
-                    <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '700', letterSpacing: 0.3 }}>
-                      {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
-            </Pressable>
-        </Animated.View>
+              {startWork.isPending ? (
+                <ActivityIndicator color="#FFF" size="large" />
+              ) : (
+                <>
+                  <Play size={28} color="#FFF" fill="#FFF" style={{ marginBottom: 8 }} />
+                  <Text
+                    style={{
+                      color: '#FFFFFF',
+                      fontSize: 32,
+                      fontWeight: '300',
+                      fontVariant: ['tabular-nums'],
+                      letterSpacing: -0.5,
+                    }}
+                  >
+                    {currentTime}
+                  </Text>
+                  <Text
+                    style={{
+                      color: 'rgba(255,255,255,0.75)',
+                      fontSize: 15,
+                      fontWeight: '600',
+                      marginTop: 4,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </Animated.View>
 
-      </View>
+      {/* Character — supplementary, below */}
+      {showCharacterEmpty ? (
+        <View style={{ alignItems: 'center', marginTop: 8 }}>
+          <MoneyCharacter state={characterState} size={140} />
+        </View>
+      ) : null}
     </Animated.View>
   );
 }
