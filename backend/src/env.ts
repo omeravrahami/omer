@@ -13,6 +13,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   // Admin setup protection
   SETUP_SECRET: z.string().optional(),
+  // Logging level — "debug" | "info" | "warn" | "error"
+  LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
+  // Crash reporting — Sentry DSN (optional, enables error tracking)
+  SENTRY_DSN: z.string().optional(),
 });
 
 /**

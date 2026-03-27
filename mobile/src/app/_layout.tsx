@@ -8,7 +8,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useEffect } from 'react';
 import { I18nManager } from 'react-native';
-import { useDeviceStore } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
@@ -174,8 +173,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const initDevice = useDeviceStore((s) => s.initDevice);
-  const hasHydrated = useDeviceStore((s) => s._hasHydrated);
+  const hasHydrated = useSettingsStore((s) => s._hasHydrated);
 
   // RTL: set once on first mount
   useEffect(() => {
@@ -184,15 +182,11 @@ export default function RootLayout() {
     }
   }, []);
 
-  // Wait for AsyncStorage to load before initialising the device ID.
-  // Without this guard, a hot-reload could call initDevice() before the
-  // stored deviceId is available, creating a fresh UUID and making all
-  // existing sessions appear to be gone.
+  // Wait for AsyncStorage to hydrate before showing the app.
   useEffect(() => {
     if (!hasHydrated) return;
-    initDevice();
     SplashScreen.hideAsync();
-  }, [hasHydrated, initDevice]);
+  }, [hasHydrated]);
 
   return (
     <QueryClientProvider client={queryClient}>

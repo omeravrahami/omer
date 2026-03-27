@@ -1,5 +1,14 @@
 // Google AdMob Unit IDs
-// Use TEST IDs during development, replace with real IDs before production
+// ─────────────────────────────────────────────────────────────────────────────
+// DEVELOPMENT: always use TEST_IDS — they never count as real impressions.
+// PRODUCTION checklist before App Store submission:
+//   1. Create an AdMob app at https://apps.admob.com
+//   2. Copy the real unit IDs into PRODUCTION_IDS below
+//   3. Set testMode = false in getAdUnitId() calls (or via a build flag)
+//   4. Add your AdMob App ID to app.json under
+//      plugins > react-native-google-mobile-ads > androidAppId / iosAppId
+//   5. Run an EAS Build (not Expo Go) — native code required
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const AD_CONFIG = {
   // Test IDs (safe for development - always use these in test/dev builds)

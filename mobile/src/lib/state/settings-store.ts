@@ -18,6 +18,8 @@ export interface OneTimeAddition {
 }
 
 interface SettingsState {
+  _hasHydrated: boolean;
+  setHasHydrated: (val: boolean) => void;
   hourlyRate: number;
   currency: string;
   dailyGoalHours: number;
@@ -55,6 +57,8 @@ function uid() { return String(++_idSeq); }
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
+      _hasHydrated: false,
+      setHasHydrated: (val) => set({ _hasHydrated: val }),
       hourlyRate: 50,
       currency: 'ILS',
       dailyGoalHours: 8,
@@ -97,7 +101,17 @@ export const useSettingsStore = create<SettingsState>()(
       removeOneTimeAddition: (id) =>
         set((s) => ({ oneTimeAdditions: s.oneTimeAdditions.filter((a) => a.id !== id) })),
     }),
-    { name: 'workclock-settings', storage: createJSONStorage(() => AsyncStorage) }
+    {
+      name: 'workclock-settings',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => {
+        const { _hasHydrated, setHasHydrated, ...rest } = state;
+        return rest as Omit<SettingsState, '_hasHydrated' | 'setHasHydrated'>;
+      },
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
   )
 );
 

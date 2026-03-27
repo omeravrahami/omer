@@ -40,7 +40,7 @@ async function authRequest<T>(
   return null as unknown as T;
 }
 
-// ─── Authenticated hooks (token-based, no deviceId in URL) ───────────────────
+// ─── Authenticated hooks ──────────────────────────────────────────────────────
 
 export interface EditSessionPayload {
   startTime: string;

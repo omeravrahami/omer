@@ -93,7 +93,6 @@ const verifyEmailSchema = z.object({
 });
 
 const userSettingsSchema = z.object({
-  deviceId: z.string().optional(),
   hourlyRate: z.number().optional(),
   currency: z.string().optional(),
   dailyGoalHours: z.number().optional(),

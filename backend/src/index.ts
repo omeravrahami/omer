@@ -6,6 +6,7 @@ import { sampleRouter } from "./routes/sample";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
+import { legalRoutes } from "./routes/legal";
 import { httpLogger } from "./lib/logger";
 
 const app = new Hono();
@@ -42,6 +43,8 @@ app.route("/api/auth", authRoutes);
 // Public admin routes (no auth) must be mounted before protected ones
 app.route("/api/admin", adminPublicRoutes);
 app.route("/api/admin", adminRoutes);
+// Public legal pages (privacy policy, delete account)
+app.route("", legalRoutes);
 
 const port = Number(process.env.PORT) || 3000;
 
