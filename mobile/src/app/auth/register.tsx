@@ -12,10 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { Eye, EyeOff, ChevronLeft } from 'lucide-react-native';
+import { Eye, EyeOff, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { register as registerApi } from '@/lib/api/auth-api';
+import { useToastStore } from '@/lib/state/toast-store';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -27,10 +28,20 @@ const TEXT_SECONDARY = 'rgba(255,255,255,0.45)';
 const ACCENT = '#60A5FA';
 const ERROR_COLOR = '#F87171';
 
+function getPasswordStrength(pw: string): { level: number; label: string; color: string } {
+  if (pw.length === 0) return { level: 0, label: '', color: 'transparent' };
+  if (pw.length < 6) return { level: 1, label: 'חלשה', color: '#F87171' };
+  if (pw.length < 8) return { level: 2, label: 'בינונית', color: '#FBBF24' };
+  if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) return { level: 4, label: 'חזקה מאוד', color: '#34D399' };
+  return { level: 3, label: 'טובה', color: '#60A5FA' };
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const showToast = useToastStore((s) => s.showToast);
 
+  const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
@@ -39,17 +50,27 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [usernameFocused, setUsernameFocused] = useState<boolean>(false);
   const [emailFocused, setEmailFocused] = useState<boolean>(false);
   const [passwordFocused, setPasswordFocused] = useState<boolean>(false);
   const [confirmFocused, setConfirmFocused] = useState<boolean>(false);
 
+  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
 
+  const strength = getPasswordStrength(password);
+
   const validate = (): string | null => {
+    if (username.trim() && (username.trim().length < 3 || username.trim().length > 20)) {
+      return 'שם משתמש חייב להיות בין 3 ל-20 תווים';
+    }
+    if (username.trim() && !/^[a-zA-Z0-9_]+$/.test(username.trim())) {
+      return 'שם משתמש יכול להכיל אותיות אנגליות, מספרים וקו תחתון בלבד';
+    }
     if (!email.trim()) return 'נא להכניס אימייל';
-    if (!email.includes('@')) return 'כתובת אימייל אינה תקינה';
-    if (password.length < 6) return 'הסיסמה חייבת להכיל לפחות 6 תווים';
+    if (!email.includes('@') || !email.includes('.')) return 'כתובת אימייל אינה תקינה';
+    if (password.length < 8) return 'הסיסמה חייבת להכיל לפחות 8 תווים';
     if (password !== confirmPassword) return 'הסיסמאות אינן תואמות';
     return null;
   };
@@ -63,17 +84,23 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     try {
-      const result = await registerApi(email.trim().toLowerCase(), password);
+      const result = await registerApi(
+        email.trim().toLowerCase(),
+        password,
+        username.trim() || undefined,
+      );
       if (result?.token && result?.user) {
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('החשבון נוצר בהצלחה!', 'success');
         router.replace('/(tabs)');
       } else {
         setError('שגיאה ביצירת החשבון, נסה שוב');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-    } catch {
-      setError('שגיאה בחיבור לשרת, נסה שוב');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'שגיאה בחיבור לשרת, נסה שוב';
+      setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
@@ -92,24 +119,24 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Back button */}
-          <Animated.View entering={FadeInDown.duration(300)} style={{ flexDirection: 'row-reverse', marginBottom: 24 }}>
+          <Animated.View entering={FadeInDown.duration(300)} style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 24 }}>
             <Pressable
               testID="back-to-login"
               onPress={() => router.back()}
               style={({ pressed }) => ({
-                flexDirection: 'row-reverse',
+                flexDirection: 'row',
                 alignItems: 'center',
                 gap: 4,
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <ChevronLeft size={20} color={ACCENT} />
               <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{'חזרה'}</Text>
+              <ChevronRight size={20} color={ACCENT} />
             </Pressable>
           </Animated.View>
 
           {/* Title */}
-          <Animated.View entering={FadeInDown.delay(80).duration(400)} style={{ marginBottom: 32 }}>
+          <Animated.View entering={FadeInDown.delay(80).duration(400)} style={{ marginBottom: 28 }}>
             <Text
               style={{
                 fontSize: 30,
@@ -119,10 +146,10 @@ export default function RegisterScreen() {
                 letterSpacing: -0.5,
               }}
             >
-              {'הרשמה'}
+              {'יצירת חשבון'}
             </Text>
             <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 6 }}>
-              {'צור חשבון חדש ב־WorkClock'}
+              {'הצטרף ל-WorkClock ונהל את שעות העבודה שלך'}
             </Text>
           </Animated.View>
 
@@ -137,17 +164,48 @@ export default function RegisterScreen() {
               borderColor: BORDER,
             }}
           >
-            {/* Email */}
+            {/* Username (optional) */}
             <View style={{ marginBottom: 16 }}>
-              <Text
+              <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY }}>
+                  {'שם משתמש'}
+                </Text>
+                <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                  {'אופציונלי, לפחות 3 תווים'}
+                </Text>
+              </View>
+              <View
                 style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: TEXT_SECONDARY,
-                  textAlign: 'right',
-                  marginBottom: 8,
+                  backgroundColor: BG_INPUT,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: usernameFocused ? BORDER_FOCUS : BORDER,
+                  flexDirection: 'row-reverse',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
                 }}
               >
+                <TextInput
+                  testID="username-input"
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder={'לדוגמה: david123'}
+                  placeholderTextColor={TEXT_SECONDARY}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onFocus={() => setUsernameFocused(true)}
+                  onBlur={() => setUsernameFocused(false)}
+                  returnKeyType="next"
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  style={{ flex: 1, fontSize: 15, color: TEXT_PRIMARY, textAlign: 'right' }}
+                />
+              </View>
+            </View>
+
+            {/* Email */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
                 {'אימייל'}
               </Text>
               <View
@@ -163,6 +221,7 @@ export default function RegisterScreen() {
                 }}
               >
                 <TextInput
+                  ref={emailRef}
                   testID="email-input"
                   value={email}
                   onChangeText={setEmail}
@@ -175,27 +234,14 @@ export default function RegisterScreen() {
                   onBlur={() => setEmailFocused(false)}
                   returnKeyType="next"
                   onSubmitEditing={() => passwordRef.current?.focus()}
-                  style={{
-                    flex: 1,
-                    fontSize: 15,
-                    color: TEXT_PRIMARY,
-                    textAlign: 'right',
-                  }}
+                  style={{ flex: 1, fontSize: 15, color: TEXT_PRIMARY, textAlign: 'right' }}
                 />
               </View>
             </View>
 
             {/* Password */}
-            <View style={{ marginBottom: 16 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: TEXT_SECONDARY,
-                  textAlign: 'right',
-                  marginBottom: 8,
-                }}
-              >
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
                 {'סיסמה'}
               </Text>
               <View
@@ -215,45 +261,47 @@ export default function RegisterScreen() {
                   testID="password-input"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={'לפחות 6 תווים'}
+                  placeholder={'לפחות 8 תווים'}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showPassword}
                   onFocus={() => setPasswordFocused(true)}
                   onBlur={() => setPasswordFocused(false)}
                   returnKeyType="next"
                   onSubmitEditing={() => confirmRef.current?.focus()}
-                  style={{
-                    flex: 1,
-                    fontSize: 15,
-                    color: TEXT_PRIMARY,
-                    textAlign: 'right',
-                  }}
+                  style={{ flex: 1, fontSize: 15, color: TEXT_PRIMARY, textAlign: 'right' }}
                 />
-                <Pressable
-                  onPress={() => setShowPassword((v) => !v)}
-                  style={{ marginRight: 8 }}
-                  testID="toggle-password-visibility"
-                >
-                  {showPassword
-                    ? <Eye size={18} color={TEXT_SECONDARY} />
-                    : <EyeOff size={18} color={TEXT_SECONDARY} />
-                  }
+                <Pressable onPress={() => setShowPassword((v) => !v)} style={{ marginRight: 8 }} testID="toggle-password-visibility">
+                  {showPassword ? <Eye size={18} color={TEXT_SECONDARY} /> : <EyeOff size={18} color={TEXT_SECONDARY} />}
                 </Pressable>
               </View>
             </View>
 
+            {/* Password strength */}
+            {password.length > 0 ? (
+              <View style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row-reverse', gap: 4, marginBottom: 4 }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <View
+                      key={i}
+                      style={{
+                        flex: 1,
+                        height: 3,
+                        borderRadius: 2,
+                        backgroundColor: i <= strength.level ? strength.color : 'rgba(255,255,255,0.08)',
+                      }}
+                    />
+                  ))}
+                </View>
+                <Text style={{ fontSize: 11, color: strength.color, textAlign: 'right' }}>{strength.label}</Text>
+              </View>
+            ) : (
+              <View style={{ marginBottom: 16 }} />
+            )}
+
             {/* Confirm Password */}
             <View style={{ marginBottom: 24 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: TEXT_SECONDARY,
-                  textAlign: 'right',
-                  marginBottom: 8,
-                }}
-              >
-                {'אימות סיסמה'}
+              <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
+                {'אישור סיסמה'}
               </Text>
               <View
                 style={{
@@ -279,22 +327,10 @@ export default function RegisterScreen() {
                   onBlur={() => setConfirmFocused(false)}
                   returnKeyType="done"
                   onSubmitEditing={handleRegister}
-                  style={{
-                    flex: 1,
-                    fontSize: 15,
-                    color: TEXT_PRIMARY,
-                    textAlign: 'right',
-                  }}
+                  style={{ flex: 1, fontSize: 15, color: TEXT_PRIMARY, textAlign: 'right' }}
                 />
-                <Pressable
-                  onPress={() => setShowConfirm((v) => !v)}
-                  style={{ marginRight: 8 }}
-                  testID="toggle-confirm-visibility"
-                >
-                  {showConfirm
-                    ? <Eye size={18} color={TEXT_SECONDARY} />
-                    : <EyeOff size={18} color={TEXT_SECONDARY} />
-                  }
+                <Pressable onPress={() => setShowConfirm((v) => !v)} style={{ marginRight: 8 }} testID="toggle-confirm-visibility">
+                  {showConfirm ? <Eye size={18} color={TEXT_SECONDARY} /> : <EyeOff size={18} color={TEXT_SECONDARY} />}
                 </Pressable>
               </View>
             </View>
@@ -337,23 +373,16 @@ export default function RegisterScreen() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" testID="loading-indicator" />
-                : (
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
-                    {'הרשמה'}
-                  </Text>
-                )
+                : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'הירשם'}</Text>
               }
             </Pressable>
 
             {/* Login link */}
             <View style={{ alignItems: 'center' }}>
-              <Pressable
-                testID="go-to-login"
-                onPress={() => router.back()}
-              >
+              <Pressable testID="go-to-login" onPress={() => router.back()}>
                 <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'center' }}>
-                  {'יש לי כבר חשבון '}
-                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'כניסה'}</Text>
+                  {'יש לך חשבון? '}
+                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'התחבר'}</Text>
                 </Text>
               </Pressable>
             </View>

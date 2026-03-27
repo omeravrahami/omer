@@ -2,9 +2,14 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
+  username: string | null;
+  role: 'USER' | 'ADMIN';
+  status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
+  lastLoginAt: string | null;
+  isEmailVerified: boolean;
 }
 
 interface AuthState {

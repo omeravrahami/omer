@@ -50,6 +50,18 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="auth/forgot-password"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="auth/reset-password"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="admin"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="session-detail/[id]"
           options={{
             presentation: 'modal',

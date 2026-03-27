@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
-import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check } from 'lucide-react-native';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield } from 'lucide-react-native';
 import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useUpdateSettings } from '@/lib/api/workclock-api';
@@ -946,6 +946,7 @@ export default function SettingsScreen() {
   const authToken = useAuthStore((s) => s.token);
   const authIsGuest = useAuthStore((s) => s.isGuest);
   const authLogout = useAuthStore((s) => s.logout);
+  const authUserRole = useAuthStore((s) => s.user?.role);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -955,7 +956,7 @@ export default function SettingsScreen() {
     try {
       if (authToken) {
         const { logout: logoutApi } = await import('@/lib/api/auth-api');
-        await logoutApi(authToken);
+        await logoutApi();
       }
     } catch {
       // ignore errors on logout
@@ -1219,6 +1220,37 @@ export default function SettingsScreen() {
             </View>
           </Pressable>
         </Animated.View>
+        {/* Admin Panel */}
+        {authUserRole === 'ADMIN' ? (
+          <Animated.View entering={FadeInDown.delay(410).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+            <Pressable
+              testID="admin-panel-button"
+              onPress={() => router.push('/admin' as any)}
+              style={{
+                backgroundColor: 'rgba(251,191,36,0.08)',
+                borderRadius: 20,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(251,191,36,0.2)',
+              }}
+            >
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+                  <Shield size={24} color="#FBBF24" />
+                  <View>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: '#FCD34D', textAlign: 'right' }}>
+                      {'פאנל ניהול'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: 'rgba(252,211,77,0.6)', textAlign: 'right', marginTop: 2 }}>
+                      {'ניהול משתמשים והגדרות מערכת'}
+                    </Text>
+                  </View>
+                </View>
+                <ChevronLeft size={18} color="#FBBF24" />
+              </View>
+            </Pressable>
+          </Animated.View>
+        ) : null}
         {/* Account / Auth section */}
         <Animated.View entering={FadeInDown.delay(420).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           {authIsGuest ? (

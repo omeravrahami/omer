@@ -16,6 +16,7 @@ import { Eye, EyeOff, Clock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { login as loginApi } from '@/lib/api/auth-api';
+import { useToastStore } from '@/lib/state/toast-store';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -31,36 +32,49 @@ export default function LoginScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const setGuest = useAuthStore((s) => s.setGuest);
+  const showToast = useToastStore((s) => s.showToast);
 
-  const [email, setEmail] = useState<string>('');
+  const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailFocused, setEmailFocused] = useState<boolean>(false);
+  const [identifierFocused, setIdentifierFocused] = useState<boolean>(false);
   const [passwordFocused, setPasswordFocused] = useState<boolean>(false);
 
   const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('נא למלא אימייל וסיסמה');
+    if (!identifier.trim() || !password.trim()) {
+      setError('נא למלא אימייל/שם משתמש וסיסמה');
       return;
     }
     setError(null);
     setLoading(true);
     try {
-      const result = await loginApi(email.trim().toLowerCase(), password);
+      const result = await loginApi(identifier.trim(), password);
       if (result?.token && result?.user) {
+        if (result.user.status === 'SUSPENDED') {
+          setError('החשבון שלך מושהה. פנה לתמיכה לפרטים.');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
+        if (result.user.status === 'DISABLED') {
+          setError('החשבון שלך מושבת. פנה לתמיכה לפרטים.');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('ברוך הבא!', 'success');
         router.replace('/(tabs)');
       } else {
-        setError('אימייל או סיסמה שגויים');
+        setError('אימייל/שם משתמש או סיסמה שגויים');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-    } catch {
-      setError('שגיאה בחיבור לשרת, נסה שוב');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'שגיאה בחיבור לשרת, נסה שוב';
+      setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
@@ -120,7 +134,7 @@ export default function LoginScreen() {
                 textAlign: 'center',
               }}
             >
-              {'מעקב משכורת חכם'}
+              {'ניהול שעות עבודה חכם'}
             </Text>
           </Animated.View>
 
@@ -147,7 +161,7 @@ export default function LoginScreen() {
               {'כניסה לחשבון'}
             </Text>
 
-            {/* Email input */}
+            {/* Identifier input */}
             <View style={{ marginBottom: 16 }}>
               <Text
                 style={{
@@ -158,14 +172,14 @@ export default function LoginScreen() {
                   marginBottom: 8,
                 }}
               >
-                {'אימייל'}
+                {'אימייל או שם משתמש'}
               </Text>
               <View
                 style={{
                   backgroundColor: BG_INPUT,
                   borderRadius: 14,
                   borderWidth: 1.5,
-                  borderColor: emailFocused ? BORDER_FOCUS : BORDER,
+                  borderColor: identifierFocused ? BORDER_FOCUS : BORDER,
                   flexDirection: 'row-reverse',
                   alignItems: 'center',
                   paddingHorizontal: 16,
@@ -174,15 +188,14 @@ export default function LoginScreen() {
               >
                 <TextInput
                   testID="email-input"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder={'הכנס אימייל'}
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  placeholder={'הכנס אימייל או שם משתמש'}
                   placeholderTextColor={TEXT_SECONDARY}
-                  keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
+                  onFocus={() => setIdentifierFocused(true)}
+                  onBlur={() => setIdentifierFocused(false)}
                   returnKeyType="next"
                   onSubmitEditing={() => passwordRef.current?.focus()}
                   style={{
@@ -196,7 +209,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Password input */}
-            <View style={{ marginBottom: 24 }}>
+            <View style={{ marginBottom: 8 }}>
               <Text
                 style={{
                   fontSize: 13,
@@ -252,6 +265,18 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            {/* Forgot password */}
+            <View style={{ alignItems: 'flex-start', marginBottom: 20 }}>
+              <Pressable
+                testID="forgot-password-link"
+                onPress={() => router.push('/auth/forgot-password' as any)}
+              >
+                <Text style={{ fontSize: 13, color: ACCENT, fontWeight: '500' }}>
+                  {'שכחתי סיסמה'}
+                </Text>
+              </Pressable>
+            </View>
+
             {/* Error message */}
             {error !== null ? (
               <Animated.View entering={FadeInDown.duration(300)} style={{ marginBottom: 16 }}>
@@ -285,18 +310,25 @@ export default function LoginScreen() {
                 paddingVertical: 16,
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 16,
+                marginBottom: 20,
               })}
             >
               {loading
                 ? <ActivityIndicator color="#fff" testID="loading-indicator" />
                 : (
                   <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
-                    {'כניסה'}
+                    {'התחבר'}
                   </Text>
                 )
               }
             </Pressable>
+
+            {/* Divider */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+              <Text style={{ fontSize: 13, color: TEXT_SECONDARY, marginHorizontal: 12 }}>{'או'}</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+            </View>
 
             {/* Register link */}
             <View style={{ alignItems: 'center' }}>
@@ -306,14 +338,14 @@ export default function LoginScreen() {
               >
                 <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'center' }}>
                   {'אין לך חשבון? '}
-                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'הרשמה'}</Text>
+                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'הירשם'}</Text>
                 </Text>
               </Pressable>
             </View>
           </Animated.View>
 
           {/* Continue as guest */}
-          <Animated.View entering={FadeInUp.delay(300).duration(500)} style={{ marginTop: 20 }}>
+          <Animated.View entering={FadeInUp.delay(300).duration(500)} style={{ marginTop: 16 }}>
             <Pressable
               testID="continue-as-guest"
               onPress={handleGuest}
@@ -327,7 +359,7 @@ export default function LoginScreen() {
               })}
             >
               <Text style={{ fontSize: 14, color: TEXT_SECONDARY, fontWeight: '500' }}>
-                {'המשך ללא חשבון'}
+                {'המשך כאורח'}
               </Text>
             </Pressable>
           </Animated.View>

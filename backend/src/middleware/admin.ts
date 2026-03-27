@@ -1,16 +1,15 @@
 import { createMiddleware } from "hono/factory";
 import { db } from "../db";
 
-type AuthVariables = {
+type AdminVariables = {
   userId: string;
 };
 
 /**
- * Extracts and validates Bearer token from the Authorization header.
- * Sets c.var.userId on success; returns 401 on failure.
- * Also updates lastSeenAt on the session.
+ * Admin middleware: validates Bearer token AND verifies the user has role === "ADMIN".
+ * Sets c.var.userId on success.
  */
-export const authMiddleware = createMiddleware<{ Variables: AuthVariables }>(
+export const adminMiddleware = createMiddleware<{ Variables: AdminVariables }>(
   async (c, next) => {
     const authorization = c.req.header("Authorization");
     if (!authorization || !authorization.startsWith("Bearer ")) {
@@ -41,7 +40,6 @@ export const authMiddleware = createMiddleware<{ Variables: AuthVariables }>(
     }
 
     if (new Date() > session.expiresAt) {
-      // Clean up expired session
       await db.userSession.delete({ where: { id: session.id } }).catch(() => {});
       return c.json(
         { error: { message: "Token expired", code: "TOKEN_EXPIRED" } },
@@ -49,7 +47,14 @@ export const authMiddleware = createMiddleware<{ Variables: AuthVariables }>(
       );
     }
 
-    // Update lastSeenAt (fire-and-forget, don't block the request)
+    if (session.user.role !== "ADMIN") {
+      return c.json(
+        { error: { message: "Forbidden: admin access required", code: "FORBIDDEN" } },
+        403
+      );
+    }
+
+    // Update lastSeenAt (fire-and-forget)
     db.userSession
       .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
       .catch(() => {});

@@ -5,6 +5,7 @@ import "./env";
 import { sampleRouter } from "./routes/sample";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
+import { adminRoutes, adminPublicRoutes } from "./routes/admin";
 import { logger } from "hono/logger";
 
 const app = new Hono();
@@ -38,6 +39,9 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/api/sample", sampleRouter);
 app.route("", workclockRoutes);
 app.route("/api/auth", authRoutes);
+// Public admin routes (no auth) must be mounted before protected ones
+app.route("/api/admin", adminPublicRoutes);
+app.route("/api/admin", adminRoutes);
 
 const port = Number(process.env.PORT) || 3000;
 

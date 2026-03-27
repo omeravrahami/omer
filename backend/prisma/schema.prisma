@@ -8,22 +8,52 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  passwordHash String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  settings     UserSettings?
-  sessions     UserSession[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  username            String?              @unique
+  passwordHash        String
+  role                String               @default("USER")
+  status              String               @default("ACTIVE")
+  lastLoginAt         DateTime?
+  isEmailVerified     Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  settings            UserSettings?
+  sessions            UserSession[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model UserSession {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  deviceName String?
+  platform   String?
+  lastSeenAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
   userId    String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AppConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  createdAt   DateTime @default(now())
 }
 
 model UserSettings {
@@ -44,37 +74,37 @@ model UserSettings {
 }
 
 model Settings {
-  id                    String  @id @default(cuid())
-  deviceId              String  @unique
-  hourlyRate            Float   @default(50)
-  currency              String  @default("ILS")
-  dailyGoalHours        Float   @default(8)
-  weeklyGoalHours       Float   @default(40)
-  defaultBreakMinutes   Int     @default(30)
-  showSalaryOnDashboard Boolean @default(true)
-  themeMode             String  @default("light")
-  isPro                 Boolean @default(false)
-  onboardingCompleted   Boolean @default(false)
+  id                    String   @id @default(cuid())
+  deviceId              String   @unique
+  hourlyRate            Float    @default(50)
+  currency              String   @default("ILS")
+  dailyGoalHours        Float    @default(8)
+  weeklyGoalHours       Float    @default(40)
+  defaultBreakMinutes   Int      @default(30)
+  showSalaryOnDashboard Boolean  @default(true)
+  themeMode             String   @default("light")
+  isPro                 Boolean  @default(false)
+  onboardingCompleted   Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
 
 model WorkSession {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   deviceId      String
-  date          String   // YYYY-MM-DD
+  date          String // YYYY-MM-DD
   startTime     DateTime
   endTime       DateTime?
-  grossMinutes  Float    @default(0)
-  breakMinutes  Float    @default(0)
-  netMinutes    Float    @default(0)
-  totalPay      Float    @default(0)
-  notes         String   @default("")
-  workplaceName String   @default("")
-  sessionType   String   @default("shift") // shift | sick | vacation
-  status        String   @default("active") // active | completed
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  grossMinutes  Float          @default(0)
+  breakMinutes  Float          @default(0)
+  netMinutes    Float          @default(0)
+  totalPay      Float          @default(0)
+  notes         String         @default("")
+  workplaceName String         @default("")
+  sessionType   String         @default("shift") // shift | sick | vacation
+  status        String         @default("active") // active | completed
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   breaks        BreakSession[]
 
   @@index([deviceId, date])
@@ -82,11 +112,11 @@ model WorkSession {
 }
 
 model BreakSession {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   workSessionId   String
   startTime       DateTime
   endTime         DateTime?
-  durationMinutes Float    @default(0)
+  durationMinutes Float       @default(0)
   workSession     WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
 
   @@index([workSessionId])
