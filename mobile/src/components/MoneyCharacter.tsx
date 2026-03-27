@@ -1,7 +1,7 @@
 /**
- * MoneyCharacter — WorkClock's premium animated mascot.
- * A cartoon shekel bill with expressive eyes, arms, and legs.
- * States: idle | working | break | done | sleeping
+ * MoneyCharacter — WorkClock mascot.
+ * 3D cartoon money bill with volume, gradients, highlights & shadows.
+ * Inspired by Duolingo / top-tier app mascot style.
  */
 import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
@@ -18,204 +18,319 @@ import Animated, {
 } from 'react-native-reanimated';
 
 export type MoneyCharacterState = 'idle' | 'working' | 'break' | 'done' | 'sleeping';
-
 interface MoneyCharacterProps {
-  state: MoneyCharacterState;
-  size?: number; // bill width, default 120
+  state?: MoneyCharacterState;
+  size?: number;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Simulate a 3D outline by rendering a dark slightly-larger shadow layer */
+function Outlined({
+  children,
+  radius,
+  outlineColor = '#0a3d1a',
+  spread = 3,
+  style,
+}: {
+  children: React.ReactNode;
+  radius: number;
+  outlineColor?: string;
+  spread?: number;
+  style?: object;
+}) {
+  return (
+    <View style={[{ position: 'relative' }, style]}>
+      <View
+        style={{
+          position: 'absolute',
+          top: -spread / 2,
+          left: -spread / 2,
+          right: -spread / 2,
+          bottom: -spread / 2,
+          borderRadius: radius + spread / 2,
+          backgroundColor: outlineColor,
+        }}
+      />
+      {children}
+    </View>
+  );
 }
 
 // ─── Eye ─────────────────────────────────────────────────────────────────────
 
-interface EyeProps {
-  size: number;
+function Eye({
+  w,
+  h,
+  state,
+}: {
+  w: number;
+  h: number;
   state: MoneyCharacterState;
-  side: 'left' | 'right';
-}
+}) {
+  const closed = state === 'sleeping' || state === 'done';
+  const squint = state === 'break';
+  const wide   = state === 'working';
+  const eyeH   = wide ? h * 1.08 : squint ? h * 0.45 : closed ? h * 0.28 : h;
 
-function Eye({ size, state, side }: EyeProps) {
-  const isClosed  = state === 'sleeping';
-  const isSquint  = state === 'break';
-  const isWide    = state === 'working' || state === 'done';
-  const h         = isWide ? size * 1.08 : isSquint ? size * 0.46 : size * 0.92;
-  const irisS     = size * 0.58;
-  const pupilS    = isWide ? size * 0.42 : size * 0.38;
-
-  // Closed eye — thick arc with lashes
-  if (isClosed) {
+  if (closed) {
     return (
-      <View style={{ width: size, height: size * 0.55, justifyContent: 'center', alignItems: 'center' }}>
-        {/* Arc line */}
-        <View style={{
-          width: size * 0.92,
-          height: size * 0.46,
-          borderBottomWidth: 3.5,
-          borderLeftWidth: 2.5,
-          borderRightWidth: 2.5,
-          borderTopWidth: 0,
-          borderColor: '#14532d',
-          borderRadius: size * 0.46,
-        }} />
-        {/* Lashes */}
-        <View style={{ flexDirection: 'row', gap: size * 0.12, marginTop: 2 }}>
-          {['-12deg', '0deg', '12deg'].map((rot, i) => (
-            <View key={i} style={{
-              width: 2.5,
-              height: size * 0.18,
-              borderRadius: 2,
-              backgroundColor: '#14532d',
-              transform: [{ rotate: rot }],
-            }} />
+      <View style={{ width: w, height: h * 0.5, alignItems: 'center', justifyContent: 'center' }}>
+        {/* closed arc */}
+        <View
+          style={{
+            width: w * 0.9,
+            height: h * 0.44,
+            borderBottomLeftRadius: w * 0.5,
+            borderBottomRightRadius: w * 0.5,
+            borderBottomWidth: 3.5,
+            borderLeftWidth: 2.5,
+            borderRightWidth: 2.5,
+            borderTopWidth: 0,
+            borderColor: '#0f3320',
+          }}
+        />
+        {/* lashes */}
+        <View style={{ flexDirection: 'row', gap: w * 0.12, marginTop: 2 }}>
+          {['-12deg', '0deg', '12deg'].map((r, i) => (
+            <View
+              key={i}
+              style={{
+                width: 2.5,
+                height: h * 0.2,
+                borderRadius: 2,
+                backgroundColor: '#0f3320',
+                transform: [{ rotate: r }],
+              }}
+            />
           ))}
         </View>
       </View>
     );
   }
 
-  // Squinting happy eye (break)
-  if (isSquint) {
-    return (
-      <View style={{ width: size, height: size * 0.52, justifyContent: 'flex-end', alignItems: 'center' }}>
-        <View style={{
-          width: size,
-          height: h,
-          borderRadius: size * 0.5,
+  const irisS  = w * 0.6;
+  const pupilS = irisS * 0.68;
+
+  return (
+    <Outlined radius={w * 0.52} outlineColor="#0a3d1a" spread={2.5}>
+      <View
+        style={{
+          width: w,
+          height: eyeH,
+          borderRadius: w * 0.52,
           backgroundColor: 'white',
-          borderWidth: 2.5,
-          borderColor: '#111',
-          overflow: 'hidden',
           alignItems: 'center',
           justifyContent: 'center',
-        }}>
-          <View style={{
-            width: pupilS,
-            height: pupilS * 0.5,
-            borderRadius: pupilS * 0.25,
-            backgroundColor: '#111',
-          }} />
+          overflow: 'hidden',
+        }}
+      >
+        {/* iris */}
+        <View
+          style={{
+            width: irisS,
+            height: irisS,
+            borderRadius: irisS / 2,
+            backgroundColor: wide ? '#a3e635' : '#4ade80',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: wide ? -4 : squint ? 0 : 3,
+          }}
+        >
+          {/* pupil */}
+          <View
+            style={{
+              width: pupilS,
+              height: pupilS,
+              borderRadius: pupilS / 2,
+              backgroundColor: '#0c1a10',
+            }}
+          >
+            {/* main highlight */}
+            <View
+              style={{
+                position: 'absolute',
+                top: pupilS * 0.1,
+                right: pupilS * 0.08,
+                width: pupilS * 0.36,
+                height: pupilS * 0.36,
+                borderRadius: pupilS * 0.18,
+                backgroundColor: 'rgba(255,255,255,0.95)',
+              }}
+            />
+            {/* small secondary highlight */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: pupilS * 0.2,
+                left: pupilS * 0.18,
+                width: pupilS * 0.16,
+                height: pupilS * 0.16,
+                borderRadius: pupilS * 0.08,
+                backgroundColor: 'rgba(255,255,255,0.6)',
+              }}
+            />
+          </View>
         </View>
-      </View>
-    );
-  }
-
-  // Normal / wide open eye
-  return (
-    <View style={{
-      width: size,
-      height: h,
-      borderRadius: size * 0.52,
-      backgroundColor: 'white',
-      borderWidth: 2.5,
-      borderColor: '#111',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      // Subtle shadow for depth
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.12,
-      shadowRadius: 3,
-      elevation: 3,
-    }}>
-      {/* Iris */}
-      <View style={{
-        width: irisS,
-        height: irisS,
-        borderRadius: irisS / 2,
-        backgroundColor: '#86efac',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: isWide ? -3 : 4,
-      }}>
-        {/* Pupil */}
-        <View style={{
-          width: pupilS,
-          height: pupilS,
-          borderRadius: pupilS / 2,
-          backgroundColor: '#0f172a',
-          alignItems: 'flex-start',
-          justifyContent: 'flex-start',
-          padding: pupilS * 0.1,
-        }}>
-          {/* Main highlight */}
-          <View style={{
-            width: pupilS * 0.32,
-            height: pupilS * 0.32,
-            borderRadius: pupilS * 0.16,
-            backgroundColor: 'white',
-            alignSelf: side === 'left' ? 'flex-end' : 'flex-start',
-          }} />
-          {/* Secondary tiny highlight */}
-          <View style={{
+        {/* squint eyelid */}
+        {squint === true && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: eyeH * 0.45,
+              borderTopLeftRadius: w * 0.52,
+              borderTopRightRadius: w * 0.52,
+              backgroundColor: '#15803d',
+            }}
+          />
+        )}
+        {/* top inner glare strip */}
+        <View
+          style={{
             position: 'absolute',
-            bottom: pupilS * 0.22,
-            left: pupilS * 0.2,
-            width: pupilS * 0.14,
-            height: pupilS * 0.14,
-            borderRadius: pupilS * 0.07,
-            backgroundColor: 'rgba(255,255,255,0.75)',
-          }} />
-        </View>
+            top: 0,
+            left: 0,
+            right: 0,
+            height: eyeH * 0.22,
+            borderTopLeftRadius: w * 0.52,
+            borderTopRightRadius: w * 0.52,
+            backgroundColor: 'rgba(255,255,255,0.12)',
+          }}
+        />
       </View>
-    </View>
+    </Outlined>
   );
 }
 
 // ─── Eyebrow ──────────────────────────────────────────────────────────────────
 
-function Eyebrow({ size, state, side }: { size: number; state: MoneyCharacterState; side: 'left' | 'right' }) {
-  const w = size * 0.88;
-  const h = size * 0.155;
+function Eyebrow({ w, state, side }: { w: number; state: MoneyCharacterState; side: 'L' | 'R' }) {
+  const h   = w * 0.28;
   const rot =
-    state === 'working' ? (side === 'left' ? '-14deg' : '14deg') :
-    state === 'done'    ? (side === 'left' ? '-10deg' : '10deg') :
-    state === 'sleeping'? (side === 'left' ? '8deg'  : '-8deg') :
-                          (side === 'left' ? '-5deg'  : '5deg');
-  const ty =
-    state === 'working' ? -size * 0.06 :
-    state === 'sleeping' ? size * 0.04 : 0;
+    state === 'working' ? (side === 'L' ? '-18deg' : '18deg') :
+    state === 'done'    ? (side === 'L' ? '-8deg'  : '8deg')  :
+    state === 'sleeping'? (side === 'L' ? '10deg'  : '-10deg'):
+                          (side === 'L' ? '-6deg'  : '6deg');
+  const ty  =
+    state === 'working' ? -w * 0.12 :
+    state === 'sleeping' ? w * 0.08 : 0;
 
   return (
-    <View style={{
-      width: w,
-      height: h,
-      borderRadius: h * 0.7,
-      backgroundColor: '#14532d',
-      transform: [{ rotate: rot }, { translateY: ty }],
-    }} />
+    <View
+      style={{
+        width: w,
+        height: h,
+        borderRadius: h * 0.7,
+        backgroundColor: '#0f3320',
+        transform: [{ rotate: rot }, { translateY: ty }],
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.25,
+        shadowRadius: 1,
+        elevation: 2,
+      }}
+    />
   );
 }
 
 // ─── Mouth ───────────────────────────────────────────────────────────────────
 
-function Mouth({ billW, state }: { billW: number; state: MoneyCharacterState }) {
-  const mW =
-    state === 'working' ? billW * 0.48 :
-    state === 'break'   ? billW * 0.4 :
-    state === 'done'    ? billW * 0.44 :
-    state === 'sleeping'? billW * 0.28 :
-                          billW * 0.38;
+function Mouth({ bw, state }: { bw: number; state: MoneyCharacterState }) {
+  const asleep = state === 'sleeping' || state === 'done';
+  const eating = state === 'break';
+  const pumped = state === 'working';
+  const mW     = pumped ? bw * 0.52 : eating ? bw * 0.44 : bw * 0.36;
 
-  // Sleeping — thin elegant smile arc
-  if (state === 'sleeping') {
+  if (asleep) {
     return (
-      <View style={{
-        width: mW,
-        height: mW * 0.38,
-        borderBottomLeftRadius: mW * 0.5,
-        borderBottomRightRadius: mW * 0.5,
-        borderLeftWidth: 2.5,
-        borderRightWidth: 2.5,
-        borderBottomWidth: 2.5,
-        borderTopWidth: 0,
-        borderColor: '#14532d',
-      }} />
+      <View
+        style={{
+          width: mW,
+          height: mW * 0.36,
+          borderBottomLeftRadius: mW * 0.5,
+          borderBottomRightRadius: mW * 0.5,
+          borderLeftWidth: 3,
+          borderRightWidth: 3,
+          borderBottomWidth: 3,
+          borderTopWidth: 0,
+          borderColor: '#0f3320',
+        }}
+      />
     );
   }
 
-  // Normal idle smile arc
-  if (state === 'idle') {
+  if (pumped || eating) {
+    const mH       = pumped ? mW * 0.64 : mW * 0.52;
+    const teethCnt = pumped ? 5 : 4;
     return (
-      <View style={{
+      <Outlined
+        radius={mW * 0.16}
+        outlineColor="#0a0f0a"
+        spread={3}
+      >
+        <View
+          style={{
+            width: mW,
+            height: mH,
+            borderRadius: mW * 0.16,
+            borderBottomLeftRadius: mW * 0.5,
+            borderBottomRightRadius: mW * 0.5,
+            backgroundColor: '#111',
+            overflow: 'hidden',
+          }}
+        >
+          {/* teeth */}
+          <View style={{ flexDirection: 'row', height: mH * 0.38, backgroundColor: '#fff' }}>
+            {Array.from({ length: teethCnt }).map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  flex: 1,
+                  borderRightWidth: i < teethCnt - 1 ? 1.5 : 0,
+                  borderColor: '#d1d5db',
+                }}
+              />
+            ))}
+          </View>
+          {/* tongue */}
+          {pumped === true && (
+            <View
+              style={{
+                alignSelf: 'center',
+                marginTop: 3,
+                width: mW * 0.36,
+                height: mH * 0.3,
+                borderRadius: mW * 0.2,
+                backgroundColor: '#f87171',
+                borderWidth: 1,
+                borderColor: '#ef4444',
+              }}
+            >
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 3,
+                  bottom: 3,
+                  left: '47%',
+                  width: 1.5,
+                  backgroundColor: '#dc2626',
+                  borderRadius: 1,
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </Outlined>
+    );
+  }
+
+  // idle smile
+  return (
+    <View
+      style={{
         width: mW,
         height: mW * 0.42,
         borderBottomLeftRadius: mW * 0.5,
@@ -224,329 +339,380 @@ function Mouth({ billW, state }: { billW: number; state: MoneyCharacterState }) 
         borderRightWidth: 3,
         borderBottomWidth: 3,
         borderTopWidth: 0,
-        borderColor: '#14532d',
-      }} />
-    );
-  }
-
-  // Open mouth (working / break / done)
-  const mH =
-    state === 'working' ? mW * 0.62 :
-    state === 'done'    ? mW * 0.54 :
-                          mW * 0.46;
-
-  const teethH = mH * 0.4;
-  const teethCount = state === 'working' ? 5 : 4;
-
-  return (
-    <View style={{
-      width: mW,
-      height: mH,
-      borderRadius: mW * 0.13,
-      borderBottomLeftRadius: mW * 0.5,
-      borderBottomRightRadius: mW * 0.5,
-      backgroundColor: '#111',
-      borderWidth: 3,
-      borderColor: '#0a0a0a',
-      overflow: 'hidden',
-    }}>
-      {/* Teeth */}
-      <View style={{ flexDirection: 'row', height: teethH, backgroundColor: 'white' }}>
-        {Array.from({ length: teethCount }).map((_, i) => (
-          <View key={i} style={{
-            flex: 1,
-            borderRightWidth: i < teethCount - 1 ? 1.5 : 0,
-            borderColor: '#e2e8f0',
-          }} />
-        ))}
-      </View>
-      {/* Tongue (working + done) */}
-      {(state === 'working' || state === 'done') ? (
-        <View style={{
-          alignSelf: 'center',
-          marginTop: 3,
-          width: mW * 0.38,
-          height: mH * 0.32,
-          borderRadius: mW * 0.2,
-          backgroundColor: '#f87171',
-        }}>
-          {/* Tongue center line */}
-          <View style={{
-            position: 'absolute',
-            top: 3,
-            bottom: 3,
-            left: '48%',
-            width: 1.5,
-            borderRadius: 1,
-            backgroundColor: '#ef4444',
-          }} />
-        </View>
-      ) : null}
-    </View>
+        borderColor: '#0f3320',
+      }}
+    />
   );
 }
 
 // ─── Glove ────────────────────────────────────────────────────────────────────
 
-function Glove({ size }: { size: number }) {
+function Glove({ s }: { s: number }) {
   return (
-    <View style={{
-      width: size,
-      height: size * 0.95,
-      borderRadius: size * 0.5,
-      backgroundColor: '#f8fafc',
-      borderWidth: 2,
-      borderColor: '#e2e8f0',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.18,
-      shadowRadius: 3,
-      elevation: 3,
-      overflow: 'hidden',
-    }}>
-      {/* Finger segments at top */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 3,
-        marginTop: 3,
-      }}>
-        {[0.28, 0.38, 0.28].map((w, i) => (
-          <View key={i} style={{
-            width: size * w,
-            height: size * 0.22,
-            borderRadius: size * 0.11,
+    <Outlined radius={s * 0.52} outlineColor="#888" spread={2}>
+      <View
+        style={{
+          width: s,
+          height: s,
+          borderRadius: s * 0.52,
+          backgroundColor: '#f8fafc',
+          overflow: 'hidden',
+        }}
+      >
+        {/* finger nubs at top */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 3,
+            marginTop: 4,
+          }}
+        >
+          {[s * 0.28, s * 0.36, s * 0.28].map((fw, i) => (
+            <View
+              key={i}
+              style={{
+                width: fw,
+                height: s * 0.24,
+                borderRadius: s * 0.12,
+                backgroundColor: '#e2e8f0',
+              }}
+            />
+          ))}
+        </View>
+        {/* knuckle line */}
+        <View
+          style={{
+            marginHorizontal: s * 0.1,
+            marginTop: 3,
+            height: 1.5,
+            borderRadius: 1,
+            backgroundColor: '#cbd5e1',
+          }}
+        />
+        {/* wrist cuff */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: s * 0.24,
             backgroundColor: '#e2e8f0',
-          }} />
-        ))}
+            borderBottomLeftRadius: s * 0.52,
+            borderBottomRightRadius: s * 0.52,
+          }}
+        />
+        {/* highlight */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: s * 0.08,
+            right: s * 0.08,
+            height: s * 0.32,
+            borderTopLeftRadius: s * 0.52,
+            borderTopRightRadius: s * 0.52,
+            backgroundColor: 'rgba(255,255,255,0.5)',
+          }}
+        />
       </View>
-      {/* Wrist cuff */}
-      <View style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: size * 0.22,
-        backgroundColor: '#e2e8f0',
-        borderBottomLeftRadius: size * 0.5,
-        borderBottomRightRadius: size * 0.5,
-      }} />
-    </View>
+    </Outlined>
   );
 }
 
 // ─── Shoe ─────────────────────────────────────────────────────────────────────
 
-function Shoe({ size, flip }: { size: number; flip?: boolean }) {
+function Shoe({ s, flip = false }: { s: number; flip?: boolean }) {
   return (
-    <View style={{
-      width: size,
-      height: size * 0.5,
-      transform: flip ? [{ scaleX: -1 }] : [],
-    }}>
-      {/* Sole (white, slightly wider) */}
-      <View style={{
-        position: 'absolute',
-        bottom: 0,
-        left: -size * 0.04,
-        width: size * 1.06,
-        height: size * 0.16,
-        backgroundColor: '#f1f5f9',
-        borderRadius: size * 0.08,
-        borderWidth: 1,
-        borderColor: '#cbd5e1',
-      }} />
-      {/* Main upper body */}
-      <View style={{
-        position: 'absolute',
-        bottom: size * 0.1,
-        left: 0,
-        width: size,
-        height: size * 0.35,
-        backgroundColor: '#1e293b',
-        borderRadius: size * 0.1,
-        borderTopRightRadius: size * 0.22,
-      }}>
-        {/* Lace zone highlight */}
-        <View style={{
+    <View
+      style={{
+        width: s * 1.1,
+        height: s * 0.52,
+        transform: flip ? [{ scaleX: -1 }] : [],
+      }}
+    >
+      {/* sole (white) */}
+      <View
+        style={{
           position: 'absolute',
-          top: size * 0.05,
-          left: size * 0.42,
-          width: size * 0.36,
-          height: size * 0.22,
+          bottom: 0,
+          left: 0,
+          width: s * 1.1,
+          height: s * 0.17,
           backgroundColor: '#f1f5f9',
-          borderRadius: size * 0.04,
-          opacity: 0.9,
-        }}>
-          {/* Lace cross lines */}
-          {[0.2, 0.55, 0.85].map((pct, i) => (
-            <View key={i} style={{
-              position: 'absolute',
-              top: `${pct * 100}%`,
-              left: '10%',
-              right: '10%',
-              height: 1.5,
-              backgroundColor: '#94a3b8',
-              borderRadius: 1,
-            }} />
+          borderRadius: s * 0.085,
+          borderWidth: 1,
+          borderColor: '#cbd5e1',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 2,
+          elevation: 2,
+        }}
+      />
+      {/* upper (black) */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: s * 0.11,
+          left: 0,
+          width: s * 1.1,
+          height: s * 0.38,
+          backgroundColor: '#1e293b',
+          borderRadius: s * 0.1,
+          borderTopRightRadius: s * 0.26,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.3,
+          shadowRadius: 3,
+          elevation: 4,
+        }}
+      >
+        {/* lace zone */}
+        <View
+          style={{
+            position: 'absolute',
+            top: s * 0.04,
+            left: s * 0.4,
+            width: s * 0.46,
+            height: s * 0.24,
+            backgroundColor: '#e2e8f0',
+            borderRadius: s * 0.04,
+          }}
+        >
+          {[0.25, 0.6].map((p, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                top: `${p * 100}%`,
+                left: '8%',
+                right: '8%',
+                height: 1.5,
+                backgroundColor: '#94a3b8',
+                borderRadius: 1,
+              }}
+            />
           ))}
         </View>
-        {/* Toe cap */}
-        <View style={{
-          position: 'absolute',
-          top: size * 0.04,
-          left: size * 0.03,
-          width: size * 0.32,
-          height: size * 0.2,
-          backgroundColor: '#334155',
-          borderRadius: size * 0.1,
-        }} />
+        {/* toe cap */}
+        <View
+          style={{
+            position: 'absolute',
+            top: s * 0.06,
+            left: s * 0.04,
+            width: s * 0.3,
+            height: s * 0.22,
+            backgroundColor: '#334155',
+            borderRadius: s * 0.1,
+          }}
+        />
+        {/* top highlight */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: s * 0.1,
+            borderTopLeftRadius: s * 0.1,
+            borderTopRightRadius: s * 0.26,
+            backgroundColor: 'rgba(255,255,255,0.1)',
+          }}
+        />
       </View>
     </View>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Arm ─────────────────────────────────────────────────────────────────────
 
-export function MoneyCharacter({ state, size = 120 }: MoneyCharacterProps) {
-  // Layout
-  const billW  = size;
-  const billH  = size * 1.22;
-  const eyeS   = size * 0.205;
-  const bwS    = size * 0.165; // eyebrow width relative
-  const armW   = size * 0.115;
-  const armH   = size * 0.3;
-  const gloveS = size * 0.2;
-  const legW   = size * 0.12;
-  const legH   = size * 0.22;
-  const shoeS  = size * 0.28;
+function Arm({ w, h, gloveS }: { w: number; h: number; gloveS: number }) {
+  return (
+    <View style={{ alignItems: 'center' }}>
+      {/* upper segment */}
+      <LinearGradient
+        colors={['#22c55e', '#166534']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          width: w,
+          height: h * 0.55,
+          borderRadius: w / 2,
+          borderWidth: 1.5,
+          borderColor: '#0f3320',
+        }}
+      />
+      {/* elbow joint */}
+      <View
+        style={{
+          width: w * 1.3,
+          height: w * 1.3,
+          borderRadius: w * 0.65,
+          backgroundColor: '#1a7a3f',
+          borderWidth: 1.5,
+          borderColor: '#0f3320',
+          marginVertical: -2,
+          alignSelf: 'center',
+        }}
+      />
+      {/* lower segment */}
+      <LinearGradient
+        colors={['#22c55e', '#166534']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          width: w,
+          height: h * 0.45,
+          borderRadius: w / 2,
+          borderWidth: 1.5,
+          borderColor: '#0f3320',
+        }}
+      />
+      {/* glove */}
+      <View style={{ marginTop: -2, marginLeft: -(gloveS - w) / 2 }}>
+        <Glove s={gloveS} />
+      </View>
+    </View>
+  );
+}
 
-  // ── Animation values ───────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+export function MoneyCharacter({ state = 'idle', size = 120 }: MoneyCharacterProps) {
+  const bW       = size;           // bill width
+  const bH       = size * 1.24;   // bill height
+  const eyeW     = size * 0.2;
+  const eyeH     = size * 0.23;
+  const browW    = size * 0.16;
+  const armW     = size * 0.12;
+  const armH     = size * 0.3;
+  const gloveS   = size * 0.22;
+  const legW     = size * 0.13;
+  const legH     = size * 0.22;
+  const shoeS    = size * 0.28;
+  const stackOff = size * 0.06;   // how much back bills peek out
+
+  // ── Animation values ─────────────────────────────────────────────────────
   const bodyY      = useSharedValue(0);
   const bodyRot    = useSharedValue(0);
-  const bodyScale  = useSharedValue(1);
-  const armLRot    = useSharedValue(-15);
-  const armRRot    = useSharedValue(15);
+  const bodySc     = useSharedValue(1);
+  const armLRot    = useSharedValue(-14);
+  const armRRot    = useSharedValue(14);
   const legLRot    = useSharedValue(0);
   const legRRot    = useSharedValue(0);
-  const zzzOpacity = useSharedValue(0);
+  const zzzOp      = useSharedValue(0);
   const zzzY       = useSharedValue(0);
 
   useEffect(() => {
-    cancelAnimation(bodyY);
-    cancelAnimation(bodyRot);
-    cancelAnimation(bodyScale);
-    cancelAnimation(armLRot);
-    cancelAnimation(armRRot);
-    cancelAnimation(legLRot);
-    cancelAnimation(legRRot);
-    cancelAnimation(zzzOpacity);
-    cancelAnimation(zzzY);
+    [bodyY, bodyRot, bodySc, armLRot, armRRot, legLRot, legRRot, zzzOp, zzzY]
+      .forEach(v => cancelAnimation(v));
 
-    bodyY.value     = 0;
-    bodyRot.value   = 0;
-    bodyScale.value = 1;
-    legLRot.value   = 0;
-    legRRot.value   = 0;
-    zzzOpacity.value = 0;
-    zzzY.value       = 0;
+    bodyY.value   = 0;
+    bodyRot.value = 0;
+    bodySc.value  = 1;
+    legLRot.value = 0;
+    legRRot.value = 0;
+    zzzOp.value   = 0;
+    zzzY.value    = 0;
 
-    const ease = Easing.inOut(Easing.ease);
+    const sin = Easing.inOut(Easing.ease);
 
     switch (state) {
       case 'idle':
-        bodyScale.value = withRepeat(withSequence(
-          withTiming(1.022, { duration: 1900, easing: ease }),
-          withTiming(0.984, { duration: 1900, easing: ease }),
+        bodySc.value = withRepeat(withSequence(
+          withTiming(1.022, { duration: 2000, easing: sin }),
+          withTiming(0.983, { duration: 2000, easing: sin }),
         ), -1, false);
         armLRot.value = withRepeat(withSequence(
-          withTiming(-20, { duration: 1700, easing: ease }),
-          withTiming(-8,  { duration: 1700, easing: ease }),
+          withTiming(-20, { duration: 1800, easing: sin }),
+          withTiming(-8,  { duration: 1800, easing: sin }),
         ), -1, true);
         armRRot.value = withRepeat(withSequence(
-          withTiming(8,  { duration: 1700, easing: ease }),
-          withTiming(20, { duration: 1700, easing: ease }),
+          withTiming(8,  { duration: 1800, easing: sin }),
+          withTiming(20, { duration: 1800, easing: sin }),
         ), -1, true);
         break;
 
       case 'working':
         bodyY.value = withRepeat(withSequence(
-          withTiming(-15, { duration: 245, easing: Easing.out(Easing.quad) }),
-          withTiming(0,   { duration: 245, easing: Easing.in(Easing.quad) }),
+          withTiming(-16, { duration: 240, easing: Easing.out(Easing.quad) }),
+          withTiming(0,   { duration: 240, easing: Easing.in(Easing.quad) }),
         ), -1, false);
         bodyRot.value = withRepeat(withSequence(
-          withTiming(-9, { duration: 245 }),
-          withTiming(9,  { duration: 245 }),
+          withTiming(-9, { duration: 240 }),
+          withTiming(9,  { duration: 240 }),
         ), -1, false);
         armLRot.value = withRepeat(withSequence(
-          withTiming(-115, { duration: 245 }),
-          withTiming(-45,  { duration: 245 }),
+          withTiming(-120, { duration: 240 }),
+          withTiming(-45,  { duration: 240 }),
         ), -1, false);
         armRRot.value = withRepeat(withSequence(
-          withTiming(45,  { duration: 245 }),
-          withTiming(115, { duration: 245 }),
+          withTiming(45,  { duration: 240 }),
+          withTiming(120, { duration: 240 }),
         ), -1, false);
         legLRot.value = withRepeat(withSequence(
-          withTiming(-30, { duration: 245 }),
-          withTiming(30,  { duration: 245 }),
+          withTiming(-32, { duration: 240 }),
+          withTiming(32,  { duration: 240 }),
         ), -1, false);
         legRRot.value = withRepeat(withSequence(
-          withTiming(30,  { duration: 245 }),
-          withTiming(-30, { duration: 245 }),
+          withTiming(32,  { duration: 240 }),
+          withTiming(-32, { duration: 240 }),
         ), -1, false);
         break;
 
       case 'break':
-        bodyScale.value = withRepeat(withSequence(
-          withTiming(1.016, { duration: 1300, easing: ease }),
-          withTiming(0.99,  { duration: 1300, easing: ease }),
+        bodySc.value = withRepeat(withSequence(
+          withTiming(1.016, { duration: 1400, easing: sin }),
+          withTiming(0.99,  { duration: 1400, easing: sin }),
         ), -1, false);
         armLRot.value = withRepeat(withSequence(
-          withTiming(-58, { duration: 950, easing: ease }),
-          withTiming(-42, { duration: 950, easing: ease }),
+          withTiming(-60, { duration: 1000, easing: sin }),
+          withTiming(-44, { duration: 1000, easing: sin }),
         ), -1, true);
         armRRot.value = withRepeat(withSequence(
-          withTiming(42, { duration: 950, easing: ease }),
-          withTiming(58, { duration: 950, easing: ease }),
+          withTiming(44, { duration: 1000, easing: sin }),
+          withTiming(60, { duration: 1000, easing: sin }),
         ), -1, true);
         break;
 
       case 'done':
         bodyY.value = withRepeat(withSequence(
-          withSpring(-20, { damping: 5, stiffness: 230 }),
+          withSpring(-20, { damping: 5, stiffness: 240 }),
           withSpring(0,   { damping: 9, stiffness: 180 }),
-          withTiming(0, { duration: 320 }),
+          withTiming(0, { duration: 360 }),
         ), -1, false);
         armLRot.value = withRepeat(withSequence(
-          withTiming(-135, { duration: 210 }),
-          withTiming(-95,  { duration: 210 }),
+          withTiming(-138, { duration: 200 }),
+          withTiming(-95,  { duration: 200 }),
         ), -1, true);
         armRRot.value = withRepeat(withSequence(
-          withTiming(95,  { duration: 210 }),
-          withTiming(135, { duration: 210 }),
+          withTiming(95,  { duration: 200 }),
+          withTiming(138, { duration: 200 }),
         ), -1, true);
         break;
 
       case 'sleeping':
-        bodyRot.value   = withTiming(16, { duration: 700 });
-        bodyScale.value = withRepeat(withSequence(
-          withTiming(1.045, { duration: 3000, easing: ease }),
-          withTiming(0.966, { duration: 3000, easing: ease }),
+        bodyRot.value = withTiming(15, { duration: 700 });
+        bodySc.value  = withRepeat(withSequence(
+          withTiming(1.048, { duration: 3200, easing: sin }),
+          withTiming(0.963, { duration: 3200, easing: sin }),
         ), -1, false);
         armLRot.value = withTiming(-6, { duration: 700 });
         armRRot.value = withTiming(6,  { duration: 700 });
-        zzzOpacity.value = withRepeat(withSequence(
+        zzzOp.value   = withRepeat(withSequence(
           withTiming(0, { duration: 0 }),
           withTiming(1, { duration: 480 }),
-          withTiming(1, { duration: 740 }),
+          withTiming(1, { duration: 800 }),
           withTiming(0, { duration: 480 }),
-          withTiming(0, { duration: 280 }),
+          withTiming(0, { duration: 320 }),
         ), -1, false);
         zzzY.value = withRepeat(withSequence(
           withTiming(0,   { duration: 0 }),
-          withTiming(-32, { duration: 1700 }),
+          withTiming(-30, { duration: 1760 }),
           withTiming(0,   { duration: 0 }),
-          withTiming(0,   { duration: 280 }),
+          withTiming(0,   { duration: 320 }),
         ), -1, false);
         break;
     }
@@ -555,7 +721,7 @@ export function MoneyCharacter({ state, size = 120 }: MoneyCharacterProps) {
   const bodyStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: bodyY.value },
-      { scale: bodyScale.value },
+      { scale: bodySc.value },
       { rotate: `${bodyRot.value}deg` },
     ],
   }));
@@ -571,382 +737,477 @@ export function MoneyCharacter({ state, size = 120 }: MoneyCharacterProps) {
   const legRStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${legRRot.value}deg` }],
   }));
-  const zzzStyle = useAnimatedStyle(() => ({
-    opacity: zzzOpacity.value,
+  const zzzStyle  = useAnimatedStyle(() => ({
+    opacity: zzzOp.value,
     transform: [{ translateY: zzzY.value }],
   }));
 
-  const totalW = billW + (armW + gloveS) * 2 + 18;
-  const totalH = billH + legH + shoeS * 0.5 + 44;
-
-  // Bill gradient colors per state
-  const gradColors: [string, string, string] =
-    state === 'working' ? ['#4ade80', '#16a34a', '#14532d'] :
-    state === 'break'   ? ['#6ee7b7', '#22c55e', '#15803d'] :
-    state === 'done'    ? ['#86efac', '#4ade80', '#16a34a'] :
-    state === 'sleeping'? ['#d1fae5', '#6ee7b7', '#22c55e'] :
+  // gradient shift per state
+  const grad: [string, string, string] =
+    state === 'working' ? ['#86efac', '#22c55e', '#15803d'] :
+    state === 'break'   ? ['#6ee7b7', '#16a34a', '#14532d'] :
+    state === 'done'    ? ['#d1fae5', '#4ade80', '#16a34a'] :
+    state === 'sleeping'? ['#dcfce7', '#6ee7b7', '#22c55e'] :
                           ['#4ade80', '#22c55e', '#15803d'];
 
-  return (
-    <View style={{ width: totalW, height: totalH, alignItems: 'center' }}>
+  // arm pivot offset from bill top
+  const armTop = bH * 0.27;
+  // extra space left/right for arms sticking out
+  const sideSpace = armW + gloveS + 10;
 
-      {/* ── ZZZ ── */}
+  return (
+    <View style={{ alignItems: 'center' }}>
+      {/* ── Floating state props ── */}
       {state === 'sleeping' ? (
-        <Animated.View style={[{
-          position: 'absolute',
-          top: 0,
-          right: totalW * 0.5,
-          zIndex: 30,
-        }, zzzStyle]}>
-          <Text style={{
-            fontSize: size * 0.16,
-            fontWeight: '900',
-            color: '#818cf8',
-            letterSpacing: 1,
-            textShadowColor: 'rgba(129,140,248,0.4)',
-            textShadowOffset: { width: 0, height: 2 },
-            textShadowRadius: 4,
-          }}>ZZZ</Text>
+        <Animated.View
+          style={[
+            { position: 'absolute', top: -8, right: 10, zIndex: 30 },
+            zzzStyle,
+          ]}
+        >
+          <Text
+            style={{
+              fontSize: size * 0.16,
+              fontWeight: '900',
+              color: '#818cf8',
+              textShadowColor: 'rgba(129,140,248,0.5)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
+            }}
+          >
+            ZZZ
+          </Text>
         </Animated.View>
       ) : null}
 
-      {/* ── Floating props ── */}
       {state === 'working' ? (
-        <View style={{ position: 'absolute', top: 2, right: 6, zIndex: 30 }}>
-          <Text style={{ fontSize: size * 0.25 }}>⏰</Text>
+        <View style={{ position: 'absolute', top: 0, right: 0, zIndex: 30 }}>
+          <Text style={{ fontSize: size * 0.26 }}>⏰</Text>
         </View>
       ) : null}
+
       {state === 'done' ? (
         <>
-          <View style={{ position: 'absolute', top: 0, left: 4, zIndex: 30 }}>
+          <View style={{ position: 'absolute', top: -4, left: 0, zIndex: 30 }}>
             <Text style={{ fontSize: size * 0.22 }}>✨</Text>
           </View>
-          <View style={{ position: 'absolute', top: 8, right: 8, zIndex: 30 }}>
-            <Text style={{ fontSize: size * 0.16 }}>⭐</Text>
+          <View style={{ position: 'absolute', top: 4, right: 2, zIndex: 30 }}>
+            <Text style={{ fontSize: size * 0.15 }}>⭐</Text>
           </View>
         </>
       ) : null}
 
-      {/* ── ANIMATED BODY ── */}
+      {/* ── MAIN ANIMATED GROUP ── */}
       <Animated.View style={[{ alignItems: 'center' }, bodyStyle]}>
 
-        {/* Break: red cap */}
+        {/* break: cap */}
         {state === 'break' ? (
-          <View style={{ alignItems: 'center', marginBottom: -5, zIndex: 20 }}>
-            {/* Brim */}
-            <View style={{
-              width: billW * 0.78,
-              height: size * 0.068,
-              backgroundColor: '#dc2626',
-              borderRadius: size * 0.034,
-              marginLeft: billW * 0.08,
-              marginBottom: -2,
-              shadowColor: '#991b1b',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.4,
-              shadowRadius: 2,
-              elevation: 4,
-            }} />
-            {/* Crown */}
-            <View style={{
-              width: billW * 0.6,
-              height: size * 0.15,
-              backgroundColor: '#ef4444',
-              borderTopLeftRadius: billW * 0.3,
-              borderTopRightRadius: billW * 0.3,
-              borderBottomLeftRadius: 4,
-              borderBottomRightRadius: 4,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <View style={{
-                width: size * 0.06,
-                height: size * 0.06,
-                borderRadius: size * 0.03,
-                backgroundColor: 'white',
-                opacity: 0.8,
-              }} />
+          <View style={{ alignItems: 'center', marginBottom: -4, zIndex: 20 }}>
+            <View
+              style={{
+                width: bW * 0.78,
+                height: size * 0.065,
+                backgroundColor: '#dc2626',
+                borderRadius: 4,
+                marginLeft: bW * 0.1,
+                marginBottom: -2,
+                shadowColor: '#7f1d1d',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.5,
+                shadowRadius: 2,
+                elevation: 3,
+              }}
+            />
+            <View
+              style={{
+                width: bW * 0.62,
+                height: size * 0.16,
+                backgroundColor: '#ef4444',
+                borderTopLeftRadius: bW * 0.31,
+                borderTopRightRadius: bW * 0.31,
+                borderBottomLeftRadius: 4,
+                borderBottomRightRadius: 4,
+                alignItems: 'center',
+                paddingTop: 5,
+                shadowColor: '#7f1d1d',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.4,
+                shadowRadius: 2,
+                elevation: 3,
+              }}
+            >
+              <View
+                style={{
+                  width: size * 0.06,
+                  height: size * 0.06,
+                  borderRadius: size * 0.03,
+                  backgroundColor: 'rgba(255,255,255,0.7)',
+                }}
+              />
             </View>
           </View>
         ) : null}
 
-        {/* Break: burger */}
         {state === 'break' ? (
-          <Text style={{ fontSize: size * 0.28, marginBottom: 3, zIndex: 10 }}>🍔</Text>
+          <Text style={{ fontSize: size * 0.28, marginBottom: 3 }}>🍔</Text>
         ) : null}
 
-        {/* ── ROW: LEFT ARM + BILL + RIGHT ARM ── */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-
-          {/* LEFT ARM */}
-          <View style={{ marginTop: billH * 0.26, alignItems: 'center' }}>
-            <Animated.View style={armLStyle}>
-              {/* Arm upper */}
-              <View style={{
-                width: armW,
-                height: armH * 0.55,
-                backgroundColor: '#166534',
-                borderRadius: armW / 2,
-                alignSelf: 'center',
-              }} />
-              {/* Elbow joint */}
-              <View style={{
-                width: armW * 1.2,
-                height: armW * 1.2,
-                borderRadius: armW * 0.6,
-                backgroundColor: '#15803d',
-                alignSelf: 'center',
-                marginVertical: -2,
-              }} />
-              {/* Arm lower */}
-              <View style={{
-                width: armW,
-                height: armH * 0.45,
-                backgroundColor: '#166534',
-                borderRadius: armW / 2,
-                alignSelf: 'center',
-              }} />
-              {/* Glove */}
-              <View style={{
-                marginTop: -3,
-                marginLeft: -(gloveS - armW) / 2,
-              }}>
-                <Glove size={gloveS} />
-              </View>
-            </Animated.View>
-          </View>
-
-          {/* ── BILL BODY ── */}
-          <LinearGradient
-            colors={gradColors}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
+        {/* ── BILL CONTAINER WITH ARMS ── */}
+        <View
+          style={{
+            width: bW + sideSpace * 2,
+            height: bH + stackOff,
+            position: 'relative',
+          }}
+        >
+          {/* ── BILL STACK (back bills) ── */}
+          {/* back bill */}
+          <View
             style={{
-              width: billW,
-              height: billH,
-              borderRadius: billW * 0.09,
-              borderWidth: 2.5,
-              borderColor: '#14532d',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginHorizontal: 3,
-              shadowColor: '#052e16',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              elevation: 12,
-              overflow: 'hidden',
+              position: 'absolute',
+              top: stackOff,
+              right: sideSpace - stackOff,
+              width: bW,
+              height: bH,
+              backgroundColor: '#14532d',
+              borderRadius: bW * 0.09,
+              transform: [{ rotate: '5deg' }],
+              shadowColor: '#000',
+              shadowOffset: { width: 2, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
             }}
           >
-            {/* Inner frame */}
-            <View style={{
-              position: 'absolute',
-              top: 8, left: 8, right: 8, bottom: 8,
-              borderRadius: billW * 0.065,
-              borderWidth: 1.5,
-              borderColor: 'rgba(255,255,255,0.25)',
-            }} />
-
-            {/* Security thread (vertical line) */}
-            <View style={{
-              position: 'absolute',
-              left: billW * 0.2,
-              top: 0, bottom: 0,
-              width: 2,
-              backgroundColor: 'rgba(255,255,255,0.15)',
-            }} />
-
-            {/* Corner seals */}
-            {([
-              { top: 10, left: 10 },
-              { top: 10, right: 10 },
-              { bottom: 10, left: 10 },
-              { bottom: 10, right: 10 },
-            ] as const).map((pos, i) => (
-              <View key={i} style={{
+            <View
+              style={{
                 position: 'absolute',
-                ...pos,
-                width: billW * 0.115,
-                height: billW * 0.115,
-                borderRadius: billW * 0.058,
+                top: 6, left: 6, right: 6, bottom: 6,
+                borderRadius: bW * 0.065,
                 borderWidth: 1.5,
-                borderColor: 'rgba(255,255,255,0.3)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <View style={{
-                  width: billW * 0.05,
-                  height: billW * 0.05,
-                  borderRadius: billW * 0.025,
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                }} />
+                borderColor: 'rgba(255,255,255,0.15)',
+              }}
+            />
+          </View>
+
+          {/* middle bill */}
+          <View
+            style={{
+              position: 'absolute',
+              top: stackOff * 0.5,
+              right: sideSpace - stackOff * 0.5,
+              width: bW,
+              height: bH,
+              backgroundColor: '#166534',
+              borderRadius: bW * 0.09,
+              transform: [{ rotate: '2.5deg' }],
+              shadowColor: '#000',
+              shadowOffset: { width: 1, height: 3 },
+              shadowOpacity: 0.2,
+              shadowRadius: 3,
+              elevation: 6,
+            }}
+          >
+            <View
+              style={{
+                position: 'absolute',
+                top: 6, left: 6, right: 6, bottom: 6,
+                borderRadius: bW * 0.065,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255,255,255,0.12)',
+              }}
+            />
+          </View>
+
+          {/* ── FRONT BILL (main face) ── */}
+          <LinearGradient
+            colors={grad}
+            start={{ x: 0.05, y: 0 }}
+            end={{ x: 0.95, y: 1 }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: sideSpace,
+              width: bW,
+              height: bH,
+              borderRadius: bW * 0.09,
+              borderWidth: 2,
+              borderColor: '#0f3320',
+              shadowColor: '#052e16',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.45,
+              shadowRadius: 12,
+              elevation: 14,
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* top-left light reflection (3D effect) */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: bH * 0.36,
+                borderTopLeftRadius: bW * 0.09,
+                borderTopRightRadius: bW * 0.09,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+              }}
+            />
+            {/* bottom shadow */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: bH * 0.22,
+                borderBottomLeftRadius: bW * 0.09,
+                borderBottomRightRadius: bW * 0.09,
+                backgroundColor: 'rgba(0,0,0,0.2)',
+              }}
+            />
+            {/* inner border */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 7, left: 7, right: 7, bottom: 7,
+                borderRadius: bW * 0.065,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255,255,255,0.22)',
+              }}
+            />
+            {/* security thread */}
+            <View
+              style={{
+                position: 'absolute',
+                left: bW * 0.19,
+                top: 0, bottom: 0,
+                width: 2,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+              }}
+            />
+            {/* corner seals */}
+            {([
+              { top: 10, left: 10 }, { top: 10, right: 10 },
+              { bottom: 10, left: 10 }, { bottom: 10, right: 10 },
+            ] as const).map((pos, i) => (
+              <View
+                key={i}
+                style={{
+                  position: 'absolute',
+                  ...pos,
+                  width: bW * 0.115,
+                  height: bW * 0.115,
+                  borderRadius: bW * 0.058,
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255,255,255,0.28)',
+                }}
+              >
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: '20%', left: '20%', right: '20%', bottom: '20%',
+                    borderRadius: bW * 0.03,
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                  }}
+                />
               </View>
             ))}
-
-            {/* Serial number bars */}
-            <View style={{
-              position: 'absolute',
-              top: 12,
-              left: billW * 0.28,
-              right: 16,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: 'rgba(255,255,255,0.12)',
-            }} />
-            <View style={{
-              position: 'absolute',
-              bottom: 12,
-              left: 16,
-              right: billW * 0.28,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: 'rgba(255,255,255,0.12)',
-            }} />
-
-            {/* Center oval watermark */}
-            <View style={{
-              position: 'absolute',
-              width: billW * 0.7,
-              height: billH * 0.48,
-              borderRadius: billW * 0.35,
-              borderWidth: 1.5,
-              borderColor: 'rgba(255,255,255,0.18)',
-            }} />
+            {/* serial number bars */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 14,
+                left: bW * 0.28,
+                right: 14,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: 'rgba(255,255,255,0.13)',
+              }}
+            />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 14,
+                left: 14,
+                right: bW * 0.28,
+                height: 5,
+                borderRadius: 3,
+                backgroundColor: 'rgba(255,255,255,0.13)',
+              }}
+            />
+            {/* center oval watermark */}
+            <View
+              style={{
+                position: 'absolute',
+                width: bW * 0.72,
+                height: bH * 0.5,
+                borderRadius: bW * 0.36,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255,255,255,0.15)',
+              }}
+            />
 
             {/* ── FACE ── */}
             <View style={{ alignItems: 'center', zIndex: 10 }}>
-
-              {/* Eyebrows */}
-              <View style={{
-                flexDirection: 'row',
-                gap: eyeS * 0.72,
-                marginBottom: size * 0.042,
-              }}>
-                <Eyebrow size={bwS} state={state} side="left" />
-                <Eyebrow size={bwS} state={state} side="right" />
-              </View>
-
-              {/* Eyes */}
-              <View style={{
-                flexDirection: 'row',
-                gap: eyeS * 0.62,
-                marginBottom: size * 0.05,
-              }}>
-                <Eye size={eyeS} state={state} side="left" />
-                <Eye size={eyeS} state={state} side="right" />
-              </View>
-
-              {/* ₪ watermark behind face */}
-              <Text style={{
-                position: 'absolute',
-                color: 'rgba(20,83,45,0.22)',
-                fontSize: size * 1.1,
-                fontWeight: '900',
-                top: -size * 0.3,
-                letterSpacing: -2,
-              }}>₪</Text>
-
-              {/* Mouth */}
-              <Mouth billW={billW} state={state} />
-
-              {/* Cheeks */}
-              {state !== 'sleeping' ? (
-                <View style={{
+              {/* eyebrows */}
+              <View
+                style={{
                   flexDirection: 'row',
-                  gap: billW * 0.46,
-                  marginTop: size * 0.03,
-                }}>
-                  <View style={{
-                    width: size * 0.115,
-                    height: size * 0.07,
-                    borderRadius: size * 0.04,
-                    backgroundColor: '#fda4af',
-                    opacity: 0.58,
-                  }} />
-                  <View style={{
-                    width: size * 0.115,
-                    height: size * 0.07,
-                    borderRadius: size * 0.04,
-                    backgroundColor: '#fda4af',
-                    opacity: 0.58,
-                  }} />
+                  gap: eyeW * 0.62,
+                  marginBottom: size * 0.04,
+                }}
+              >
+                <Eyebrow w={browW} state={state} side="L" />
+                <Eyebrow w={browW} state={state} side="R" />
+              </View>
+              {/* eyes */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: eyeW * 0.5,
+                  marginBottom: size * 0.048,
+                }}
+              >
+                <Eye w={eyeW} h={eyeH} state={state} />
+                <Eye w={eyeW} h={eyeH} state={state} />
+              </View>
+              {/* ₪ watermark (decorative) */}
+              <Text
+                style={{
+                  position: 'absolute',
+                  color: 'rgba(20,83,45,0.18)',
+                  fontSize: size * 1.2,
+                  fontWeight: '900',
+                  top: -size * 0.28,
+                  letterSpacing: -2,
+                  zIndex: -1,
+                }}
+              >
+                ₪
+              </Text>
+              {/* mouth */}
+              <Mouth bw={bW} state={state} />
+              {/* cheeks */}
+              {state !== 'sleeping' ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: bW * 0.44,
+                    marginTop: size * 0.028,
+                  }}
+                >
+                  {[0, 1].map(i => (
+                    <View
+                      key={i}
+                      style={{
+                        width: size * 0.115,
+                        height: size * 0.068,
+                        borderRadius: size * 0.034,
+                        backgroundColor: '#fda4af',
+                        opacity: 0.58,
+                      }}
+                    />
+                  ))}
                 </View>
               ) : null}
             </View>
           </LinearGradient>
 
-          {/* RIGHT ARM */}
-          <View style={{ marginTop: billH * 0.26, alignItems: 'center' }}>
-            <Animated.View style={armRStyle}>
-              <View style={{
-                width: armW,
-                height: armH * 0.55,
-                backgroundColor: '#166534',
-                borderRadius: armW / 2,
-                alignSelf: 'center',
-              }} />
-              <View style={{
-                width: armW * 1.2,
-                height: armW * 1.2,
-                borderRadius: armW * 0.6,
-                backgroundColor: '#15803d',
-                alignSelf: 'center',
-                marginVertical: -2,
-              }} />
-              <View style={{
-                width: armW,
-                height: armH * 0.45,
-                backgroundColor: '#166534',
-                borderRadius: armW / 2,
-                alignSelf: 'center',
-              }} />
-              <View style={{
-                marginTop: -3,
-                marginLeft: -(gloveS - armW) / 2,
-              }}>
-                <Glove size={gloveS} />
-              </View>
-            </Animated.View>
-          </View>
+          {/* ── LEFT ARM (absolute, sticking out left of bill) ── */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                left: 0,
+                top: armTop,
+              },
+              armLStyle,
+            ]}
+          >
+            <Arm w={armW} h={armH} gloveS={gloveS} />
+          </Animated.View>
+
+          {/* ── RIGHT ARM (absolute, sticking out right of bill) ── */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                right: 0,
+                top: armTop,
+              },
+              armRStyle,
+            ]}
+          >
+            <Arm w={armW} h={armH} gloveS={gloveS} />
+          </Animated.View>
         </View>
 
         {/* ── LEGS ── */}
-        <View style={{
-          flexDirection: 'row',
-          gap: billW * 0.18,
-          marginTop: -4,
-          paddingHorizontal: armW + gloveS + 6,
-        }}>
-          {/* Left leg */}
-          <Animated.View style={[{ alignItems: 'flex-end' }, legLStyle]}>
-            <View style={{
-              width: legW,
-              height: legH,
-              backgroundColor: '#166534',
-              borderRadius: legW / 2,
-              marginLeft: shoeS * 0.28,
-            }} />
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: bW * 0.2,
+            marginTop: -3,
+            paddingHorizontal: sideSpace,
+          }}
+        >
+          {/* left leg */}
+          <Animated.View style={[{ alignItems: 'center' }, legLStyle]}>
+            <LinearGradient
+              colors={['#22c55e', '#166534']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: legW,
+                height: legH,
+                borderRadius: legW / 2,
+                borderWidth: 1.5,
+                borderColor: '#0f3320',
+                marginLeft: shoeS * 0.2,
+              }}
+            />
             <View style={{ marginTop: -3 }}>
-              <Shoe size={shoeS} />
+              <Shoe s={shoeS} />
             </View>
           </Animated.View>
 
-          {/* Right leg */}
-          <Animated.View style={[{ alignItems: 'flex-start' }, legRStyle]}>
-            <View style={{
-              width: legW,
-              height: legH,
-              backgroundColor: '#166534',
-              borderRadius: legW / 2,
-              marginRight: shoeS * 0.28,
-            }} />
+          {/* right leg */}
+          <Animated.View style={[{ alignItems: 'center' }, legRStyle]}>
+            <LinearGradient
+              colors={['#22c55e', '#166534']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: legW,
+                height: legH,
+                borderRadius: legW / 2,
+                borderWidth: 1.5,
+                borderColor: '#0f3320',
+                marginRight: shoeS * 0.2,
+              }}
+            />
             <View style={{ marginTop: -3 }}>
-              <Shoe size={shoeS} flip />
+              <Shoe s={shoeS} flip />
             </View>
           </Animated.View>
         </View>
 
       </Animated.View>
+
+      {/* ── FLOOR SHADOW ── */}
+      <View
+        style={{
+          width: bW * 0.75,
+          height: size * 0.055,
+          borderRadius: bW * 0.375,
+          backgroundColor: 'rgba(0,0,0,0.18)',
+          marginTop: 4,
+        }}
+      />
     </View>
   );
 }
