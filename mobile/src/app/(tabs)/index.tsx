@@ -515,7 +515,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
       {/* Money character — top half overlaps the clock glow */}
       {showCharacterEmpty ? (
-        <View style={{ marginTop: -50, marginBottom: 16 }}>
+        <View style={{ marginTop: -130, marginBottom: 16 }}>
           <MoneyCharacter state={characterState} size={260} />
         </View>
       ) : null}
