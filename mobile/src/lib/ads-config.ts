@@ -18,12 +18,13 @@ export const AD_CONFIG = {
     REWARDED: 'ca-app-pub-3940256099942544/5224354917',
   },
 
-  // Production IDs - replace before App Store submission
-  // Get these from your Google AdMob console: https://apps.admob.com
+  // Production IDs - set via env vars before App Store submission:
+  //   EXPO_PUBLIC_ADMOB_BANNER_ID, EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID, EXPO_PUBLIC_ADMOB_REWARDED_ID
+  // Get IDs from: https://apps.admob.com
   PRODUCTION_IDS: {
-    BANNER: '', // TODO: Add from AdMob console
-    INTERSTITIAL: '', // TODO: Add from AdMob console
-    REWARDED: '', // TODO: Add from AdMob console
+    BANNER: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
+    INTERSTITIAL: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID ?? '',
+    REWARDED: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID ?? '',
   },
 } as const;
 

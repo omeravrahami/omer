@@ -12,12 +12,16 @@ import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
 import { fetch } from 'expo/fetch';
+import { crashReporter } from '@/lib/crash-reporter';
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
 SplashScreen.preventAutoHideAsync();
+
+// Initialize crash reporter at startup (no-op until Sentry DSN is configured)
+crashReporter.init();
 
 const queryClient = new QueryClient();
 
