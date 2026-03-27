@@ -71,11 +71,11 @@ export default function RegisterScreen() {
   const strength = getPasswordStrength(password);
 
   const validate = (): string | null => {
-    if (username.trim() && (username.trim().length < 3 || username.trim().length > 20)) {
-      return 'שם משתמש חייב להיות בין 3 ל-20 תווים';
+    if (username.trim() && (username.trim().length < 2 || username.trim().length > 30)) {
+      return 'שם משתמש חייב להיות בין 2 ל-30 תווים';
     }
-    if (username.trim() && !/^[a-zA-Z0-9_]+$/.test(username.trim())) {
-      return 'שם משתמש יכול להכיל אותיות אנגליות, מספרים וקו תחתון בלבד';
+    if (username.trim() && !/^[\u0590-\u05FFa-zA-Z0-9_\s]+$/.test(username.trim())) {
+      return 'שם משתמש יכול להכיל אותיות בעברית/לועזית, מספרים וקו תחתון';
     }
     if (!email.trim()) return 'נא להכניס אימייל';
     if (!email.includes('@') || !email.includes('.')) return 'כתובת אימייל אינה תקינה';
@@ -189,7 +189,7 @@ export default function RegisterScreen() {
                   {'שם משתמש'}
                 </Text>
                 <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-                  {'אופציונלי, לפחות 3 תווים'}
+                  {'אופציונלי, לפחות 2 תווים'}
                 </Text>
               </View>
               <View
@@ -208,7 +208,7 @@ export default function RegisterScreen() {
                   testID="username-input"
                   value={username}
                   onChangeText={setUsername}
-                  placeholder={'לדוגמה: david123'}
+                  placeholder={'לדוגמה: עומר / omer123'}
                   placeholderTextColor={TEXT_SECONDARY}
                   autoCapitalize="none"
                   autoCorrect={false}

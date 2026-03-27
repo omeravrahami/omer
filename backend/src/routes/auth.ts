@@ -32,18 +32,18 @@ const registerSchema = z.object({
     ),
   username: z
     .string()
-    .min(3, "שם המשתמש חייב להכיל לפחות 3 תווים")
-    .max(20, "שם המשתמש יכול להכיל לכל היותר 20 תווים")
-    .regex(/^[a-zA-Z0-9_]+$/, "שם המשתמש יכול להכיל אותיות, ספרות וקו תחתון בלבד")
+    .min(2, "שם המשתמש חייב להכיל לפחות 2 תווים")
+    .max(30, "שם המשתמש יכול להכיל לכל היותר 30 תווים")
+    .regex(/^[\u0590-\u05FFa-zA-Z0-9_\s]+$/, "שם המשתמש יכול להכיל אותיות בעברית/לועזית, ספרות וקו תחתון")
     .optional(),
-  platform: z.enum(["ios", "android", "web"]).optional(),
+  platform: z.enum(["ios", "android", "web", "mobile"]).optional(),
   deviceName: z.string().optional(),
 });
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "נדרש אימייל או שם משתמש"),
   password: z.string().min(1, "נדרשת סיסמה"),
-  platform: z.enum(["ios", "android", "web"]).optional(),
+  platform: z.enum(["ios", "android", "web", "mobile"]).optional(),
   deviceName: z.string().optional(),
 });
 
