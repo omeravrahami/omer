@@ -12,6 +12,7 @@ import { useDeviceStore } from '@/lib/state/device-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
+import { fetch } from 'expo/fetch';
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',
@@ -20,6 +21,28 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+/** Refreshes the stored user object from /api/auth/me on every cold start.
+ *  This ensures role changes made server-side (e.g. ADMIN promotion) are
+ *  picked up without requiring a logout/login. */
+function useRefreshUser() {
+  const token = useAuthStore((s) => s.token);
+  const setUser = useAuthStore((s) => s.setUser);
+
+  useEffect(() => {
+    if (!token) return;
+    const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+    fetch(`${baseUrl}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        const user = json?.data;
+        if (user?.id) setUser(user);
+      })
+      .catch(() => { /* silent — stale data is fine */ });
+  }, [token, setUser]);
+}
 
 function AdminGuard() {
   const segments = useSegments();
@@ -41,6 +64,9 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
   const token = useAuthStore((s) => s.token);
   const isGuest = useAuthStore((s) => s.isGuest);
   const isAuthenticated = token !== null || isGuest;
+
+  // Refresh user role from server on every startup
+  useRefreshUser();
 
   const getInitialRoute = () => {
     if (!onboardingCompleted) return 'onboarding';

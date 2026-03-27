@@ -67,11 +67,7 @@ export default function LoginScreen() {
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showToast('ברוך הבא!', 'success');
-        if (result.user.role === 'ADMIN') {
-          router.replace('/admin' as any);
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace('/(tabs)');
       } else {
         setError('אימייל/שם משתמש או סיסמה שגויים');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

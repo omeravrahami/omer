@@ -222,10 +222,30 @@ export default function AdminDashboard() {
       >
         {/* System header */}
         <Animated.View entering={FadeInDown.duration(400)} style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right' }}>
-            {'מערכת WorkClock — ניהול'}
-          </Text>
-          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 4 }}>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right' }}>
+              {'מערכת WorkClock — ניהול'}
+            </Text>
+            <Pressable
+              testID="back-to-app-button"
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.replace('/(tabs)' as any); }}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? 'rgba(96,165,250,0.18)' : 'rgba(96,165,250,0.10)',
+                borderRadius: 20,
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderWidth: 1,
+                borderColor: 'rgba(96,165,250,0.25)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 5,
+              })}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '600', color: ACCENT }}>{'לאפליקציה'}</Text>
+              <ChevronLeft size={14} color={ACCENT} style={{ transform: [{ rotate: '180deg' }] }} />
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginTop: 2 }}>
             <View style={{ backgroundColor: 'rgba(96,165,250,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
               <Text style={{ fontSize: 10, fontWeight: '700', color: ACCENT }}>{'v1.0.0'}</Text>
             </View>

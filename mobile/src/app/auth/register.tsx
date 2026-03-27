@@ -111,11 +111,7 @@ export default function RegisterScreen() {
         } catch {
           // Sync failure is non-critical — user is still logged in
         }
-        if (result.user.role === 'ADMIN') {
-          router.replace('/admin' as any);
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace('/(tabs)');
       } else {
         setError('שגיאה ביצירת החשבון, נסה שוב');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
