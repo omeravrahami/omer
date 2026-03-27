@@ -887,11 +887,11 @@ export default function DashboardScreen() {
           {/* Right side: clock + net salary */}
           <View style={{ alignItems: 'flex-end' }}>
             {homeTaxResult.finalTakeHome > 0 ? (
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', letterSpacing: 0.5 }}>
-                    {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
-                  </Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, marginBottom: 2 }}>
+                  {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
+                </Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
                   <Text style={{
                     color: '#22C55E',
                     fontSize: 20,
@@ -903,17 +903,17 @@ export default function DashboardScreen() {
                   }}>
                     {formatCurrency(homeTaxResult.finalTakeHome)}
                   </Text>
+                  <View style={{ width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <Text style={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: 20,
+                    fontWeight: '300',
+                    fontVariant: ['tabular-nums'],
+                    letterSpacing: -0.5,
+                  }}>
+                    {headerTime}
+                  </Text>
                 </View>
-                <View style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                <Text style={{
-                  color: 'rgba(255,255,255,0.7)',
-                  fontSize: 20,
-                  fontWeight: '300',
-                  fontVariant: ['tabular-nums'],
-                  letterSpacing: -0.5,
-                }}>
-                  {headerTime}
-                </Text>
               </View>
             ) : (
               <Text style={{
