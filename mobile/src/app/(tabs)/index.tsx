@@ -468,9 +468,9 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
   }));
 
   const { width: SCREEN_W } = Dimensions.get('window');
-  const PILL_W   = Math.min(SCREEN_W * 0.86, 340);
-  const MASCOT_W = 172; // bigger — visible and prominent
-  const BTN_W    = PILL_W - 48; // button fills pill width minus horizontal padding
+  const CARD_W   = Math.min(SCREEN_W * 0.86, 340);
+  const MASCOT_W = 188;              // bigger mascot
+  const BTN_W    = CARD_W - 48;     // safe width — well inside borderRadius:48 corners
 
   return (
     <Animated.View
@@ -478,17 +478,18 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       testID="empty-session-card"
       style={{ width: '100%', alignItems: 'center', paddingBottom: 16 }}
     >
-      {/* ── Pill: clock + mascot + button all inside ── */}
+      {/* ── Rounded card: clock + mascot + button ── */}
       <View style={{
-        width: PILL_W,
-        borderRadius: 999,
+        width: CARD_W,
+        borderRadius: 48,           // large radius — elegant, NOT a pill (avoids corner overflow)
+        overflow: 'hidden',         // clips bg to rounded shape; button fits safely at this radius
         backgroundColor: '#142766',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 40,
-        paddingBottom: 40,
+        paddingTop: 32,
+        paddingBottom: 28,
         paddingHorizontal: 24,
-        gap: 14,
+        gap: 12,
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.45,
@@ -513,14 +514,14 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
           {currentTime}
         </Text>
 
-        {/* mascot — centered, no absolute positioning */}
+        {/* mascot */}
         {showCharacterEmpty ? (
           <View style={{ alignItems: 'center' }}>
             <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
 
-        {/* button — inside the pill, below mascot */}
+        {/* button */}
         <Animated.View style={pulseStyle}>
           <Animated.View style={animStyle}>
             <Pressable
@@ -535,7 +536,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
-                  height: 56,
+                  height: 54,
                   width: BTN_W,
                   alignItems: 'center',
                   justifyContent: 'center',
