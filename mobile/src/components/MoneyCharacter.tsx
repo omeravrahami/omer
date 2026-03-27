@@ -61,6 +61,8 @@ export default function MoneyCharacter({ state = 'idle', size = 560 }: MoneyChar
         source={mascotMap[key as keyof typeof mascotMap]}
         style={{ width: size, height: size }}
         resizeMode="contain"
+        alt=""
+        accessible={false}
       />
     </Animated.View>
   );

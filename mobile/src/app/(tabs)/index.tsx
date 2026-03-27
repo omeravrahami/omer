@@ -516,7 +516,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
         {/* mascot */}
         {showCharacterEmpty ? (
-          <View style={{ alignItems: 'center', marginTop: -20 }}>
+          <View style={{ alignItems: 'center', marginTop: -36 }}>
             <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
