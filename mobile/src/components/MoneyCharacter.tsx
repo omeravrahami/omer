@@ -164,8 +164,8 @@ export default function MoneyCharacter({ state = 'idle', size = 180 }: MoneyChar
 
           {/* bill stack — back two bills */}
           <G filter="url(#mc_softShadow)">
-            <Rect x={100} y={82} rx={24} ry={24} width={116} height={160} fill="url(#mc_billBack)" rotation={8} originX={158} originY={162} />
-            <Rect x={90}  y={78} rx={24} ry={24} width={124} height={166} fill="url(#mc_billMid)"  rotation={4} originX={152} originY={161} />
+            <Rect x={100} y={82} rx={24} ry={24} width={116} height={160} fill="url(#mc_billBack)" transform="rotate(8 158 162)" />
+            <Rect x={90}  y={78} rx={24} ry={24} width={124} height={166} fill="url(#mc_billMid)"  transform="rotate(4 152 161)" />
           </G>
 
           {/* front bill face */}
