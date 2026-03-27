@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 
 import { db } from "../db";
 import { adminMiddleware } from "../middleware/admin";
+import { env } from "../env";
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -44,6 +45,15 @@ adminPublicRoutes.post(
   zValidator("json", setupSchema),
   async (c) => {
     const existingAdmin = await db.user.findFirst({ where: { role: "ADMIN" } });
+
+    // In production, block the route if any admin already exists
+    if (existingAdmin && env.NODE_ENV === "production") {
+      return c.json(
+        { error: { message: "Admin already configured", code: "ADMIN_ALREADY_CONFIGURED" } },
+        403
+      );
+    }
+
     if (existingAdmin) {
       return c.json(
         { error: { message: "An admin user already exists", code: "ADMIN_EXISTS" } },
@@ -285,6 +295,18 @@ adminRoutes.put(
         isEmailVerified: true,
       },
     });
+
+    if (body.role && body.role !== existing.role) {
+      console.log(JSON.stringify({
+        event: "admin_role_change",
+        targetUserId: id,
+        targetEmail: user.email,
+        oldRole: existing.role,
+        newRole: body.role,
+        timestamp: new Date().toISOString(),
+        ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+      }));
+    }
 
     return c.json({ data: user });
   }

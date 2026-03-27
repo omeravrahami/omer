@@ -44,7 +44,7 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   username: string
 ): Promise<void> {
-  const resetLink = `workclock://reset-password?token=${resetToken}`;
+  const resetLink = `vibecode://reset-password?token=${resetToken}`;
 
   const html = `
 <!DOCTYPE html>
@@ -103,7 +103,7 @@ export async function sendEmailVerificationEmail(
   verifyToken: string,
   username: string
 ): Promise<void> {
-  const verifyLink = `workclock://verify-email?token=${verifyToken}`;
+  const verifyLink = `vibecode://verify-email?token=${verifyToken}`;
 
   const html = `
 <!DOCTYPE html>

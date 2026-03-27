@@ -1,6 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetch } from 'expo/fetch';
 import { api } from '@/lib/api/api';
 import type { Settings, WorkSession, Stats } from '@/lib/types';
+
+// ─── Authenticated API helper ─────────────────────────────────────────────────
+// The base `api` wrapper does not support custom headers, so auth routes use
+// a dedicated helper that injects the Bearer token.
+
+const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+
+interface ApiResponse<T> {
+  data: T;
+}
+
+async function authRequest<T>(
+  method: string,
+  path: string,
+  token: string,
+  body?: Record<string, unknown>
+): Promise<T> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+
+  if (response.status === 204) {
+    return null as unknown as T;
+  }
+
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    const json: ApiResponse<T> = await response.json();
+    return (json.data ?? null) as T;
+  }
+
+  return null as unknown as T;
+}
 
 // Settings
 export function useSettings(deviceId: string) {
@@ -190,6 +229,121 @@ export function useEditSession(deviceId: string) {
         : new Date().toISOString().slice(0, 7);
       qc.invalidateQueries({ queryKey: ['sessions', deviceId, month] });
       qc.invalidateQueries({ queryKey: ['stats', deviceId] });
+    },
+  });
+}
+
+// ─── Authenticated hooks (token-based, no deviceId in URL) ───────────────────
+
+export function useAuthSessions(token: string) {
+  return useQuery({
+    queryKey: ['auth-sessions', token],
+    queryFn: () => authRequest<WorkSession[]>('GET', '/api/sessions', token),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+}
+
+export function useAuthActiveSession(token: string) {
+  return useQuery({
+    queryKey: ['auth-active-session', token],
+    queryFn: () => authRequest<WorkSession | null>('GET', '/api/sessions/active', token),
+    enabled: !!token,
+    refetchInterval: 30000,
+  });
+}
+
+export function useAuthStartWork(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: { notes?: string; workplaceName?: string }) =>
+      authRequest<WorkSession>('POST', '/api/sessions', token, body ?? {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+    },
+  });
+}
+
+export function useAuthEndWork(token: string, sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authRequest<WorkSession>('PUT', `/api/sessions/${sessionId}`, token, {
+        status: 'completed',
+        endTime: new Date().toISOString(),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+    },
+  });
+}
+
+export function useAuthStartBreak(token: string, sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authRequest<WorkSession>('POST', `/api/sessions/${sessionId}/breaks`, token, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+    },
+  });
+}
+
+export function useAuthEndBreak(token: string, sessionId: string, breakId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authRequest<WorkSession>('PUT', `/api/sessions/${sessionId}/breaks/${breakId}`, token, {
+        endTime: new Date().toISOString(),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+    },
+  });
+}
+
+export function useAuthStats(token: string) {
+  return useQuery({
+    queryKey: ['auth-stats', token],
+    queryFn: () => authRequest<Stats>('GET', '/api/stats', token),
+    enabled: !!token,
+  });
+}
+
+export function useAuthSettings(token: string) {
+  return useQuery({
+    queryKey: ['auth-settings', token],
+    queryFn: () => authRequest<Settings>('GET', '/api/settings', token),
+    enabled: !!token,
+  });
+}
+
+export function useAuthUpdateSettings(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Settings>) =>
+      authRequest<Settings>('PUT', '/api/settings', token, body as Record<string, unknown>),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-settings', token] });
+    },
+  });
+}
+
+export function useAuthDeleteSession(token: string, sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      authRequest<void>('DELETE', `/api/sessions/${sessionId}`, token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
     },
   });
 }

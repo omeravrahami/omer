@@ -264,6 +264,15 @@ authRoutes.post(
 
     const token = await createSessionToken(user.id, { platform, deviceName });
 
+    console.log(JSON.stringify({
+      event: "user_login",
+      userId: user.id,
+      email: user.email,
+      platform,
+      timestamp: new Date().toISOString(),
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    }));
+
     return c.json({
       data: {
         token,
@@ -290,7 +299,16 @@ authRoutes.post("/logout", async (c) => {
   const authorization = c.req.header("Authorization");
   if (authorization && authorization.startsWith("Bearer ")) {
     const token = authorization.slice(7).trim();
+    const session = await db.userSession.findUnique({ where: { token } }).catch(() => null);
     await db.userSession.deleteMany({ where: { token } }).catch(() => {});
+    if (session) {
+      console.log(JSON.stringify({
+        event: "user_logout",
+        userId: session.userId,
+        timestamp: new Date().toISOString(),
+        ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+      }));
+    }
   }
   return c.json({ data: { success: true } });
 });
@@ -444,6 +462,13 @@ authRoutes.post(
     // Delete all sessions for this user (force re-login)
     await db.userSession.deleteMany({ where: { userId: resetToken.userId } });
 
+    console.log(JSON.stringify({
+      event: "password_reset",
+      userId: resetToken.userId,
+      timestamp: new Date().toISOString(),
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    }));
+
     return c.json({ data: { success: true } });
   }
 );
@@ -551,7 +576,7 @@ authRoutes.put(
 );
 
 // ---------------------------------------------------------------------------
-// DELETE /api/auth/account - Soft delete account
+// DELETE /api/auth/account - Real (hard) account deletion
 // ---------------------------------------------------------------------------
 
 authRoutes.delete(
@@ -578,21 +603,47 @@ authRoutes.delete(
       );
     }
 
-    // Soft delete: anonymize and disable
-    await db.user.update({
-      where: { id: userId },
+    // Delete all related data in FK-safe order
+    // BreakSessions are deleted via WorkSession cascade
+    await db.workSession.deleteMany({ where: { userId } });
+    await db.passwordResetToken.deleteMany({ where: { userId } });
+    await db.userSession.deleteMany({ where: { userId } });
+    await db.userSettings.deleteMany({ where: { userId } });
+    await db.user.delete({ where: { id: userId } });
+
+    console.log(JSON.stringify({
+      event: "account_deleted",
+      userId,
+      email: user.email,
+      timestamp: new Date().toISOString(),
+    }));
+
+    return new Response(null, { status: 204 });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/request-account-deletion - Public endpoint (App Store compliance)
+// ---------------------------------------------------------------------------
+
+const requestAccountDeletionSchema = z.object({
+  email: z.string().email("פורמט אימייל לא תקין"),
+});
+
+authRoutes.post(
+  "/request-account-deletion",
+  zValidator("json", requestAccountDeletionSchema),
+  async (c) => {
+    // Always return 200 — never expose whether email exists
+    // This is a public endpoint required for App Store / Google Play compliance.
+    // Actual deletion is performed from within the app (DELETE /api/auth/account).
+    return c.json({
       data: {
-        email: `deleted_${userId}@deleted.com`,
-        username: null,
-        status: "DISABLED",
-        passwordHash: "",
+        success: true,
+        message:
+          "כדי למחוק את חשבונך, פתח את האפליקציה, עבור להגדרות → חשבון → מחיקת חשבון.",
       },
     });
-
-    // Delete all sessions
-    await db.userSession.deleteMany({ where: { userId } });
-
-    return c.json({ data: { success: true } });
   }
 );
 

@@ -21,6 +21,7 @@ model User {
   settings            UserSettings?
   sessions            UserSession[]
   passwordResetTokens PasswordResetToken[]
+  workSessions        WorkSession[]
 }
 
 model UserSession {
@@ -93,6 +94,7 @@ model Settings {
 model WorkSession {
   id            String         @id @default(cuid())
   deviceId      String
+  userId        String?
   date          String // YYYY-MM-DD
   startTime     DateTime
   endTime       DateTime?
@@ -107,9 +109,12 @@ model WorkSession {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   breaks        BreakSession[]
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([deviceId, date])
   @@index([deviceId, status])
+  @@index([userId, date])
+  @@index([userId, status])
 }
 
 model BreakSession {
