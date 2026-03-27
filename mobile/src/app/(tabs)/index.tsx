@@ -58,7 +58,7 @@ import {
 } from '@/lib/utils/tax-calc';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
-import { MoneyCharacter, type MoneyCharacterState } from '@/components/MoneyCharacter';
+import MoneyCharacter, { type MoneyCharacterState } from '@/components/MoneyCharacter';
 import { InsightsCards } from '@/components/InsightsCards';
 import type { WorkSession } from '@/lib/types';
 
