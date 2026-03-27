@@ -100,8 +100,8 @@ const updateSettingsUserSchema = z.object({
   onboardingCompleted: z.boolean().optional(),
 });
 
-// GET /api/settings — get settings for authenticated user
-workclockRoutes.get("/api/settings", authMiddleware, async (c) => {
+// GET /api/user/settings — get settings for authenticated user
+workclockRoutes.get("/api/user/settings", authMiddleware, async (c) => {
   const userId = c.get("userId");
 
   let settings = await db.userSettings.findUnique({ where: { userId } });
@@ -111,9 +111,9 @@ workclockRoutes.get("/api/settings", authMiddleware, async (c) => {
   return c.json({ data: settings });
 });
 
-// PUT /api/settings — update settings for authenticated user
+// PUT /api/user/settings — update settings for authenticated user
 workclockRoutes.put(
-  "/api/settings",
+  "/api/user/settings",
   authMiddleware,
   zValidator("json", updateSettingsUserSchema),
   async (c) => {
@@ -129,8 +129,8 @@ workclockRoutes.put(
   }
 );
 
-// GET /api/sessions — list sessions for authenticated user (?month=YYYY-MM&status=active|completed)
-workclockRoutes.get("/api/sessions", authMiddleware, async (c) => {
+// GET /api/user/sessions — list sessions for authenticated user (?month=YYYY-MM&status=active|completed)
+workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const month = c.req.query("month");
   const status = c.req.query("status");
@@ -151,8 +151,8 @@ workclockRoutes.get("/api/sessions", authMiddleware, async (c) => {
   return c.json({ data: sessions });
 });
 
-// GET /api/sessions/active — get active session for authenticated user
-workclockRoutes.get("/api/sessions/active", authMiddleware, async (c) => {
+// GET /api/user/sessions/active — get active session for authenticated user
+workclockRoutes.get("/api/user/sessions/active", authMiddleware, async (c) => {
   const userId = c.get("userId");
 
   const session = await db.workSession.findFirst({
@@ -162,9 +162,9 @@ workclockRoutes.get("/api/sessions/active", authMiddleware, async (c) => {
   return c.json({ data: session });
 });
 
-// POST /api/sessions — create a new work session for authenticated user
+// POST /api/user/sessions — create a new work session for authenticated user
 workclockRoutes.post(
-  "/api/sessions",
+  "/api/user/sessions",
   authMiddleware,
   zValidator("json", createSessionSchema),
   async (c) => {
@@ -284,8 +284,8 @@ workclockRoutes.post(
   }
 );
 
-// GET /api/sessions/:id — get single session for authenticated user
-workclockRoutes.get("/api/sessions/:id", authMiddleware, async (c) => {
+// GET /api/user/sessions/:id — get single session for authenticated user
+workclockRoutes.get("/api/user/sessions/:id", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const { id } = c.req.param();
 
@@ -299,9 +299,9 @@ workclockRoutes.get("/api/sessions/:id", authMiddleware, async (c) => {
   return c.json({ data: session });
 });
 
-// PUT /api/sessions/:id — update / end session for authenticated user
+// PUT /api/user/sessions/:id — update / end session for authenticated user
 workclockRoutes.put(
-  "/api/sessions/:id",
+  "/api/user/sessions/:id",
   authMiddleware,
   zValidator("json", updateSessionSchema),
   async (c) => {
@@ -359,9 +359,9 @@ workclockRoutes.put(
   }
 );
 
-// PATCH /api/sessions/:id/edit — fully replace a completed session for authenticated user
+// PATCH /api/user/sessions/:id/edit — fully replace a completed session for authenticated user
 workclockRoutes.patch(
-  "/api/sessions/:id/edit",
+  "/api/user/sessions/:id/edit",
   authMiddleware,
   zValidator("json", editSessionSchema),
   async (c) => {
@@ -431,8 +431,8 @@ workclockRoutes.patch(
   }
 );
 
-// DELETE /api/sessions/:id — delete session for authenticated user
-workclockRoutes.delete("/api/sessions/:id", authMiddleware, async (c) => {
+// DELETE /api/user/sessions/:id — delete session for authenticated user
+workclockRoutes.delete("/api/user/sessions/:id", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const { id } = c.req.param();
 
@@ -445,9 +445,9 @@ workclockRoutes.delete("/api/sessions/:id", authMiddleware, async (c) => {
   return c.json({ data: { success: true } });
 });
 
-// POST /api/sessions/:sessionId/breaks — start break (auth-based)
+// POST /api/user/sessions/:sessionId/breaks — start break (auth-based)
 workclockRoutes.post(
-  "/api/sessions/:sessionId/breaks",
+  "/api/user/sessions/:sessionId/breaks",
   authMiddleware,
   zValidator("json", startBreakSchema),
   async (c) => {
@@ -483,9 +483,9 @@ workclockRoutes.post(
   }
 );
 
-// PUT /api/sessions/:sessionId/breaks/:breakId — end break (auth-based)
+// PUT /api/user/sessions/:sessionId/breaks/:breakId — end break (auth-based)
 workclockRoutes.put(
-  "/api/sessions/:sessionId/breaks/:breakId",
+  "/api/user/sessions/:sessionId/breaks/:breakId",
   authMiddleware,
   zValidator("json", endBreakSchema),
   async (c) => {
@@ -530,8 +530,8 @@ workclockRoutes.put(
   }
 );
 
-// GET /api/stats — get stats for authenticated user (?period=week|month|year&date=YYYY-MM-DD)
-workclockRoutes.get("/api/stats", authMiddleware, async (c) => {
+// GET /api/user/stats — get stats for authenticated user (?period=week|month|year&date=YYYY-MM-DD)
+workclockRoutes.get("/api/user/stats", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const period = c.req.query("period") ?? "week";
   const dateStr = c.req.query("date") ?? new Date().toISOString().slice(0, 10);
