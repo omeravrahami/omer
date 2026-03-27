@@ -966,7 +966,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
 
   const { data: activeSession, isLoading } = useSmartActiveSession({ deviceId, token, isGuest });
-  const { data: weekStats } = useSmartStats({ deviceId, token, isGuest });
+  const { data: weekStats } = useSmartStats({ deviceId, token, isGuest, period: 'week' });
 
   const currentMonthKey = useMemo(() => {
     const n = new Date();
@@ -1043,7 +1043,7 @@ export default function DashboardScreen() {
   const dynamicMonthlyGross = homeTaxResult.regularGross;
 
   // Keep weekStats for the week column
-  const { data: monthStats } = useSmartStats({ deviceId, token, isGuest });
+  const { data: monthStats } = useSmartStats({ deviceId, token, isGuest, period: 'month' });
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);

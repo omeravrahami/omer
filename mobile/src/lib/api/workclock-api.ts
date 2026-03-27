@@ -312,10 +312,10 @@ export function useAuthEndBreak(token: string, sessionId: string, breakId: strin
   });
 }
 
-export function useAuthStats(token: string) {
+export function useAuthStats(token: string, period: 'week' | 'month' | 'year' = 'month') {
   return useQuery({
-    queryKey: ['user-stats-v2', token],
-    queryFn: () => authRequest<Stats>('GET', '/api/user/stats', token),
+    queryKey: ['user-stats-v2', token, period],
+    queryFn: () => authRequest<Stats>('GET', `/api/user/stats?period=${period}`, token),
     enabled: !!token,
   });
 }
@@ -428,9 +428,10 @@ export function useSmartActiveSession(opts: { deviceId: string; token: string; i
   return opts.isGuest ? guest : auth;
 }
 
-export function useSmartStats(opts: { deviceId: string; token: string; isGuest: boolean }) {
-  const guest = useStats(opts.deviceId, 'week');
-  const auth = useAuthStats(opts.token);
+export function useSmartStats(opts: { deviceId: string; token: string; isGuest: boolean; period?: 'week' | 'month' | 'year' }) {
+  const period = opts.period ?? 'month';
+  const guest = useStats(opts.deviceId, period);
+  const auth = useAuthStats(opts.token, period);
   return opts.isGuest ? guest : auth;
 }
 
