@@ -489,7 +489,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
         paddingTop: 28,
         paddingBottom: 20,
         paddingHorizontal: 24,
-        gap: 2,
+        gap: 0,
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.45,
@@ -516,13 +516,13 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
 
         {/* mascot */}
         {showCharacterEmpty ? (
-          <View style={{ alignItems: 'center' }}>
+          <View style={{ alignItems: 'center', marginTop: -6 }}>
             <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
 
         {/* button */}
-        <Animated.View style={pulseStyle}>
+        <Animated.View style={[pulseStyle, { marginTop: 6 }]}>
           <Animated.View style={animStyle}>
             <Pressable
               onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
