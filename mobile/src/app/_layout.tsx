@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from '@/lib/useColorScheme';
@@ -21,6 +21,21 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function AdminGuard() {
+  const segments = useSegments();
+  const router = useRouter();
+  const userRole = useAuthStore((s) => s.user?.role);
+
+  useEffect(() => {
+    const isAdminRoute = segments[0] === 'admin';
+    if (isAdminRoute && userRole !== 'ADMIN') {
+      router.replace('/(tabs)');
+    }
+  }, [segments, userRole, router]);
+
+  return null;
+}
+
 function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null | undefined }) {
   const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
   const token = useAuthStore((s) => s.token);
@@ -35,6 +50,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AdminGuard />
       <Stack initialRouteName={getInitialRoute()}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
@@ -55,6 +71,18 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
         />
         <Stack.Screen
           name="auth/reset-password"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="auth/change-password"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="profile"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="active-sessions"
           options={{ headerShown: false }}
         />
         <Stack.Screen

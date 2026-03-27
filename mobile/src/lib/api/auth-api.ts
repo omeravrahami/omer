@@ -90,3 +90,42 @@ export const changePassword = async (currentPassword: string, newPassword: strin
   // Unwrap { data: T } envelope
   return (json?.data ?? json) as { success: boolean };
 };
+
+export interface Session {
+  id: string;
+  deviceName: string | null;
+  platform: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+async function authRequest<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const response = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const json = await response.json();
+  if (!response.ok) {
+    const message = json?.error?.message ?? json?.message ?? 'שגיאה בלתי צפויה';
+    throw new Error(message);
+  }
+  return (json?.data ?? json) as T;
+}
+
+export const updateProfile = (data: { username?: string; email?: string }): Promise<AuthUser> =>
+  authRequest<AuthUser>('PUT', '/api/auth/profile', data);
+
+export const deleteAccount = (password: string): Promise<void> =>
+  authRequest<void>('DELETE', '/api/auth/account', { password });
+
+export const getActiveSessions = (): Promise<Session[]> =>
+  authRequest<Session[]>('GET', '/api/auth/sessions');
+
+export const revokeSession = (sessionId: string): Promise<void> =>
+  authRequest<void>('DELETE', `/api/auth/sessions/${sessionId}`);

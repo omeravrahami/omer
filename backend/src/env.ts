@@ -9,6 +9,8 @@ const envSchema = z.object({
   PORT: z.string().optional().default("3000"),
   NODE_ENV: z.string().optional(),
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
+  // Email
+  RESEND_API_KEY: z.string().optional(),
 });
 
 /**

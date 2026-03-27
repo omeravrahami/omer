@@ -1,0 +1,70 @@
+import type { Context, Next } from "hono";
+
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
+function createRateLimiter(config: RateLimitConfig) {
+  const store = new Map<string, RateLimitEntry>();
+
+  function cleanup() {
+    if (store.size > 1000) {
+      const now = Date.now();
+      for (const [key, entry] of store.entries()) {
+        if (now > entry.resetAt) {
+          store.delete(key);
+        }
+      }
+    }
+  }
+
+  return async function rateLimitMiddleware(c: Context, next: Next) {
+    cleanup();
+
+    const ip =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("cf-connecting-ip") ||
+      "unknown";
+
+    const now = Date.now();
+    const entry = store.get(ip);
+
+    if (!entry || now > entry.resetAt) {
+      store.set(ip, { count: 1, resetAt: now + config.windowMs });
+      return next();
+    }
+
+    if (entry.count >= config.maxRequests) {
+      return c.json(
+        {
+          error: {
+            message: "יותר מדי ניסיונות. נסה שוב מאוחר יותר.",
+            code: "RATE_LIMIT_EXCEEDED",
+          },
+        },
+        429
+      );
+    }
+
+    entry.count++;
+    return next();
+  };
+}
+
+// 10 requests per 15 minutes per IP
+export const authRateLimit = createRateLimiter({
+  maxRequests: 10,
+  windowMs: 15 * 60 * 1000,
+});
+
+// 5 requests per hour per IP
+export const resetRateLimit = createRateLimiter({
+  maxRequests: 5,
+  windowMs: 60 * 60 * 1000,
+});

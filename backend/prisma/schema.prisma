@@ -40,6 +40,7 @@ model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
   token     String    @unique
+  type      String    @default("password_reset") // password_reset | email_verification
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())

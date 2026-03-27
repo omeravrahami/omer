@@ -947,6 +947,7 @@ export default function SettingsScreen() {
   const authIsGuest = useAuthStore((s) => s.isGuest);
   const authLogout = useAuthStore((s) => s.logout);
   const authUserRole = useAuthStore((s) => s.user?.role);
+  const authUser = useAuthStore((s) => s.user);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -994,6 +995,62 @@ export default function SettingsScreen() {
             {'הגדרות'}
           </Text>
         </Animated.View>
+
+        {/* Profile card — authenticated users only */}
+        {!authIsGuest && authUser ? (
+          <Animated.View entering={FadeInDown.delay(40).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+            <Pressable
+              testID="profile-card-button"
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/profile' as any);
+              }}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? '#141F36' : BG_CARD,
+                borderRadius: 20,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: 'rgba(96,165,250,0.18)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 14,
+                opacity: pressed ? 0.9 : 1,
+              })}
+            >
+              {/* Avatar */}
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 16,
+                  backgroundColor: '#3B82F6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#3B82F6',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+              >
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff' }}>
+                  {(authUser.username ?? authUser.email).slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
+              {/* Info */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right', marginBottom: 2 }}>
+                  {authUser.username ?? 'משתמש'}
+                </Text>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>
+                  {authUser.email}
+                </Text>
+              </View>
+              {/* Chevron */}
+              <ChevronLeft size={18} color={TEXT_SECONDARY} />
+            </Pressable>
+          </Animated.View>
+        ) : null}
 
         {/* Salary section */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
