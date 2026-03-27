@@ -7,16 +7,18 @@ import {
   TextInput,
   Switch,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
-import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield } from 'lucide-react-native';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX } from 'lucide-react-native';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useAuthUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
+import { fetch } from 'expo/fetch';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
 
@@ -948,6 +950,12 @@ export default function SettingsScreen() {
   const authUser = useAuthStore((s) => s.user);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
+  // Delete account modal state
+  const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
+  const [deletePassword, setDeletePassword] = useState<string>('');
+  const [deletingAccount, setDeletingAccount] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>('');
+
   const updateSettingsMut = useAuthUpdateSettings(authToken);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -967,6 +975,46 @@ export default function SettingsScreen() {
       router.replace('/auth/login' as any);
     }
   }, [authToken, authLogout, router]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (!deletePassword.trim()) {
+      setDeleteError('יש להזין סיסמה');
+      return;
+    }
+    setDeletingAccount(true);
+    setDeleteError('');
+    try {
+      const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+      const response = await fetch(`${baseUrl}/api/auth/account`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      if (response.ok || response.status === 200 || response.status === 204) {
+        setDeleteModalVisible(false);
+        authLogout();
+        router.replace('/auth/login' as any);
+      } else {
+        const json = await response.json().catch(() => ({}));
+        const msg = (json as any)?.error?.message ?? 'שגיאה במחיקת החשבון';
+        setDeleteError(msg);
+      }
+    } catch {
+      setDeleteError('שגיאת רשת, נסה שוב');
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [deletePassword, authToken, authLogout, router]);
+
+  const openDeleteModal = useCallback(() => {
+    setDeletePassword('');
+    setDeleteError('');
+    setDeleteModalVisible(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  }, []);
 
   const save = useCallback(
     (partial: Record<string, unknown>) => {
@@ -1373,7 +1421,127 @@ export default function SettingsScreen() {
           )}
         </Animated.View>
 
-        {/* Version footer */}
+        {/* Delete Account button — shown only for authenticated non-guest users */}
+        {authToken && !authIsGuest ? (
+          <Animated.View entering={FadeInDown.delay(430).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+            <Pressable
+              testID="delete-account-button"
+              onPress={openDeleteModal}
+              style={({ pressed }) => ({
+                backgroundColor: pressed ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.07)',
+                borderRadius: 20,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: 'rgba(239,68,68,0.25)',
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                gap: 12,
+              })}
+            >
+              <UserX size={20} color="#EF4444" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#EF4444', textAlign: 'right' }}>
+                  {'מחיקת חשבון'}
+                </Text>
+                <Text style={{ fontSize: 11, color: 'rgba(239,68,68,0.6)', textAlign: 'right', marginTop: 2 }}>
+                  {'פעולה בלתי הפיכה — כל הנתונים יימחקו'}
+                </Text>
+              </View>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+
+        {/* Delete Account Modal */}
+        <Modal
+          visible={deleteModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDeleteModalVisible(false)}
+          testID="delete-account-modal"
+        >
+          <Pressable
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+            onPress={() => setDeleteModalVisible(false)}
+          >
+            <Pressable
+              onPress={() => {/* stop propagation */}}
+              style={{
+                backgroundColor: '#0F1729',
+                borderRadius: 24,
+                padding: 24,
+                width: '100%',
+                borderWidth: 1,
+                borderColor: 'rgba(239,68,68,0.3)',
+              }}
+            >
+              {/* Modal header */}
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <UserX size={22} color="#EF4444" />
+                <Text style={{ fontSize: 17, fontWeight: '700', color: '#F0F6FF', textAlign: 'right', flex: 1 }}>
+                  {'מחיקת חשבון'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'right', lineHeight: 20, marginBottom: 20 }}>
+                {'פעולה זו תמחק לצמיתות את החשבון שלך ואת כל הנתונים המשויכים אליו. הזן את הסיסמה שלך לאישור.'}
+              </Text>
+
+              {/* Password input */}
+              <TextInput
+                value={deletePassword}
+                onChangeText={(t) => { setDeletePassword(t); setDeleteError(''); }}
+                placeholder="סיסמה"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                secureTextEntry
+                testID="delete-account-password-input"
+                style={{
+                  backgroundColor: '#1A2540',
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  fontSize: 15,
+                  color: '#F0F6FF',
+                  textAlign: 'right',
+                  borderWidth: 1,
+                  borderColor: deleteError ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)',
+                  marginBottom: 8,
+                }}
+              />
+              {deleteError ? (
+                <Text style={{ fontSize: 12, color: '#EF4444', textAlign: 'right', marginBottom: 12 }}>
+                  {deleteError}
+                </Text>
+              ) : <View style={{ marginBottom: 12 }} />}
+
+              {/* Confirm button */}
+              <Pressable
+                testID="delete-account-confirm"
+                onPress={handleDeleteAccount}
+                disabled={deletingAccount}
+                style={{
+                  backgroundColor: 'rgba(239,68,68,0.9)',
+                  borderRadius: 16,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                {deletingAccount
+                  ? <ActivityIndicator color="#fff" size="small" testID="delete-account-loading" />
+                  : <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>{'מחק את החשבון שלי'}</Text>
+                }
+              </Pressable>
+
+              {/* Cancel button */}
+              <Pressable
+                testID="delete-account-cancel"
+                onPress={() => setDeleteModalVisible(false)}
+                style={{ paddingVertical: 12, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.5)' }}>{'ביטול'}</Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
         <Animated.View entering={FadeInDown.delay(450).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16, alignItems: 'center', gap: 6 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.3)' }}>
             {'WorkClock v1.0.0'}

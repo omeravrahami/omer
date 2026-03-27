@@ -47,7 +47,15 @@ adminPublicRoutes.post(
   zValidator("json", setupSchema),
   async (c) => {
     // SETUP_SECRET gate
-    if (env.SETUP_SECRET) {
+    if (!env.SETUP_SECRET) {
+      if (env.NODE_ENV === "production") {
+        return c.json(
+          { error: { message: "Setup endpoint is disabled in production. Set SETUP_SECRET to enable.", code: "FORBIDDEN" } },
+          403
+        );
+      }
+      logger.warn("SETUP_SECRET is not set. Setup endpoint is unprotected.");
+    } else {
       const providedSecret = c.req.header("x-setup-secret");
       if (providedSecret !== env.SETUP_SECRET) {
         return c.json(
@@ -55,8 +63,6 @@ adminPublicRoutes.post(
           403
         );
       }
-    } else {
-      logger.warn("SETUP_SECRET is not set. Setup endpoint is unprotected.");
     }
 
     const existingAdmin = await db.user.findFirst({ where: { role: "ADMIN" } });

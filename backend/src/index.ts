@@ -6,7 +6,7 @@ import { sampleRouter } from "./routes/sample";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
-import { logger } from "hono/logger";
+import { httpLogger } from "./lib/logger";
 
 const app = new Hono();
 
@@ -30,7 +30,7 @@ app.use(
 );
 
 // Logging
-app.use("*", logger());
+app.use("*", httpLogger);
 
 // Health check endpoint
 app.get("/health", (c) => c.json({ status: "ok" }));

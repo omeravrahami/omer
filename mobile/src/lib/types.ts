@@ -1,6 +1,5 @@
 export interface Settings {
   id: string;
-  deviceId: string;
   hourlyRate: number;
   currency: string;
   dailyGoalHours: number;
@@ -22,7 +21,6 @@ export interface BreakSession {
 
 export interface WorkSession {
   id: string;
-  deviceId: string;
   date: string;
   startTime: string;
   endTime: string | null;

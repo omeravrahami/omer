@@ -18,12 +18,12 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
+import { getAdUnitId } from '@/lib/ads-config';
 
-// Official Google AdMob test ad unit IDs
-// These are safe to use during development — they serve real test ads.
-export const TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
-export const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
-export const TEST_REWARDED_ID = 'ca-app-pub-3940256099942544/5224354917';
+// Re-export for backward compatibility
+export const TEST_BANNER_ID = getAdUnitId('BANNER', true);
+export const TEST_INTERSTITIAL_ID = getAdUnitId('INTERSTITIAL', true);
+export const TEST_REWARDED_ID = getAdUnitId('REWARDED', true);
 
 export type AdUnitType = 'banner' | 'interstitial' | 'rewarded';
 

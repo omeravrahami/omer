@@ -158,7 +158,6 @@ workclockRoutes.post(
   async (c) => {
     const userId = c.get("userId");
     const body = c.req.valid("json");
-    const deviceId = (body as { deviceId?: string }).deviceId ?? "";
 
     const startTime = body.startTime ? new Date(body.startTime) : new Date();
     const date = body.date ?? startTime.toISOString().slice(0, 10);
@@ -171,7 +170,6 @@ workclockRoutes.post(
 
       const session = await db.workSession.create({
         data: {
-          deviceId,
           userId,
           date,
           startTime: placeholderStart,
@@ -202,7 +200,6 @@ workclockRoutes.post(
 
       const session = await db.workSession.create({
         data: {
-          deviceId,
           userId,
           date,
           startTime,
@@ -257,7 +254,6 @@ workclockRoutes.post(
 
     const session = await db.workSession.create({
       data: {
-        deviceId,
         userId,
         date,
         startTime,
