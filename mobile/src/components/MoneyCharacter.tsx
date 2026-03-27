@@ -20,7 +20,7 @@ const mascotMap = {
   done:   require('../../assets/images/mascot/mascot_done.png'),
 };
 
-export default function MoneyCharacter({ state = 'idle', size = 280 }: MoneyCharacterProps) {
+export default function MoneyCharacter({ state = 'idle', size = 560 }: MoneyCharacterProps) {
   // Map app states → asset keys
   const key = state === 'working' ? 'active' : state === 'sleeping' ? 'done' : state;
 
