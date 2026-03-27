@@ -56,7 +56,7 @@ export default function MoneyCharacter({ state = 'idle', size = 560 }: MoneyChar
   }));
 
   return (
-    <Animated.View style={animStyle}>
+    <Animated.View style={[{ alignItems: 'center', width: size }, animStyle]}>
       <Image
         source={mascotMap[key as keyof typeof mascotMap]}
         style={{ width: size, height: size }}
