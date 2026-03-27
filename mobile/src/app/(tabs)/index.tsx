@@ -468,9 +468,10 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
   }));
 
   const { width: SCREEN_W } = Dimensions.get('window');
-  const CIRCLE_SIZE = Math.min(340, SCREEN_W * 0.88);
-  const CLOCK_FONT  = Math.max(60, Math.min(96, CIRCLE_SIZE * 0.28));
-  const MASCOT_SIZE = Math.round(CIRCLE_SIZE * 0.50);
+  // Circle fits the screen — cap at 360 so it stays a clean circle on large phones
+  const CIRCLE   = Math.round(Math.min(SCREEN_W * 0.86, 360));
+  const CLOCK_FONT = 72;   // fixed — always fits horizontally with paddingHorizontal:20
+  const MASCOT_W   = 155;  // safe: verified to fit inside circle without clipping
 
   return (
     <Animated.View
@@ -478,17 +479,16 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       testID="empty-session-card"
       style={{ width: '100%', alignItems: 'center', paddingBottom: 16 }}
     >
-      {/* ── Hero Circle ── */}
+      {/* ── heroCircle ── */}
       <View style={{
-        width: CIRCLE_SIZE,
-        height: CIRCLE_SIZE,
-        borderRadius: CIRCLE_SIZE / 2,
-        backgroundColor: '#0D1E55',
+        width: CIRCLE,
+        height: CIRCLE,
+        borderRadius: CIRCLE / 2,
+        backgroundColor: '#142766',
+        overflow: 'hidden',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        overflow: 'hidden',
-        paddingTop: Math.round(CIRCLE_SIZE * 0.15),
+        paddingTop: 64,
         shadowColor: '#3B82F6',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.45,
@@ -496,11 +496,12 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
         elevation: 14,
       }}>
 
-        {/* Clock */}
+        {/* clockBlock — flex: 0, sits at top */}
         <Text style={{
           width: '100%',
           textAlign: 'center',
           fontSize: CLOCK_FONT,
+          lineHeight: CLOCK_FONT,
           fontWeight: '300',
           color: '#FFFFFF',
           fontVariant: ['tabular-nums'],
@@ -508,26 +509,28 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
           paddingHorizontal: 20,
           textShadowColor: 'rgba(96,165,250,0.5)',
           textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 18,
+          textShadowRadius: 16,
         }}>
           {currentTime}
         </Text>
 
-        {/* Mascot — centered inside circle, no absolute positioning */}
+        {/* mascotStage — flex:1, mascot pushed to bottom with paddingBottom */}
         {showCharacterEmpty ? (
           <View style={{
+            flex: 1,
             width: '100%',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 16,
+            justifyContent: 'flex-end',
+            paddingBottom: 28,
           }}>
-            <MoneyCharacter state={characterState} size={MASCOT_SIZE} />
+            <MoneyCharacter state={characterState} size={MASCOT_W} />
           </View>
         ) : null}
       </View>
 
-      {/* ── CTA Button ── */}
-      <Animated.View style={[pulseStyle, { marginTop: 24 }]}>
+      {/* ── startButton — outside circle, 18px gap ── */}
+      <Animated.View style={[pulseStyle, { marginTop: 18 }]}>
         <Animated.View style={animStyle}>
           <Pressable
             onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
