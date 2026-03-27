@@ -270,7 +270,7 @@ function ActiveSessionHero({
       {/* MoneyCharacter mascot */}
       {showCharacterActive ? (
         <View style={{ alignItems: 'center', marginBottom: 8 }}>
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={72} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={260} />
         </View>
       ) : null}
 
@@ -516,7 +516,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
       {/* Money character - idle or sleeping based on time */}
       {showCharacterEmpty ? (
         <View style={{ marginBottom: 20 }}>
-          <MoneyCharacter state={characterState} size={72} />
+          <MoneyCharacter state={characterState} size={260} />
         </View>
       ) : null}
 
