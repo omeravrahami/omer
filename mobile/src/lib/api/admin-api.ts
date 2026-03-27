@@ -1,5 +1,23 @@
 import { useAuthStore, AuthUser } from '@/lib/state/auth-store';
 
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  resource: string;
+  userId: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface AuditLogsResult {
+  logs: AuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 export interface AdminSession {
   id: string;
   deviceName: string | null;
@@ -139,3 +157,8 @@ export const getConfig = (): Promise<{ configs: AdminConfig[] }> =>
 
 export const updateConfig = (key: string, value: string, description?: string): Promise<AdminConfig> =>
   adminPut<AdminConfig>(`/api/admin/config/${key}`, { value, ...(description !== undefined ? { description } : {}) });
+
+export const getAdminAuditLogs = (page = 1, limit = 30): Promise<AuditLogsResult> => {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return adminGet<AuditLogsResult>(`/api/admin/audit-logs?${params.toString()}`);
+};

@@ -43,6 +43,10 @@ export default function AdminLayout() {
         name="config"
         options={{ title: 'הגדרות מערכת', headerBackTitle: 'חזרה' }}
       />
+      <Stack.Screen
+        name="audit-logs"
+        options={{ title: 'לוג ביקורת', headerBackTitle: 'חזרה' }}
+      />
     </Stack>
   );
 }

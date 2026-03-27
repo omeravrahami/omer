@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Users, ShieldAlert, Activity, Server, ChevronLeft, Settings2, Download, MessageSquare, Database, CheckCircle } from 'lucide-react-native';
+import { Users, ShieldAlert, Activity, Server, ChevronLeft, Settings2, Download, MessageSquare, Database, CheckCircle, ClipboardList } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminStats, AdminStats } from '@/lib/api/admin-api';
@@ -376,6 +376,7 @@ export default function AdminDashboard() {
               flexDirection: 'row-reverse',
               alignItems: 'center',
               justifyContent: 'space-between',
+              marginBottom: 10,
             })}
           >
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
@@ -385,6 +386,32 @@ export default function AdminDashboard() {
               <View>
                 <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'הגדרות מערכת'}</Text>
                 <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'מדרגות מס 2026 — ניהול הגדרות ופרמטרים'}</Text>
+              </View>
+            </View>
+            <ChevronLeft size={18} color={TEXT_SECONDARY} />
+          </Pressable>
+
+          <Pressable
+            testID="goto-audit-logs"
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/admin/audit-logs' as any); }}
+            style={({ pressed }) => ({
+              backgroundColor: pressed ? 'rgba(251,191,36,0.08)' : BG_CARD,
+              borderRadius: 16,
+              padding: 18,
+              borderWidth: 1,
+              borderColor: BORDER,
+              flexDirection: 'row-reverse',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            })}
+          >
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(251,191,36,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                <ClipboardList size={20} color="#FBBF24" />
+              </View>
+              <View>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, textAlign: 'right' }}>{'לוג ביקורת'}</Text>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right' }}>{'פעולות מערכת ואירועי אבטחה'}</Text>
               </View>
             </View>
             <ChevronLeft size={18} color={TEXT_SECONDARY} />

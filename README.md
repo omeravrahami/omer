@@ -27,7 +27,7 @@ A Hebrew RTL time-tracking application for employees, freelancers, and students.
 
 ## Project Overview
 
-WorkClock is a bilingual (Hebrew-first) time tracking app. Users clock in and out of work shifts, track breaks, record notes and workplace names, and view earnings calculated from their hourly rate. All data is stored per-device (guest mode) or synced to a user account for multi-device access.
+WorkClock is a bilingual (Hebrew-first) time tracking app. Users clock in and out of work shifts, track breaks, record notes and workplace names, and view earnings calculated from their hourly rate. All data is stored per authenticated user account, enabling full cross-device sync. There is no guest/deviceId mode — all business data requires a user account.
 
 Key features:
 

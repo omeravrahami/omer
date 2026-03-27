@@ -8,6 +8,7 @@ import { db } from "../db";
 import { adminMiddleware } from "../middleware/admin";
 import { env } from "../env";
 import { auditLog } from "../lib/audit";
+import { logger } from "../lib/logger";
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -55,7 +56,7 @@ adminPublicRoutes.post(
         );
       }
     } else {
-      console.warn("[admin] WARNING: SETUP_SECRET is not set. Setup endpoint is unprotected.");
+      logger.warn("SETUP_SECRET is not set. Setup endpoint is unprotected.");
     }
 
     const existingAdmin = await db.user.findFirst({ where: { role: "ADMIN" } });
@@ -507,3 +508,76 @@ adminRoutes.put(
     return c.json({ data: config });
   }
 );
+
+// ---------------------------------------------------------------------------
+// DELETE /api/admin/users/:id
+// ---------------------------------------------------------------------------
+
+adminRoutes.delete("/users/:id", async (c) => {
+  const { id } = c.req.param();
+  const adminId = c.get("userId");
+
+  // Prevent self-deletion
+  if (id === adminId) {
+    return c.json({ error: { message: "Cannot delete your own account", code: "SELF_DELETE" } }, 400);
+  }
+
+  const user = await db.user.findUnique({ where: { id } });
+  if (!user) {
+    return c.json({ error: { message: "User not found", code: "NOT_FOUND" } }, 404);
+  }
+
+  // Hard delete - cascades via FK
+  await db.workSession.deleteMany({ where: { userId: id } });
+  await db.passwordResetToken.deleteMany({ where: { userId: id } });
+  await db.userSession.deleteMany({ where: { userId: id } });
+  await db.userSettings.deleteMany({ where: { userId: id } });
+  await db.user.delete({ where: { id } });
+
+  await auditLog({
+    userId: adminId,
+    action: "DELETE_USER",
+    resource: "user",
+    details: { targetUserId: id, targetEmail: user.email },
+    ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+  });
+
+  return new Response(null, { status: 204 });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/audit-logs
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/audit-logs", async (c) => {
+  const page = Math.max(1, Number(c.req.query("page") ?? "1"));
+  const limit = Math.min(100, Math.max(1, Number(c.req.query("limit") ?? "50")));
+  const userId = c.req.query("userId") ?? undefined;
+  const action = c.req.query("action") ?? undefined;
+  const skip = (page - 1) * limit;
+
+  const where: Record<string, unknown> = {};
+  if (userId) where.userId = userId;
+  if (action) where.action = action;
+
+  const [logs, total] = await Promise.all([
+    db.auditLog.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    db.auditLog.count({ where }),
+  ]);
+
+  return c.json({
+    data: {
+      logs,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    },
+  });
+});
+
