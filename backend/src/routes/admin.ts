@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { db } from "../db";
 import { adminMiddleware } from "../middleware/admin";
 import { env } from "../env";
+import { auditLog } from "../lib/audit";
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -44,6 +45,19 @@ adminPublicRoutes.post(
   "/setup",
   zValidator("json", setupSchema),
   async (c) => {
+    // SETUP_SECRET gate
+    if (env.SETUP_SECRET) {
+      const providedSecret = c.req.header("x-setup-secret");
+      if (providedSecret !== env.SETUP_SECRET) {
+        return c.json(
+          { error: { message: "Invalid or missing setup secret", code: "FORBIDDEN" } },
+          403
+        );
+      }
+    } else {
+      console.warn("[admin] WARNING: SETUP_SECRET is not set. Setup endpoint is unprotected.");
+    }
+
     const existingAdmin = await db.user.findFirst({ where: { role: "ADMIN" } });
 
     // In production, block the route if any admin already exists
@@ -101,6 +115,13 @@ adminPublicRoutes.post(
       });
     }
 
+    await auditLog({
+      action: "ADMIN_SETUP",
+      resource: "admin",
+      details: { email },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     return c.json(
       {
         data: {
@@ -126,7 +147,9 @@ adminPublicRoutes.post(
 // Protected admin router — requires ADMIN role
 // ---------------------------------------------------------------------------
 
-export const adminRoutes = new Hono();
+type AdminVariables = { userId: string };
+
+export const adminRoutes = new Hono<{ Variables: AdminVariables }>();
 
 adminRoutes.use("*", adminMiddleware);
 
@@ -308,6 +331,15 @@ adminRoutes.put(
       }));
     }
 
+    const adminId = c.get("userId");
+    await auditLog({
+      userId: adminId,
+      action: "UPDATE_USER",
+      resource: "user",
+      details: { targetUserId: id, changes: updateData },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     return c.json({ data: user });
   }
 );
@@ -340,6 +372,14 @@ adminRoutes.post("/users/:id/reset-password", async (c) => {
       token: resetToken,
       expiresAt,
     },
+  });
+
+  await auditLog({
+    userId: c.get("userId"),
+    action: "RESET_USER_PASSWORD",
+    resource: "user",
+    details: { targetUserId: id },
+    ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
   });
 
   return c.json({ data: { resetToken, expiresAt } });

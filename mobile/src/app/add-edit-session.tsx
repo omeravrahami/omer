@@ -31,9 +31,9 @@ import {
   ChevronDown,
   Calendar,
 } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
-import { useCreateSession, useEditSession } from '@/lib/api/workclock-api';
+import { useAuthCreateSession, useAuthEditSession } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatCurrency } from '@/lib/utils';
 
@@ -374,13 +374,13 @@ function CalcRow({ label, value, color }: { label: string; value: string; color:
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function AddEditSessionScreen() {
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const currency = useSettingsStore((s) => s.currency);
-  const createSession = useCreateSession(deviceId);
-  const editSession = useEditSession(deviceId);
+  const createSession = useAuthCreateSession(token);
+  const editSession = useAuthEditSession(token);
 
   // ── Edit-mode params ────────────────────────────────────────────────────────
   const params = useLocalSearchParams<{

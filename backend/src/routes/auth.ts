@@ -13,6 +13,7 @@ import {
   sendEmailVerificationEmail,
   sendWelcomeEmail,
 } from "../services/email";
+import { auditLog } from "../lib/audit";
 
 export const authRoutes = new Hono();
 
@@ -273,6 +274,13 @@ authRoutes.post(
       ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
     }));
 
+    await auditLog({
+      userId: user.id,
+      action: "LOGIN",
+      resource: "auth",
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     return c.json({
       data: {
         token,
@@ -507,6 +515,13 @@ authRoutes.post(
       data: { passwordHash },
     });
 
+    await auditLog({
+      userId,
+      action: "CHANGE_PASSWORD",
+      resource: "auth",
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     return c.json({ data: { success: true } });
   }
 );
@@ -617,6 +632,14 @@ authRoutes.delete(
       email: user.email,
       timestamp: new Date().toISOString(),
     }));
+
+    await auditLog({
+      userId,
+      action: "DELETE_ACCOUNT",
+      resource: "user",
+      details: { email: user.email },
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
 
     return new Response(null, { status: 204 });
   }

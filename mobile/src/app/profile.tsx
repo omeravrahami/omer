@@ -7,7 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Switch,
-  Alert,
+  Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,9 @@ import {
   Trash2,
   Check,
   AlertTriangle,
+  Eye,
+  EyeOff,
+  Globe,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/lib/state/auth-store';
@@ -32,6 +36,7 @@ import { useToastStore } from '@/lib/state/toast-store';
 const BG = '#080E1A';
 const BG_CARD = '#0F1729';
 const BG_INPUT = '#1A2540';
+const BG_MODAL = '#0A1120';
 const BORDER = 'rgba(255,255,255,0.08)';
 const BORDER_FOCUS = 'rgba(96,165,250,0.5)';
 const TEXT_PRIMARY = '#F0F6FF';
@@ -39,6 +44,8 @@ const TEXT_SECONDARY = 'rgba(255,255,255,0.5)';
 const ACCENT = '#60A5FA';
 const ACCENT_GREEN = '#22C55E';
 const ERROR_COLOR = '#F87171';
+const ERROR_BG = 'rgba(248,113,113,0.08)';
+const ERROR_BORDER = 'rgba(248,113,113,0.2)';
 
 const AVATAR_COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
 
@@ -166,6 +173,240 @@ function ActionRow({ icon, label, sublabel, onPress, rightContent, destructive =
   );
 }
 
+// ─── Delete Account Modal ─────────────────────────────────────────────────────
+
+interface DeleteAccountModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (password: string) => void;
+  loading: boolean;
+}
+
+function DeleteAccountModal({ visible, onClose, onConfirm, loading }: DeleteAccountModalProps) {
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [passwordFocused, setPasswordFocused] = useState<boolean>(false);
+
+  const handleConfirm = useCallback(() => {
+    if (!password.trim()) return;
+    onConfirm(password);
+  }, [password, onConfirm]);
+
+  const handleClose = useCallback(() => {
+    setPassword('');
+    setShowPassword(false);
+    onClose();
+  }, [onClose]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+      testID="delete-account-modal"
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.75)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+        }}
+      >
+        <Animated.View
+          entering={FadeInDown.duration(300)}
+          style={{
+            backgroundColor: BG_MODAL,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: ERROR_BORDER,
+            width: '100%',
+            maxWidth: 380,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Red header band */}
+          <View
+            style={{
+              backgroundColor: ERROR_BG,
+              borderBottomWidth: 1,
+              borderBottomColor: ERROR_BORDER,
+              paddingVertical: 20,
+              paddingHorizontal: 24,
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: 'rgba(248,113,113,0.15)',
+                borderWidth: 1,
+                borderColor: ERROR_BORDER,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AlertTriangle size={26} color={ERROR_COLOR} />
+            </View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: ERROR_COLOR,
+                textAlign: 'center',
+              }}
+            >
+              {'מחיקת חשבון'}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: TEXT_SECONDARY,
+                textAlign: 'center',
+                lineHeight: 20,
+              }}
+            >
+              {'פעולה זו בלתי הפיכה לחלוטין. כל הנתונים, הסשנים וההגדרות שלך יימחקו לצמיתות.'}
+            </Text>
+          </View>
+
+          {/* Password input */}
+          <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: TEXT_SECONDARY,
+                textAlign: 'right',
+                marginBottom: 10,
+              }}
+            >
+              {'הזן את הסיסמה שלך לאישור'}
+            </Text>
+            <View
+              style={{
+                backgroundColor: BG_INPUT,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: passwordFocused ? ERROR_BORDER : BORDER,
+                flexDirection: 'row-reverse',
+                alignItems: 'center',
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+              }}
+            >
+              <Lock size={16} color={TEXT_SECONDARY} style={{ marginLeft: 10 }} />
+              <TextInput
+                testID="delete-password-input"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="סיסמה"
+                placeholderTextColor={TEXT_SECONDARY}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  color: TEXT_PRIMARY,
+                  textAlign: 'right',
+                }}
+              />
+              <Pressable
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={8}
+                style={{ paddingLeft: 4 }}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} color={TEXT_SECONDARY} />
+                ) : (
+                  <Eye size={16} color={TEXT_SECONDARY} />
+                )}
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Buttons */}
+          <View
+            style={{
+              flexDirection: 'row-reverse',
+              gap: 10,
+              paddingHorizontal: 24,
+              paddingBottom: 24,
+              paddingTop: 16,
+            }}
+          >
+            {/* Cancel */}
+            <Pressable
+              testID="delete-cancel-button"
+              onPress={handleClose}
+              disabled={loading}
+              style={({ pressed }) => ({
+                flex: 1,
+                paddingVertical: 14,
+                borderRadius: 14,
+                backgroundColor: pressed ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)',
+                borderWidth: 1,
+                borderColor: BORDER,
+                alignItems: 'center',
+                justifyContent: 'center',
+              })}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }}>
+                {'ביטול'}
+              </Text>
+            </Pressable>
+
+            {/* Confirm delete */}
+            <Pressable
+              testID="delete-confirm-button"
+              onPress={handleConfirm}
+              disabled={loading || !password.trim()}
+              style={({ pressed }) => ({
+                flex: 1,
+                paddingVertical: 14,
+                borderRadius: 14,
+                backgroundColor:
+                  loading || !password.trim()
+                    ? 'rgba(248,113,113,0.25)'
+                    : pressed
+                    ? 'rgba(248,113,113,0.85)'
+                    : ERROR_COLOR,
+                alignItems: 'center',
+                justifyContent: 'center',
+              })}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" testID="delete-loading" />
+              ) : (
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '700',
+                    color: loading || !password.trim() ? 'rgba(255,255,255,0.4)' : '#fff',
+                  }}
+                >
+                  {'מחק חשבון'}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function ProfileScreen() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
@@ -180,6 +421,7 @@ export default function ProfileScreen() {
   const [syncEnabled, setSyncEnabled] = useState<boolean>(false);
   const [savingCloud, setSavingCloud] = useState<boolean>(false);
   const [deletingAccount, setDeletingAccount] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   const avatarColor = getAvatarColor(user?.username ?? user?.email ?? 'U');
   const initials = getInitials(user?.username ?? null, user?.email ?? 'U');
@@ -214,39 +456,44 @@ export default function ProfileScreen() {
     }
   }, [showToast]);
 
-  const handleDeleteAccount = useCallback(() => {
+  const handleOpenDeleteModal = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert(
-      'מחיקת חשבון',
-      'האם אתה בטוח שברצונך למחוק את החשבון שלך? פעולה זו בלתי הפיכה.',
-      [
-        { text: 'ביטול', style: 'cancel' },
-        {
-          text: 'מחק חשבון',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingAccount(true);
-            try {
-              await deleteAccount('');
-              logout();
-              router.replace('/auth/login' as any);
-            } catch (e: unknown) {
-              const msg = e instanceof Error ? e.message : 'שגיאה במחיקת החשבון';
-              showToast(msg, 'error');
-            } finally {
-              setDeletingAccount(false);
-            }
-          },
-        },
-      ]
-    );
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async (password: string) => {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(password);
+      logout();
+      router.replace('/auth/login' as any);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'שגיאה במחיקת החשבון';
+      showToast(msg, 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setDeletingAccount(false);
+      setShowDeleteModal(false);
+    }
   }, [logout, router, showToast]);
+
+  const handleWebDeletion = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL('https://workclock.app/delete-account');
+  }, []);
 
   const statusLabel = user?.status === 'ACTIVE' ? 'פעיל' : user?.status === 'SUSPENDED' ? 'מושהה' : 'מושבת';
   const statusColor = user?.status === 'ACTIVE' ? ACCENT_GREEN : user?.status === 'SUSPENDED' ? '#FBBF24' : ERROR_COLOR;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']} testID="profile-screen">
+      <DeleteAccountModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deletingAccount}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -498,9 +745,47 @@ export default function ProfileScreen() {
 
         {/* Danger Zone */}
         <SectionCard title="מסוכן" delay={240}>
+          {/* Web deletion link */}
+          <Pressable
+            testID="web-deletion-button"
+            onPress={handleWebDeletion}
+            style={({ pressed }) => ({
+              flexDirection: 'row-reverse',
+              alignItems: 'center',
+              gap: 12,
+              paddingVertical: 14,
+              borderBottomWidth: 1,
+              borderBottomColor: BORDER,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: 'rgba(248,113,113,0.08)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Globe size={18} color={ERROR_COLOR} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: ERROR_COLOR, textAlign: 'right' }}>
+                {'מחיקת חשבון דרך האתר'}
+              </Text>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
+                {'workclock.app/delete-account'}
+              </Text>
+            </View>
+            <ChevronRight size={16} color={TEXT_SECONDARY} style={{ marginRight: 4 }} />
+          </Pressable>
+
+          {/* Delete account button */}
           <Pressable
             testID="delete-account-button"
-            onPress={handleDeleteAccount}
+            onPress={handleOpenDeleteModal}
             disabled={deletingAccount}
             style={({ pressed }) => ({
               flexDirection: 'row-reverse',

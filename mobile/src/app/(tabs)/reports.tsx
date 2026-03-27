@@ -17,9 +17,9 @@ import {
   ChevronDown,
   BarChart3,
 } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
-import { useSessions } from '@/lib/api/workclock-api';
+import { useAuthSessions } from '@/lib/api/workclock-api';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { formatCurrency } from '@/lib/utils';
 import {
   calcIsraeliTax,
@@ -924,7 +924,7 @@ function SimulationCard({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ReportsScreen() {
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
 
   const hourlyRate          = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly   = useSettingsStore((s) => s.carBenefitMonthly);
@@ -951,14 +951,14 @@ export default function ReportsScreen() {
     [oneTimeAdditions, currentMonth]
   );
 
-  const { data: sessions, isLoading } = useSessions(deviceId, currentMonth);
+  const { data: sessions, isLoading } = useAuthSessions(token, currentMonth);
 
   const lastMonth = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }, []);
-  const { data: lastMonthSessions } = useSessions(deviceId, lastMonth);
+  const { data: lastMonthSessions } = useAuthSessions(token, lastMonth);
 
   const shiftSessions = useMemo(
     () => (sessions ?? []).filter((s) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),

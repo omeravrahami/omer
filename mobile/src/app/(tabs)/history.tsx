@@ -13,9 +13,9 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil, Plus, Heart, Sun, Share2 } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
-import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
+import { useAuthSessions, useAuthDeleteSessionById } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatTime, formatCurrency, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
 import { calcOvertimePay } from '@/lib/utils/overtime-calc';
@@ -108,7 +108,7 @@ function MonthlySummaryCard({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HistoryScreen() {
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
@@ -117,8 +117,8 @@ export default function HistoryScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
 
-  const { data: sessions, isLoading } = useSessions(deviceId, monthKey);
-  const deleteSession = useDeleteSession(deviceId);
+  const { data: sessions, isLoading } = useAuthSessions(token, monthKey);
+  const deleteSession = useAuthDeleteSessionById(token);
 
   const navigateMonth = (dir: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -221,7 +221,7 @@ export default function HistoryScreen() {
           text: 'מחק',
           style: 'destructive',
           onPress: () =>
-            deleteSession.mutate({ sessionId, month: monthKey }, {
+            deleteSession.mutate(sessionId, {
               onSuccess: () => showToast('המשמרת נמחקה'),
               onError: () => showToast('שגיאה במחיקה', 'error'),
             }),

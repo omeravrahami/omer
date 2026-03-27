@@ -7,8 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { X, Heart, Sun, Clock, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
-import { useCreateDayRecord } from '@/lib/api/workclock-api';
+import { useAuthStore } from '@/lib/state/auth-store';
+import { useAuthCreateDayRecord } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 
 const BG_DEEP = '#080E1A';
@@ -28,9 +28,9 @@ const HEBREW_DAYS_SHORT = ['א','ב','ג','ד','ה','ו','ש'];
 export default function AddDayRecordScreen() {
   const router = useRouter();
   const { month } = useLocalSearchParams<{ month: string }>();
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const showToast = useToastStore((s) => s.showToast);
-  const createDayRecord = useCreateDayRecord(deviceId);
+  const createDayRecord = useAuthCreateDayRecord(token);
 
   const [sessionType, setSessionType] = useState<SessionType>('shift');
 

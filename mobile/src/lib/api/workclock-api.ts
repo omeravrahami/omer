@@ -235,10 +235,13 @@ export function useEditSession(deviceId: string) {
 
 // ─── Authenticated hooks (token-based, no deviceId in URL) ───────────────────
 
-export function useAuthSessions(token: string) {
+export function useAuthSessions(token: string, month?: string) {
   return useQuery({
-    queryKey: ['auth-sessions', token],
-    queryFn: () => authRequest<WorkSession[]>('GET', '/api/sessions', token),
+    queryKey: ['auth-sessions', token, month ?? 'all'],
+    queryFn: () => {
+      const params = month ? `?month=${month}` : '';
+      return authRequest<WorkSession[]>('GET', `/api/sessions${params}`, token);
+    },
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -347,3 +350,67 @@ export function useAuthDeleteSession(token: string, sessionId: string) {
     },
   });
 }
+
+// Variant that accepts sessionId at mutate()-time (useful when sessionId is not known at hook init)
+export function useAuthDeleteSessionById(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      authRequest<void>('DELETE', `/api/sessions/${sessionId}`, token),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+    },
+  });
+}
+
+export function useAuthCreateSession(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      sessionType?: 'shift' | 'sick' | 'vacation';
+      notes?: string;
+      breaks?: { startTime: string; endTime: string }[];
+    }) => authRequest<WorkSession>('POST', '/api/sessions', token, body as Record<string, unknown>),
+    onSuccess: (_, variables) => {
+      const month = variables.date.slice(0, 7);
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+      void month;
+    },
+  });
+}
+
+export function useAuthEditSession(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: EditSessionPayload }) =>
+      authRequest<WorkSession>('PATCH', `/api/sessions/${sessionId}/edit`, token, data as unknown as Record<string, unknown>),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-active-session', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+    },
+  });
+}
+
+export function useAuthCreateDayRecord(token: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      date: string;
+      sessionType: 'shift' | 'sick' | 'vacation';
+      startTime?: string;
+      endTime?: string;
+      notes?: string;
+    }) => authRequest<WorkSession>('POST', '/api/sessions', token, body as Record<string, unknown>),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-sessions', token] });
+      qc.invalidateQueries({ queryKey: ['auth-stats', token] });
+    },
+  });
+}
+

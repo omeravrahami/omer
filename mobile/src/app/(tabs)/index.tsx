@@ -32,17 +32,17 @@ import {
   Shield,
   BarChart2,
 } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
 import {
-  useActiveSession,
-  useStartWork,
-  useEndWork,
-  useStartBreak,
-  useEndBreak,
-  useStats,
-  useSessions,
+  useAuthActiveSession,
+  useAuthStartWork,
+  useAuthEndWork,
+  useAuthStartBreak,
+  useAuthEndBreak,
+  useAuthStats,
+  useAuthSessions,
 } from '@/lib/api/workclock-api';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { useToastStore } from '@/lib/state/toast-store';
 import {
   getHebrewDate,
@@ -159,10 +159,10 @@ function AmbientGlow({ isOnBreak }: { isOnBreak: boolean }) {
 
 function ActiveSessionHero({
   session,
-  deviceId,
+  token,
 }: {
   session: WorkSession;
-  deviceId: string;
+  token: string;
 }) {
   const [timer, setTimer] = useState('00:00:00');
   const showSalary = useSettingsStore((s) => s.showSalaryOnDashboard);
@@ -171,12 +171,12 @@ function ActiveSessionHero({
   const currency = useSettingsStore((s) => s.currency);
   const showToast = useToastStore((s) => s.showToast);
 
-  const endWork = useEndWork(deviceId);
-  const startBreakMut = useStartBreak(deviceId);
-  const endBreakMut = useEndBreak(deviceId);
-
   const activeBreak = session.breaks?.find((b) => !b.endTime);
   const isOnBreak = !!activeBreak;
+
+  const endWork = useAuthEndWork(token, session.id);
+  const startBreakMut = useAuthStartBreak(token, session.id);
+  const endBreakMut = useAuthEndBreak(token, session.id, activeBreak?.id ?? '');
 
   const endScale = useSharedValue(1);
   const breakScale = useSharedValue(1);
@@ -197,31 +197,28 @@ function ActiveSessionHero({
 
   const handleEndWork = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    endWork.mutate(session.id, {
+    endWork.mutate(undefined, {
       onSuccess: () =>
         showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05D4\u05E1\u05EA\u05D9\u05D9\u05DE\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!'),
       onError: () =>
         showToast('\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E1\u05D9\u05D5\u05DD \u05D4\u05DE\u05E9\u05DE\u05E8\u05EA', 'error'),
     });
-  }, [endWork, session.id, showToast]);
+  }, [endWork, showToast]);
 
   const handleBreakToggle = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOnBreak && activeBreak) {
-      endBreakMut.mutate(
-        { sessionId: session.id, breakId: activeBreak.id },
-        {
-          onSuccess: () => showToast('\u05D7\u05D6\u05E8\u05EA\u05DD \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4!'),
-          onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4', 'error'),
-        }
-      );
+      endBreakMut.mutate(undefined, {
+        onSuccess: () => showToast('\u05D7\u05D6\u05E8\u05EA\u05DD \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4!'),
+        onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4', 'error'),
+      });
     } else {
-      startBreakMut.mutate(session.id, {
+      startBreakMut.mutate(undefined, {
         onSuccess: () => showToast('\u05D4\u05E4\u05E1\u05E7\u05D4 \u05D4\u05EA\u05D7\u05D9\u05DC\u05D4'),
         onError: () => showToast('\u05E9\u05D2\u05D9\u05D0\u05D4', 'error'),
       });
     }
-  }, [isOnBreak, activeBreak, endBreakMut, startBreakMut, session.id, showToast]);
+  }, [isOnBreak, activeBreak, endBreakMut, startBreakMut, showToast]);
 
   // Current pay calculation
   const timerParts = timer.split(':').map(Number);
@@ -415,8 +412,8 @@ function ActiveSessionHero({
 
 // ─── Empty State (Hero) ───────────────────────────────────────────────────────
 
-function EmptySessionHero({ deviceId }: { deviceId: string }) {
-  const startWork = useStartWork(deviceId);
+function EmptySessionHero({ token }: { token: string }) {
+  const startWork = useAuthStartWork(token);
   const showToast = useToastStore((s) => s.showToast);
   const showCharacterEmpty = useSettingsStore((s) => s.showCharacter);
   const [currentTime, setCurrentTime] = useState(() => {
@@ -784,7 +781,7 @@ function MonthlySalaryCard({
 // ─── Tax Status Card ──────────────────────────────────────────────────────────
 
 function TaxStatusCard() {
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
@@ -796,7 +793,7 @@ function TaxStatusCard() {
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
-  const { data: sessions } = useSessions(deviceId, currentMonth);
+  const { data: sessions } = useAuthSessions(token, currentMonth);
 
   // Filter out sick/vacation — same as reports page
   const shiftSessions = useMemo(
@@ -955,12 +952,12 @@ function TaxStatusCard() {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: activeSession, isLoading } = useActiveSession(deviceId);
-  const { data: weekStats } = useStats(deviceId, 'week');
+  const { data: activeSession, isLoading } = useAuthActiveSession(token);
+  const { data: weekStats } = useAuthStats(token);
 
   const currentMonthKey = useMemo(() => {
     const n = new Date();
@@ -968,7 +965,7 @@ export default function DashboardScreen() {
   }, []);
 
   // Fetch current-month sessions directly (same source as reports page)
-  const { data: currentMonthSessions } = useSessions(deviceId, currentMonthKey);
+  const { data: currentMonthSessions } = useAuthSessions(token, currentMonthKey);
 
   const hourlyRateHome   = useSettingsStore((s) => s.hourlyRate);
   const carBenefitHome   = useSettingsStore((s) => s.carBenefitMonthly);
@@ -1037,7 +1034,7 @@ export default function DashboardScreen() {
   const dynamicMonthlyGross = homeTaxResult.regularGross;
 
   // Keep weekStats for the week column
-  const { data: monthStats } = useStats(deviceId, 'month');
+  const { data: monthStats } = useAuthStats(token);
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -1074,9 +1071,9 @@ export default function DashboardScreen() {
               <ActivityIndicator size="large" color="#60A5FA" testID="loading-indicator" />
             </View>
           ) : activeSession ? (
-            <ActiveSessionHero session={activeSession} deviceId={deviceId} />
+            <ActiveSessionHero session={activeSession} token={token} />
           ) : (
-            <EmptySessionHero deviceId={deviceId} />
+            <EmptySessionHero token={token} />
           )}
         </View>
       </View>

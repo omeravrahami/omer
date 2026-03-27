@@ -305,22 +305,22 @@ All endpoints return `{ data: ... }` on success or `{ error: { message, code } }
 | GET | `/api/admin/config` | ADMIN | Read all app config key-value pairs |
 | PUT | `/api/admin/config/:key` | ADMIN | Create or update a config value |
 
-### Work Sessions (device-scoped, no user auth required)
+### Work Sessions (user-scoped, auth required)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/settings/:deviceId` | None | Get or create device settings |
-| PUT | `/api/settings/:deviceId` | None | Update device settings |
-| GET | `/api/sessions/:deviceId` | None | List sessions (optional `?month=YYYY-MM&status=active\|completed`) |
-| GET | `/api/sessions/:deviceId/active` | None | Get the currently active session |
-| GET | `/api/sessions/:deviceId/:id` | None | Get a single session with breaks |
-| POST | `/api/sessions/:deviceId` | None | Start a new session or create a completed manual entry |
-| PUT | `/api/sessions/:deviceId/:id` | None | End or update a session |
-| PATCH | `/api/sessions/:deviceId/:id/edit` | None | Fully replace a session's times and breaks |
-| DELETE | `/api/sessions/:deviceId/:id` | None | Delete a session |
-| POST | `/api/sessions/:deviceId/:sessionId/breaks` | None | Start a break within an active session |
-| PUT | `/api/sessions/:deviceId/:sessionId/breaks/:breakId` | None | End a break |
-| GET | `/api/stats/:deviceId` | None | Get stats for a period (`?period=week\|month\|year&date=YYYY-MM-DD`) |
+| GET | `/api/user/settings` | Required | Get user settings |
+| PUT | `/api/user/settings` | Required | Update user settings |
+| GET | `/api/user/sessions` | Required | List sessions (optional `?month=YYYY-MM&status=active\|completed`) |
+| GET | `/api/user/sessions/active` | Required | Get the currently active session |
+| GET | `/api/user/sessions/:id` | Required | Get a single session with breaks |
+| POST | `/api/user/sessions` | Required | Start a new session or create a completed manual entry |
+| PUT | `/api/user/sessions/:id` | Required | End or update a session |
+| PATCH | `/api/user/sessions/:id/edit` | Required | Fully replace a session's times and breaks |
+| DELETE | `/api/user/sessions/:id` | Required | Delete a session |
+| POST | `/api/user/sessions/:sessionId/breaks` | Required | Start a break within an active session |
+| PUT | `/api/user/sessions/:sessionId/breaks/:breakId` | Required | End a break |
+| GET | `/api/user/stats` | Required | Get stats for a period (`?period=week\|month\|year&date=YYYY-MM-DD`) |
 
 ---
 
@@ -335,6 +335,7 @@ All endpoints return `{ data: ... }` on success or `{ error: { message, code } }
 | `BACKEND_URL` | No | Full backend base URL (default: `http://localhost:3000`) |
 | `DATABASE_URL` | No | Prisma database URL (defaults to SQLite `file:./dev.db` in schema) |
 | `RESEND_API_KEY` | No | Resend API key for transactional email. Email is silently skipped if not set |
+| `SETUP_SECRET` | Recommended in prod | Secret required in `x-setup-secret` header to call `POST /api/admin/setup`. If not set, setup is open (logs a warning) |
 
 Example `backend/.env`:
 
@@ -387,11 +388,12 @@ In non-production environments (`NODE_ENV` is not `production`), the reset and v
 
 ## Creating the First Admin
 
-If no admin exists yet, use the public setup endpoint. This endpoint returns a `409 ADMIN_EXISTS` error if any admin already exists, so it is safe to call at any time.
+If no admin exists yet, use the public setup endpoint. Set `SETUP_SECRET` in the backend `.env` first, then pass it as the `x-setup-secret` header. The endpoint returns `409 ADMIN_EXISTS` if any admin already exists.
 
 ```bash
 curl -X POST $BACKEND_URL/api/admin/setup \
   -H "Content-Type: application/json" \
+  -H "x-setup-secret: YOUR_SETUP_SECRET" \
   -d '{
     "email": "admin@workclock.com",
     "password": "Admin123!",
@@ -405,7 +407,35 @@ The setup call also seeds the default `AppConfig` values (min wage, VAT rate, et
 
 ---
 
-## Security Features
+## Audit Logging
+
+All sensitive admin and auth actions are recorded to the `AuditLog` table automatically:
+
+| Action | Trigger |
+|--------|---------|
+| `LOGIN` | Successful user login |
+| `CHANGE_PASSWORD` | Password changed by user |
+| `DELETE_ACCOUNT` | Account deleted (soft-delete) |
+| `ADMIN_SETUP` | First admin account created |
+| `UPDATE_USER` | Admin changed user role or status |
+| `RESET_USER_PASSWORD` | Admin triggered password reset for a user |
+
+---
+
+## Test Suite
+
+The backend includes an integration test suite using Bun's built-in test runner:
+
+```bash
+cd backend && bun test src/tests/
+```
+
+Test files:
+- `src/tests/auth.test.ts` — Registration, login, account deletion
+- `src/tests/sessions.test.ts` — Work session CRUD and auth guards
+- `src/tests/admin.test.ts` — Admin setup, access control, and user management
+
+---
 
 - **Password hashing**: bcryptjs with a cost factor of 12
 - **Token-based sessions**: UUID tokens stored in the database; validated on every request
@@ -414,10 +444,14 @@ The setup call also seeds the default `AppConfig` values (min wage, VAT rate, et
 - **Stricter limit on reset**: Password reset endpoint has a tighter rate limit
 - **Suspended/disabled account blocking**: Login is rejected for non-ACTIVE accounts
 - **Admin middleware**: All `/api/admin/*` routes (except `/setup`) verify the `ADMIN` role
+- **Setup secret gate**: `POST /api/admin/setup` requires `x-setup-secret` header when `SETUP_SECRET` env var is set
+- **Audit logging**: All admin and critical auth operations are recorded to `AuditLog`
 - **CORS allowlist**: Origin-echo CORS with a strict allowlist for localhost, Vibecode, and VibecodeApp domains; wildcard `*` is never sent with credentials
 - **Soft delete**: Account deletion anonymizes data rather than hard-deleting, preserving referential integrity
+- **Delete confirmation**: Account deletion requires password re-entry in both the app and via the web deletion link
 - **Token single-use**: Password reset and email verification tokens are marked `usedAt` after first use
 - **Session invalidation on password reset**: All existing sessions are deleted when a password is successfully reset
+- **All business routes require auth**: No device-scoped (deviceId) API routes exist; every route requires a valid user token
 
 ---
 

@@ -11,6 +11,8 @@ const envSchema = z.object({
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
   // Email
   RESEND_API_KEY: z.string().optional(),
+  // Admin setup protection
+  SETUP_SECRET: z.string().optional(),
 });
 
 /**

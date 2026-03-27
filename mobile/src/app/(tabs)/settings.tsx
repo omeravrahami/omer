@@ -14,9 +14,8 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
-import { useUpdateSettings } from '@/lib/api/workclock-api';
+import { useAuthUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
@@ -926,10 +925,8 @@ function OvertimeSection() {
 
 
 export default function SettingsScreen() {
-  const deviceId = useDeviceId();
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
-  const updateSettingsMut = useUpdateSettings(deviceId);
 
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const currency = useSettingsStore((s) => s.currency);
@@ -944,12 +941,14 @@ export default function SettingsScreen() {
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
 
-  const authToken = useAuthStore((s) => s.token);
+  const authToken = useAuthStore((s) => s.token) ?? '';
   const authIsGuest = useAuthStore((s) => s.isGuest);
   const authLogout = useAuthStore((s) => s.logout);
   const authUserRole = useAuthStore((s) => s.user?.role);
   const authUser = useAuthStore((s) => s.user);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
+
+  const updateSettingsMut = useAuthUpdateSettings(authToken);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

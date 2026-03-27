@@ -4,29 +4,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { X, Clock, Coffee, DollarSign, FileText, Trash2, Edit3 } from 'lucide-react-native';
-import { useDeviceId } from '@/lib/state/device-store';
+import { X, Clock, Coffee, DollarSign, FileText, Trash2 } from 'lucide-react-native';
+import { useAuthStore } from '@/lib/state/auth-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
-import { useSessions, useDeleteSession } from '@/lib/api/workclock-api';
+import { useAuthSessions, useAuthDeleteSessionById } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatTime, formatCurrency, formatHours } from '@/lib/utils';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
-  const deleteSession = useDeleteSession(deviceId);
+  const deleteSession = useAuthDeleteSessionById(token);
 
-  const { data: sessions, isLoading } = useSessions(deviceId);
+  const { data: sessions, isLoading } = useAuthSessions(token);
   const session = sessions?.find((s) => s.id === id);
 
   const handleDelete = () => {
     if (!id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    const month = session?.date?.slice(0, 7) ?? new Date().toISOString().slice(0, 7);
-    deleteSession.mutate({ sessionId: id, month }, {
+    deleteSession.mutate(id, {
       onSuccess: () => {
         showToast('\u05D4\u05DE\u05E9\u05DE\u05E8\u05EA \u05E0\u05DE\u05D7\u05E7\u05D4');
         router.back();

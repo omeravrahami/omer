@@ -12,8 +12,8 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { X, Plus, Minus, TrendingUp, ArrowUpRight, Zap } from 'lucide-react-native';
 import { useSettingsStore } from '@/lib/state/settings-store';
-import { useDeviceId } from '@/lib/state/device-store';
-import { useSessions } from '@/lib/api/workclock-api';
+import { useAuthStore } from '@/lib/state/auth-store';
+import { useAuthSessions } from '@/lib/api/workclock-api';
 import { formatCurrency } from '@/lib/utils';
 import {
   calcIsraeliTax,
@@ -27,7 +27,7 @@ const HOUR_STEPS = [5, 10, 15, 20, 30, 40];
 
 export default function SimulationScreen() {
   const router = useRouter();
-  const deviceId = useDeviceId();
+  const token = useAuthStore((s) => s.token) ?? '';
   const [selectedHours, setSelectedHours] = useState<number>(10);
 
   // Settings
@@ -49,7 +49,7 @@ export default function SimulationScreen() {
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
   }, []);
 
-  const { data: sessions } = useSessions(deviceId, currentMonthKey);
+  const { data: sessions } = useAuthSessions(token, currentMonthKey);
 
   const shiftSessions = useMemo(
     () => (sessions ?? []).filter((s) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
