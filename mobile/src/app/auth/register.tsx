@@ -41,16 +41,14 @@ export default function RegisterScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const showToast = useToastStore((s) => s.showToast);
-  const localSettings = useSettingsStore((s) => ({
-    hourlyRate: s.hourlyRate,
-    currency: s.currency,
-    dailyGoalHours: s.dailyGoalHours,
-    weeklyGoalHours: s.weeklyGoalHours,
-    defaultBreakMinutes: s.defaultBreakMinutes,
-    showSalaryOnDashboard: s.showSalaryOnDashboard,
-    themeMode: s.themeMode,
-    onboardingCompleted: s.onboardingCompleted,
-  }));
+  const hourlyRate = useSettingsStore((s) => s.hourlyRate);
+  const currency = useSettingsStore((s) => s.currency);
+  const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
+  const weeklyGoalHours = useSettingsStore((s) => s.weeklyGoalHours);
+  const defaultBreakMinutes = useSettingsStore((s) => s.defaultBreakMinutes);
+  const showSalaryOnDashboard = useSettingsStore((s) => s.showSalaryOnDashboard);
+  const themeMode = useSettingsStore((s) => s.themeMode);
+  const onboardingCompleted = useSettingsStore((s) => s.onboardingCompleted);
 
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -106,8 +104,8 @@ export default function RegisterScreen() {
         showToast('החשבון נוצר בהצלחה!', 'success');
         // Sync local settings to the new account in the background
         try {
-          await syncUserSettings(localSettings as Record<string, unknown>);
-          if (localSettings.hourlyRate > 0) {
+          await syncUserSettings({ hourlyRate, currency, dailyGoalHours, weeklyGoalHours, defaultBreakMinutes, showSalaryOnDashboard, themeMode, onboardingCompleted } as Record<string, unknown>);
+          if (hourlyRate > 0) {
             showToast('הנתונים שלך גובו בהצלחה', 'success');
           }
         } catch {
