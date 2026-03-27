@@ -34,15 +34,14 @@ import {
 } from 'lucide-react-native';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
 import {
-  useSmartActiveSession,
-  useSmartStartWork,
-  useSmartEndWork,
-  useSmartStartBreak,
-  useSmartEndBreak,
-  useSmartStats,
-  useSmartSessions,
+  useAuthActiveSession,
+  useAuthStartWork,
+  useAuthEndWork,
+  useAuthStartBreak,
+  useAuthEndBreak,
+  useAuthStats,
+  useAuthSessions,
 } from '@/lib/api/workclock-api';
-import { useDeviceId } from '@/lib/state/device-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { useToastStore } from '@/lib/state/toast-store';
 import {
@@ -161,13 +160,9 @@ function AmbientGlow({ isOnBreak }: { isOnBreak: boolean }) {
 function ActiveSessionHero({
   session,
   token,
-  deviceId,
-  isGuest,
 }: {
   session: WorkSession;
   token: string;
-  deviceId: string;
-  isGuest: boolean;
 }) {
   const [timer, setTimer] = useState('00:00:00');
   const showSalary = useSettingsStore((s) => s.showSalaryOnDashboard);
@@ -179,9 +174,9 @@ function ActiveSessionHero({
   const activeBreak = session.breaks?.find((b) => !b.endTime);
   const isOnBreak = !!activeBreak;
 
-  const endWork = useSmartEndWork({ deviceId, token, isGuest, sessionId: session.id });
-  const startBreakMut = useSmartStartBreak({ deviceId, token, isGuest, sessionId: session.id });
-  const endBreakMut = useSmartEndBreak({ deviceId, token, isGuest, sessionId: session.id, breakId: activeBreak?.id ?? '' });
+  const endWork = useAuthEndWork(token, session.id);
+  const startBreakMut = useAuthStartBreak(token, session.id);
+  const endBreakMut = useAuthEndBreak(token, session.id, activeBreak?.id ?? '');
 
   const endScale = useSharedValue(1);
   const breakScale = useSharedValue(1);
@@ -417,8 +412,8 @@ function ActiveSessionHero({
 
 // ─── Empty State (Hero) ───────────────────────────────────────────────────────
 
-function EmptySessionHero({ token, deviceId, isGuest }: { token: string; deviceId: string; isGuest: boolean }) {
-  const startWork = useSmartStartWork({ deviceId, token, isGuest });
+function EmptySessionHero({ token }: { token: string }) {
+  const startWork = useAuthStartWork(token);
   const showToast = useToastStore((s) => s.showToast);
   const showCharacterEmpty = useSettingsStore((s) => s.showCharacter);
   const [currentTime, setCurrentTime] = useState(() => {
@@ -787,8 +782,6 @@ function MonthlySalaryCard({
 
 function TaxStatusCard() {
   const token = useAuthStore((s) => s.token) ?? '';
-  const deviceId = useDeviceId();
-  const isGuest = useAuthStore((s) => s.isGuest);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
@@ -798,9 +791,8 @@ function TaxStatusCard() {
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
-
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
-  const { data: sessions } = useSmartSessions({ deviceId, token, isGuest, month: currentMonth });
+  const { data: sessions } = useAuthSessions(token, currentMonth);
 
   // Filter out sick/vacation — same as reports page
   const shiftSessions = useMemo(
@@ -960,13 +952,11 @@ function TaxStatusCard() {
 
 export default function DashboardScreen() {
   const token = useAuthStore((s) => s.token) ?? '';
-  const deviceId = useDeviceId();
-  const isGuest = useAuthStore((s) => s.isGuest);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: activeSession, isLoading } = useSmartActiveSession({ deviceId, token, isGuest });
-  const { data: weekStats } = useSmartStats({ deviceId, token, isGuest, period: 'week' });
+  const { data: activeSession, isLoading } = useAuthActiveSession(token);
+  const { data: weekStats } = useAuthStats(token, 'week');
 
   const currentMonthKey = useMemo(() => {
     const n = new Date();
@@ -974,7 +964,7 @@ export default function DashboardScreen() {
   }, []);
 
   // Fetch current-month sessions directly (same source as reports page)
-  const { data: currentMonthSessions } = useSmartSessions({ deviceId, token, isGuest, month: currentMonthKey });
+  const { data: currentMonthSessions } = useAuthSessions(token, currentMonthKey);
 
   const hourlyRateHome   = useSettingsStore((s) => s.hourlyRate);
   const carBenefitHome   = useSettingsStore((s) => s.carBenefitMonthly);
@@ -1043,7 +1033,7 @@ export default function DashboardScreen() {
   const dynamicMonthlyGross = homeTaxResult.regularGross;
 
   // Keep weekStats for the week column
-  const { data: monthStats } = useSmartStats({ deviceId, token, isGuest, period: 'month' });
+  const { data: monthStats } = useAuthStats(token, 'month');
 
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
@@ -1080,9 +1070,9 @@ export default function DashboardScreen() {
               <ActivityIndicator size="large" color="#60A5FA" testID="loading-indicator" />
             </View>
           ) : activeSession ? (
-            <ActiveSessionHero session={activeSession} token={token} deviceId={deviceId} isGuest={isGuest} />
+            <ActiveSessionHero session={activeSession} token={token} />
           ) : (
-            <EmptySessionHero token={token} deviceId={deviceId} isGuest={isGuest} />
+            <EmptySessionHero token={token} />
           )}
         </View>
       </View>

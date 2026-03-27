@@ -94,7 +94,7 @@ model Settings {
 model WorkSession {
   id            String         @id @default(cuid())
   deviceId      String
-  userId        String?
+  userId        String
   date          String // YYYY-MM-DD
   startTime     DateTime
   endTime       DateTime?
@@ -109,7 +109,7 @@ model WorkSession {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   breaks        BreakSession[]
-  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, date])
   @@index([deviceId, status])
