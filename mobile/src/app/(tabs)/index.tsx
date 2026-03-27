@@ -126,19 +126,19 @@ function PulsingDot({ color }: { color: string }) {
 
 // ─── Animated Glow Ring ───────────────────────────────────────────────────────
 
-function GlowRing({ color, active }: { color: string; active: boolean }) {
+function GlowRing({ color, active, size = 116 }: { color: string; active: boolean; size?: number }) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(active ? 0.5 : 0);
 
   useEffect(() => {
     if (active) {
       scale.value = withRepeat(withTiming(1.08, { duration: 1800 }), -1, true);
-      opacity.value = withRepeat(withTiming(0.25, { duration: 1800 }), -1, true);
+      opacity.value = withRepeat(withTiming(0.3, { duration: 1800 }), -1, true);
     } else {
       scale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true);
-      opacity.value = withRepeat(withTiming(0.4, { duration: 1400 }), -1, true);
+      opacity.value = withRepeat(withTiming(0.45, { duration: 1400 }), -1, true);
     }
-  }, [active, scale, opacity, color]);
+  }, [active, scale, opacity]);
 
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -150,10 +150,10 @@ function GlowRing({ color, active }: { color: string; active: boolean }) {
       style={[
         {
           position: 'absolute',
-          width: 220,
-          height: 220,
-          borderRadius: 110,
-          borderWidth: 3,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 2,
           borderColor: color,
         },
         style,
@@ -223,7 +223,7 @@ function ActiveSessionHero({
     ? ['#D97706', '#B45309']
     : ['#16A34A', '#15803D'];
   const glowColor = isOnBreak ? '#FCD34D' : '#4ADE80';
-  const stateLabel = isOnBreak ? '\u05D4\u05E4\u05E1\u05E7\u05D4 \u2014 \u05DC\u05D7\u05E5 \u05DC\u05D7\u05D6\u05D5\u05E8' : '\u05E2\u05D5\u05D1\u05D3 \u2014 \u05DC\u05D7\u05E5 \u05DC\u05D4\u05E4\u05E1\u05E7\u05D4';
+  const stateLabel = isOnBreak ? '\u05D7\u05D6\u05D5\u05E8 \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4' : '\u05D4\u05E4\u05E1\u05E7\u05D4';
 
   const scale = useSharedValue(1);
   const endScale = useSharedValue(1);
@@ -239,102 +239,83 @@ function ActiveSessionHero({
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="active-session-card"
-      style={{ alignItems: 'center', paddingBottom: 8 }}
+      style={{ paddingHorizontal: 20, paddingVertical: 8 }}
     >
-      {/* Main CTA Circle */}
-      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center' }]}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', width: 220, height: 220 }}>
-          {/* Pulsing glow ring */}
-          <GlowRing color={glowColor} active />
+      {/* Main row: character + circle button + end button */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        {/* Character */}
+        {showCharacterActive ? (
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={70} />
+        ) : null}
 
-          {/* Circle button */}
+        {/* Circle button */}
+        <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center', width: 116, height: 116 }]}>
+          <GlowRing color={glowColor} active size={116} />
           <Pressable
-            onPressIn={() => { scale.value = withSpring(0.96, { damping: 15 }); }}
+            onPressIn={() => { scale.value = withSpring(0.94, { damping: 15 }); }}
             onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
             onPress={handleMainAction}
             testID="break-toggle-button"
-            style={{ width: 200, height: 200, borderRadius: 100, overflow: 'hidden' }}
+            style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden' }}
           >
             <LinearGradient
               colors={circleColors}
               start={{ x: 0.2, y: 0 }}
               end={{ x: 0.8, y: 1 }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}
             >
               <Text
                 style={{
                   color: '#FFFFFF',
-                  fontSize: 38,
+                  fontSize: 22,
                   fontWeight: '700',
                   fontVariant: ['tabular-nums'],
-                  letterSpacing: 1,
-                  textShadowColor: 'rgba(0,0,0,0.25)',
+                  letterSpacing: 0.5,
+                  textShadowColor: 'rgba(0,0,0,0.2)',
                   textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 4,
+                  textShadowRadius: 3,
                 }}
                 testID="live-timer"
               >
                 {timer}
               </Text>
-              <Text
-                style={{
-                  color: 'rgba(255,255,255,0.8)',
-                  fontSize: 13,
-                  fontWeight: '600',
-                  marginTop: 6,
-                  textAlign: 'center',
-                  paddingHorizontal: 16,
-                  letterSpacing: 0.2,
-                }}
-              >
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600', letterSpacing: 0.2 }}>
                 {stateLabel}
               </Text>
             </LinearGradient>
           </Pressable>
-        </View>
-      </Animated.View>
+        </Animated.View>
 
-      {/* Character — supplementary, below */}
-      {showCharacterActive ? (
-        <View style={{ alignItems: 'center', marginTop: 8 }}>
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={120} />
-        </View>
-      ) : null}
-
-      {/* End work — secondary small button */}
-      <Animated.View style={[endAnimStyle, { marginTop: showCharacterActive ? 4 : 20 }]}>
-        <Pressable
-          onPressIn={() => { endScale.value = withSpring(0.96); }}
-          onPressOut={() => { endScale.value = withSpring(1); }}
-          onPress={handleEndWork}
-          testID="end-work-button"
-          style={{
-            borderRadius: 99,
-            borderWidth: 1.5,
-            borderColor: 'rgba(220,38,38,0.5)',
-            paddingHorizontal: 28,
-            paddingVertical: 10,
-            flexDirection: 'row-reverse',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {endWork.isPending ? (
-            <ActivityIndicator color="#F87171" size="small" />
-          ) : (
-            <>
-              <Square size={13} color="#F87171" fill="#F87171" />
-              <Text style={{ color: '#F87171', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 }}>
-                {'\u05E1\u05D9\u05D9\u05DD \u05E2\u05D1\u05D5\u05D3\u05D4'}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </Animated.View>
+        {/* End work — compact, to the left of button */}
+        <Animated.View style={endAnimStyle}>
+          <Pressable
+            onPressIn={() => { endScale.value = withSpring(0.94); }}
+            onPressOut={() => { endScale.value = withSpring(1); }}
+            onPress={handleEndWork}
+            testID="end-work-button"
+            style={{
+              borderRadius: 99,
+              borderWidth: 1.5,
+              borderColor: 'rgba(220,38,38,0.5)',
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            {endWork.isPending ? (
+              <ActivityIndicator color="#F87171" size="small" />
+            ) : (
+              <>
+                <Square size={14} color="#F87171" fill="#F87171" />
+                <Text style={{ color: '#F87171', fontSize: 11, fontWeight: '700' }}>
+                  {'\u05E1\u05D9\u05D9\u05DD'}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        </Animated.View>
+      </View>
     </Animated.View>
   );
 }
@@ -380,72 +361,44 @@ function EmptySessionHero({ token }: { token: string }) {
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingBottom: 8 }}
+      style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 20, paddingHorizontal: 24, paddingVertical: 8 }}
     >
-      {/* Main CTA Circle */}
-      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center' }]}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', width: 220, height: 220 }}>
-          {/* Glow ring */}
-          <GlowRing color="#60A5FA" active={false} />
-
-          {/* Circle button */}
-          <Pressable
-            onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); }}
-            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
-            onPress={handleStart}
-            testID="start-work-button"
-            style={{ width: 200, height: 200, borderRadius: 100, overflow: 'hidden' }}
+      {/* Circle button */}
+      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center', width: 116, height: 116 }]}>
+        <GlowRing color="#60A5FA" active={false} size={116} />
+        <Pressable
+          onPressIn={() => { scale.value = withSpring(0.94, { damping: 15 }); }}
+          onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
+          onPress={handleStart}
+          testID="start-work-button"
+          style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden' }}
+        >
+          <LinearGradient
+            colors={['#2563EB', '#1D4ED8']}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}
           >
-            <LinearGradient
-              colors={['#2563EB', '#1D4ED8']}
-              start={{ x: 0.2, y: 0 }}
-              end={{ x: 0.8, y: 1 }}
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0,
-              }}
-            >
-              {startWork.isPending ? (
-                <ActivityIndicator color="#FFF" size="large" />
-              ) : (
-                <>
-                  <Play size={28} color="#FFF" fill="#FFF" style={{ marginBottom: 8 }} />
-                  <Text
-                    style={{
-                      color: '#FFFFFF',
-                      fontSize: 32,
-                      fontWeight: '300',
-                      fontVariant: ['tabular-nums'],
-                      letterSpacing: -0.5,
-                    }}
-                  >
-                    {currentTime}
-                  </Text>
-                  <Text
-                    style={{
-                      color: 'rgba(255,255,255,0.75)',
-                      fontSize: 15,
-                      fontWeight: '600',
-                      marginTop: 4,
-                      letterSpacing: 0.3,
-                    }}
-                  >
-                    {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
-                  </Text>
-                </>
-              )}
-            </LinearGradient>
-          </Pressable>
-        </View>
+            {startWork.isPending ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Play size={20} color="#FFF" fill="#FFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' }}>
+                  {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: '300', fontVariant: ['tabular-nums'] }}>
+                  {currentTime}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
+        </Pressable>
       </Animated.View>
 
-      {/* Character — supplementary, below */}
+      {/* Character — secondary, to the side */}
       {showCharacterEmpty ? (
-        <View style={{ alignItems: 'center', marginTop: 8 }}>
-          <MoneyCharacter state={characterState} size={140} />
-        </View>
+        <MoneyCharacter state={characterState} size={70} />
       ) : null}
     </Animated.View>
   );
@@ -939,8 +892,8 @@ export default function DashboardScreen() {
           entering={FadeInDown.duration(350)}
           style={{
             paddingHorizontal: 20,
-            paddingTop: 16,
-            paddingBottom: 12,
+            paddingTop: 12,
+            paddingBottom: 8,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -953,10 +906,29 @@ export default function DashboardScreen() {
               {hebrewDate}
             </Text>
           </View>
+          {/* Net salary — top right, compact */}
+          {homeTaxResult.finalTakeHome > 0 ? (
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: '700', letterSpacing: 0.6 }}>
+                {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
+              </Text>
+              <Text style={{
+                color: '#22C55E',
+                fontSize: 22,
+                fontWeight: '800',
+                fontVariant: ['tabular-nums'],
+                textShadowColor: 'rgba(34,197,94,0.35)',
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: 8,
+              }}>
+                {formatCurrency(homeTaxResult.finalTakeHome)}
+              </Text>
+            </View>
+          ) : null}
         </Animated.View>
 
         {/* Hero content */}
-        <View style={{ paddingTop: 12, paddingBottom: 24, minHeight: 180, justifyContent: 'center' }}>
+        <View style={{ paddingTop: 4, paddingBottom: 12, justifyContent: 'center' }}>
           {isLoading ? (
             <View style={{ alignItems: 'center', paddingVertical: 40 }}>
               <ActivityIndicator size="large" color="#60A5FA" testID="loading-indicator" />
@@ -983,53 +955,6 @@ export default function DashboardScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
         >
-          {/* Big Net Salary Hero Card */}
-          {homeTaxResult.finalTakeHome > 0 ? (
-            <Animated.View
-              entering={FadeInUp.duration(400)}
-              style={{
-                marginHorizontal: 16,
-                marginBottom: 16,
-                borderRadius: 24,
-                overflow: 'hidden',
-                shadowColor: '#34D399',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.22,
-                shadowRadius: 20,
-                elevation: 8,
-              }}
-              testID="net-salary-hero-card"
-            >
-              <LinearGradient
-                colors={['#0D1F1A', '#0B1020']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ padding: 22, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)' }}
-              >
-                <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, fontWeight: '700', textAlign: 'right', letterSpacing: 0.8, marginBottom: 6 }}>
-                  {'נטו לקבלה — חודש נוכחי'}
-                </Text>
-                <Text style={{
-                  color: '#22c55e',
-                  fontSize: 52,
-                  fontWeight: '800',
-                  textAlign: 'right',
-                  fontVariant: ['tabular-nums'],
-                  letterSpacing: 1,
-                  textShadowColor: 'rgba(34,197,94,0.4)',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 12,
-                  lineHeight: 58,
-                }}>
-                  {formatCurrency(homeTaxResult.finalTakeHome)}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, textAlign: 'right', marginTop: 8, fontVariant: ['tabular-nums'] }}>
-                  {`ברוטו: ${formatCurrency(homeTaxResult.regularGross)}  |  מסים: ${formatCurrency(homeTaxResult.totalDeductions)}`}
-                </Text>
-              </LinearGradient>
-            </Animated.View>
-          ) : null}
-
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
             <View style={{
