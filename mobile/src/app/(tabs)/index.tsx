@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -466,61 +467,67 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
     opacity: glowOpacity.value,
   }));
 
+  const { width: SCREEN_W } = Dimensions.get('window');
+  const CIRCLE_SIZE = Math.min(340, SCREEN_W * 0.88);
+  const CLOCK_FONT  = Math.max(60, Math.min(96, CIRCLE_SIZE * 0.28));
+  const MASCOT_SIZE = Math.round(CIRCLE_SIZE * 0.50);
+
   return (
     <Animated.View
       entering={FadeInDown.duration(600)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16 }}
+      style={{ width: '100%', alignItems: 'center', paddingBottom: 16 }}
     >
-      {/* ── Clock + Mascot zone (relative container) ── */}
-      <View style={{ position: 'relative', width: '100%', height: 360, alignItems: 'center' }}>
+      {/* ── Hero Circle ── */}
+      <View style={{
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: CIRCLE_SIZE / 2,
+        backgroundColor: '#0D1E55',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        overflow: 'hidden',
+        paddingTop: Math.round(CIRCLE_SIZE * 0.15),
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.45,
+        shadowRadius: 28,
+        elevation: 14,
+      }}>
 
-        {/* Ambient glow — absolute, centered in zone */}
-        <Animated.View style={[{
-          position: 'absolute',
-          width: 300,
-          height: 300,
-          borderRadius: 150,
-          backgroundColor: '#1D4ED8',
-          top: 0,
-          left: '50%',
-          marginLeft: -150,
-        }, glowStyle]} />
-
-        {/* Current time display */}
-        <Text
-          style={{
-            fontSize: 80,
-            fontWeight: '300',
-            color: '#FFFFFF',
-            fontVariant: ['tabular-nums'],
-            letterSpacing: 6,
-            textShadowColor: 'rgba(96,165,250,0.6)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 32,
-            marginTop: 20,
-            zIndex: 1,
-          }}
-        >
+        {/* Clock */}
+        <Text style={{
+          width: '100%',
+          textAlign: 'center',
+          fontSize: CLOCK_FONT,
+          fontWeight: '300',
+          color: '#FFFFFF',
+          fontVariant: ['tabular-nums'],
+          letterSpacing: -1,
+          paddingHorizontal: 20,
+          textShadowColor: 'rgba(96,165,250,0.5)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 18,
+        }}>
           {currentTime}
         </Text>
 
-        {/* Mascot — precisely centered with left:50% + translateX(-half-width) */}
+        {/* Mascot — centered inside circle, no absolute positioning */}
         {showCharacterEmpty ? (
           <View style={{
-            position: 'absolute',
-            left: '50%',
-            top: 95,
-            transform: [{ translateX: -130 }],
-            zIndex: 2,
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 16,
           }}>
-            <MoneyCharacter state={characterState} size={260} />
+            <MoneyCharacter state={characterState} size={MASCOT_SIZE} />
           </View>
         ) : null}
       </View>
 
-      {/* CTA Button */}
-      <Animated.View style={[pulseStyle, { marginTop: -24 }]}>
+      {/* ── CTA Button ── */}
+      <Animated.View style={[pulseStyle, { marginTop: 24 }]}>
         <Animated.View style={animStyle}>
           <Pressable
             onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
@@ -543,7 +550,7 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
               end={{ x: 1, y: 0 }}
               style={{
                 height: 60,
-                width: 260,
+                width: Math.min(280, SCREEN_W * 0.78),
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row-reverse',
