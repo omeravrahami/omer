@@ -124,44 +124,6 @@ function PulsingDot({ color }: { color: string }) {
   );
 }
 
-// ─── Animated Glow Ring ───────────────────────────────────────────────────────
-
-function GlowRing({ color, active, size = 116 }: { color: string; active: boolean; size?: number }) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(active ? 0.5 : 0);
-
-  useEffect(() => {
-    if (active) {
-      scale.value = withRepeat(withTiming(1.08, { duration: 1800 }), -1, true);
-      opacity.value = withRepeat(withTiming(0.3, { duration: 1800 }), -1, true);
-    } else {
-      scale.value = withRepeat(withTiming(1.06, { duration: 1400 }), -1, true);
-      opacity.value = withRepeat(withTiming(0.45, { duration: 1400 }), -1, true);
-    }
-  }, [active, scale, opacity]);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 2,
-          borderColor: color,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
 // ─── Active Session (Hero) ────────────────────────────────────────────────────
 
 function ActiveSessionHero({
@@ -196,7 +158,7 @@ function ActiveSessionHero({
     return () => clearInterval(interval);
   }, [session.startTime, session.breakMinutes, isOnBreak, activeBreak?.startTime]);
 
-  const handleMainAction = useCallback(() => {
+  const handleBreakToggle = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isOnBreak && activeBreak) {
       endBreakMut.mutate(undefined, {
@@ -219,100 +181,112 @@ function ActiveSessionHero({
     });
   }, [endWork, showToast]);
 
-  const circleColors: [string, string] = isOnBreak
-    ? ['#D97706', '#B45309']
-    : ['#16A34A', '#15803D'];
-  const glowColor = isOnBreak ? '#FCD34D' : '#4ADE80';
-  const stateLabel = isOnBreak ? '\u05D7\u05D6\u05D5\u05E8 \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4' : '\u05D4\u05E4\u05E1\u05E7\u05D4';
+  const timerColor = isOnBreak ? '#FBBF24' : '#FFFFFF';
+  const glowColor = isOnBreak ? 'rgba(251,191,36,0.35)' : 'rgba(96,165,250,0.35)';
 
-  const scale = useSharedValue(1);
+  const breakScale = useSharedValue(1);
   const endScale = useSharedValue(1);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  const endAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: endScale.value }],
-  }));
+  const breakAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: breakScale.value }] }));
+  const endAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: endScale.value }] }));
 
   return (
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="active-session-card"
-      style={{ paddingHorizontal: 20, paddingVertical: 8 }}
+      style={{ paddingHorizontal: 24, paddingVertical: 8 }}
     >
-      {/* Main row: character + circle button + end button */}
-      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        {/* Character */}
+      {/* Timer row: character to side + big timer centered */}
+      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         {showCharacterActive ? (
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={70} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={64} />
         ) : null}
 
-        {/* Circle button */}
-        <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center', width: 116, height: 116 }]}>
-          <GlowRing color={glowColor} active size={116} />
+        {/* Timer block */}
+        <View style={{ alignItems: 'center' }}>
+          <Text
+            style={{
+              color: timerColor,
+              fontSize: 48,
+              fontWeight: '700',
+              fontVariant: ['tabular-nums'],
+              letterSpacing: 1,
+              textShadowColor: glowColor,
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 16,
+            }}
+            testID="live-timer"
+          >
+            {timer}
+          </Text>
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+            <PulsingDot color={isOnBreak ? '#FCD34D' : '#4ADE80'} />
+            <Text style={{
+              color: isOnBreak ? '#FCD34D' : '#86EFAC',
+              fontSize: 13,
+              fontWeight: '600',
+              letterSpacing: 0.3,
+            }}>
+              {isOnBreak ? '\u05D1\u05D4\u05E4\u05E1\u05E7\u05D4' : '\u05E2\u05D5\u05D1\u05D3'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Action buttons row */}
+      <View style={{ flexDirection: 'row-reverse', gap: 10, marginTop: 14 }}>
+        {/* End work */}
+        <Animated.View style={[{ flex: 1 }, endAnimStyle]}>
           <Pressable
-            onPressIn={() => { scale.value = withSpring(0.94, { damping: 15 }); }}
-            onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
-            onPress={handleMainAction}
-            testID="break-toggle-button"
-            style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden' }}
+            onPressIn={() => { endScale.value = withSpring(0.96); }}
+            onPressOut={() => { endScale.value = withSpring(1); }}
+            onPress={handleEndWork}
+            testID="end-work-button"
+            style={{ borderRadius: 14, overflow: 'hidden', height: 44 }}
           >
             <LinearGradient
-              colors={circleColors}
-              start={{ x: 0.2, y: 0 }}
-              end={{ x: 0.8, y: 1 }}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+              colors={['#DC2626', '#B91C1C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row-reverse', gap: 7 }}
             >
-              <Text
-                style={{
-                  color: '#FFFFFF',
-                  fontSize: 22,
-                  fontWeight: '700',
-                  fontVariant: ['tabular-nums'],
-                  letterSpacing: 0.5,
-                  textShadowColor: 'rgba(0,0,0,0.2)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 3,
-                }}
-                testID="live-timer"
-              >
-                {timer}
-              </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600', letterSpacing: 0.2 }}>
-                {stateLabel}
-              </Text>
+              {endWork.isPending ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Square size={13} color="#FFF" fill="#FFF" />
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                    {'\u05E1\u05D9\u05D9\u05DD \u05E2\u05D1\u05D5\u05D3\u05D4'}
+                  </Text>
+                </>
+              )}
             </LinearGradient>
           </Pressable>
         </Animated.View>
 
-        {/* End work — compact, to the left of button */}
-        <Animated.View style={endAnimStyle}>
+        {/* Break toggle */}
+        <Animated.View style={[{ flex: 1 }, breakAnimStyle]}>
           <Pressable
-            onPressIn={() => { endScale.value = withSpring(0.94); }}
-            onPressOut={() => { endScale.value = withSpring(1); }}
-            onPress={handleEndWork}
-            testID="end-work-button"
-            style={{
-              borderRadius: 99,
-              borderWidth: 1.5,
-              borderColor: 'rgba(220,38,38,0.5)',
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              alignItems: 'center',
-              gap: 4,
-            }}
+            onPressIn={() => { breakScale.value = withSpring(0.96); }}
+            onPressOut={() => { breakScale.value = withSpring(1); }}
+            onPress={handleBreakToggle}
+            testID="break-toggle-button"
+            style={{ borderRadius: 14, overflow: 'hidden', height: 44 }}
           >
-            {endWork.isPending ? (
-              <ActivityIndicator color="#F87171" size="small" />
-            ) : (
-              <>
-                <Square size={14} color="#F87171" fill="#F87171" />
-                <Text style={{ color: '#F87171', fontSize: 11, fontWeight: '700' }}>
-                  {'\u05E1\u05D9\u05D9\u05DD'}
-                </Text>
-              </>
-            )}
+            <LinearGradient
+              colors={isOnBreak ? ['#059669', '#047857'] : ['#D97706', '#B45309']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row-reverse', gap: 7 }}
+            >
+              {isOnBreak ? (
+                <Play size={13} color="#FFF" fill="#FFF" />
+              ) : (
+                <Coffee size={13} color="#FFF" />
+              )}
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                {isOnBreak ? '\u05D7\u05D6\u05D5\u05E8 \u05DC\u05E2\u05D1\u05D5\u05D3\u05D4' : '\u05D4\u05E4\u05E1\u05E7\u05D4'}
+              </Text>
+            </LinearGradient>
           </Pressable>
         </Animated.View>
       </View>
@@ -326,22 +300,10 @@ function EmptySessionHero({ token }: { token: string }) {
   const startWork = useAuthStartWork(token);
   const showToast = useToastStore((s) => s.showToast);
   const showCharacterEmpty = useSettingsStore((s) => s.showCharacter);
-  const [currentTime, setCurrentTime] = useState(() => {
-    const n = new Date();
-    return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
-  });
 
   const characterState: MoneyCharacterState = useMemo(() => {
     const h = new Date().getHours();
     return h >= 22 || h < 6 ? 'sleeping' : 'idle';
-  }, []);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      const n = new Date();
-      setCurrentTime(`${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`);
-    }, 1000);
-    return () => clearInterval(iv);
   }, []);
 
   const scale = useSharedValue(1);
@@ -361,45 +323,49 @@ function EmptySessionHero({ token }: { token: string }) {
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="empty-session-card"
-      style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 20, paddingHorizontal: 24, paddingVertical: 8 }}
+      style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 8, gap: 0 }}
     >
-      {/* Circle button */}
-      <Animated.View style={[animStyle, { alignItems: 'center', justifyContent: 'center', width: 116, height: 116 }]}>
-        <GlowRing color="#60A5FA" active={false} size={116} />
+      {/* Character — centered, main visual */}
+      {showCharacterEmpty ? (
+        <MoneyCharacter state={characterState} size={120} />
+      ) : (
+        <View style={{ height: 16 }} />
+      )}
+
+      {/* Wide pill start button */}
+      <Animated.View style={[animStyle, { width: '100%', marginTop: 8 }]}>
         <Pressable
-          onPressIn={() => { scale.value = withSpring(0.94, { damping: 15 }); }}
+          onPressIn={() => { scale.value = withSpring(0.97, { damping: 15 }); }}
           onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
           onPress={handleStart}
           testID="start-work-button"
-          style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden' }}
+          style={{ borderRadius: 99, overflow: 'hidden', height: 52 }}
         >
           <LinearGradient
             colors={['#2563EB', '#1D4ED8']}
-            start={{ x: 0.2, y: 0 }}
-            end={{ x: 0.8, y: 1 }}
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row-reverse',
+              gap: 10,
+            }}
           >
             {startWork.isPending ? (
               <ActivityIndicator color="#FFF" size="small" />
             ) : (
               <>
-                <Play size={20} color="#FFF" fill="#FFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' }}>
+                <Play size={18} color="#FFF" fill="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 17, fontWeight: '700', letterSpacing: 0.2 }}>
                   {'\u05D4\u05EA\u05D7\u05DC \u05E2\u05D1\u05D5\u05D3\u05D4'}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: '300', fontVariant: ['tabular-nums'] }}>
-                  {currentTime}
                 </Text>
               </>
             )}
           </LinearGradient>
         </Pressable>
       </Animated.View>
-
-      {/* Character — secondary, to the side */}
-      {showCharacterEmpty ? (
-        <MoneyCharacter state={characterState} size={70} />
-      ) : null}
     </Animated.View>
   );
 }
@@ -883,6 +849,18 @@ export default function DashboardScreen() {
   const today = new Date();
   const hebrewDate = getHebrewDate(today);
 
+  const [headerTime, setHeaderTime] = useState(() => {
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+  });
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const n = new Date();
+      setHeaderTime(`${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, []);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#F1F5F9' }} testID="dashboard-screen">
       {/* Dark hero section */}
@@ -906,25 +884,49 @@ export default function DashboardScreen() {
               {hebrewDate}
             </Text>
           </View>
-          {/* Net salary — top right, compact */}
-          {homeTaxResult.finalTakeHome > 0 ? (
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontWeight: '700', letterSpacing: 0.6 }}>
-                {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
-              </Text>
+          {/* Right side: clock + net salary */}
+          <View style={{ alignItems: 'flex-end' }}>
+            {homeTaxResult.finalTakeHome > 0 ? (
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', letterSpacing: 0.5 }}>
+                    {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
+                  </Text>
+                  <Text style={{
+                    color: '#22C55E',
+                    fontSize: 20,
+                    fontWeight: '800',
+                    fontVariant: ['tabular-nums'],
+                    textShadowColor: 'rgba(34,197,94,0.3)',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 6,
+                  }}>
+                    {formatCurrency(homeTaxResult.finalTakeHome)}
+                  </Text>
+                </View>
+                <View style={{ width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                <Text style={{
+                  color: 'rgba(255,255,255,0.7)',
+                  fontSize: 20,
+                  fontWeight: '300',
+                  fontVariant: ['tabular-nums'],
+                  letterSpacing: -0.5,
+                }}>
+                  {headerTime}
+                </Text>
+              </View>
+            ) : (
               <Text style={{
-                color: '#22C55E',
-                fontSize: 22,
-                fontWeight: '800',
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 24,
+                fontWeight: '300',
                 fontVariant: ['tabular-nums'],
-                textShadowColor: 'rgba(34,197,94,0.35)',
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: 8,
+                letterSpacing: -0.5,
               }}>
-                {formatCurrency(homeTaxResult.finalTakeHome)}
+                {headerTime}
               </Text>
-            </View>
-          ) : null}
+            )}
+          </View>
         </Animated.View>
 
         {/* Hero content */}
