@@ -470,58 +470,57 @@ function EmptySessionHero({ deviceId }: { deviceId: string }) {
     <Animated.View
       entering={FadeInDown.duration(600)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 0, paddingBottom: 8 }}
+      style={{ alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16 }}
     >
-      {/* Ambient glow behind the time */}
-      <Animated.View style={[{
-        position: 'absolute',
-        width: 320,
-        height: 320,
-        borderRadius: 160,
-        backgroundColor: '#1D4ED8',
-        top: -40,
-        alignSelf: 'center',
-      }, glowStyle]} />
+      {/* ── Clock + Mascot zone (relative container) ── */}
+      <View style={{ position: 'relative', width: '100%', height: 360, alignItems: 'center' }}>
 
-      {/* Current time display */}
-      <Text
-        style={{
-          fontSize: 80,
-          fontWeight: '300',
-          color: '#FFFFFF',
-          fontVariant: ['tabular-nums'],
-          letterSpacing: 6,
-          textShadowColor: 'rgba(96,165,250,0.6)',
-          textShadowOffset: { width: 0, height: 0 },
-          textShadowRadius: 32,
-          marginBottom: 2,
-        }}
-      >
-        {currentTime}
-      </Text>
+        {/* Ambient glow — absolute, centered in zone */}
+        <Animated.View style={[{
+          position: 'absolute',
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: '#1D4ED8',
+          top: 0,
+          left: '50%',
+          marginLeft: -150,
+        }, glowStyle]} />
 
-      {/* Subtitle */}
-      <Text
-        style={{
-          color: 'rgba(255,255,255,0.55)',
-          fontSize: 14,
-          letterSpacing: 0.8,
-          fontWeight: '500',
-          marginBottom: 0,
-        }}
-      >
-        {'לחץ להתחלת משמרת'}
-      </Text>
+        {/* Current time display */}
+        <Text
+          style={{
+            fontSize: 80,
+            fontWeight: '300',
+            color: '#FFFFFF',
+            fontVariant: ['tabular-nums'],
+            letterSpacing: 6,
+            textShadowColor: 'rgba(96,165,250,0.6)',
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 32,
+            marginTop: 20,
+            zIndex: 1,
+          }}
+        >
+          {currentTime}
+        </Text>
 
-      {/* Money character — top half overlaps the clock glow */}
-      {showCharacterEmpty ? (
-        <View style={{ marginTop: -100, marginBottom: 16, alignSelf: "stretch", alignItems: "center" }}>
-          <MoneyCharacter state={characterState} size={260} />
-        </View>
-      ) : null}
+        {/* Mascot — precisely centered with left:50% + translateX(-half-width) */}
+        {showCharacterEmpty ? (
+          <View style={{
+            position: 'absolute',
+            left: '50%',
+            top: 95,
+            transform: [{ translateX: -130 }],
+            zIndex: 2,
+          }}>
+            <MoneyCharacter state={characterState} size={260} />
+          </View>
+        ) : null}
+      </View>
 
-      {/* CTA Button — pulsing breathing animation when idle */}
-      <Animated.View style={pulseStyle}>
+      {/* CTA Button */}
+      <Animated.View style={[pulseStyle, { marginTop: -24 }]}>
         <Animated.View style={animStyle}>
           <Pressable
             onPressIn={() => { scale.value = withSpring(0.95, { damping: 15 }); pulseScale.value = withTiming(1, { duration: 100 }); }}
