@@ -1,13 +1,14 @@
 import "@vibecodeapp/proxy"; // DO NOT REMOVE OTHERWISE VIBECODE PROXY WILL NOT WORK
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { randomUUID } from "node:crypto";
 import "./env";
 import { sampleRouter } from "./routes/sample";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
 import { legalRoutes } from "./routes/legal";
-import { httpLogger } from "./lib/logger";
+import { httpLogger, logger } from "./lib/logger";
 
 const app = new Hono();
 
@@ -30,6 +31,15 @@ app.use(
   })
 );
 
+// Correlation ID middleware
+app.use("*", async (c, next) => {
+  const requestId = c.req.header("x-request-id") ?? randomUUID();
+  c.header("x-request-id", requestId);
+  // Make it available to downstream handlers
+  (c as any).requestId = requestId;
+  await next();
+});
+
 // Logging
 app.use("*", httpLogger);
 
@@ -45,6 +55,27 @@ app.route("/api/admin", adminPublicRoutes);
 app.route("/api/admin", adminRoutes);
 // Public legal pages (privacy policy, delete account)
 app.route("", legalRoutes);
+
+// Global unhandled error catcher
+app.onError((err, c) => {
+  logger.error("unhandled error", {
+    error: err,
+    method: c.req.method,
+    path: new URL(c.req.url).pathname,
+  });
+  return c.json(
+    { error: { message: "שגיאה פנימית בשרת", code: "INTERNAL_ERROR" } },
+    500
+  );
+});
+
+// 404 handler
+app.notFound((c) => {
+  return c.json(
+    { error: { message: "הנתיב לא נמצא", code: "NOT_FOUND" } },
+    404
+  );
+});
 
 const port = Number(process.env.PORT) || 3000;
 

@@ -1,12 +1,17 @@
 import { createMiddleware } from "hono/factory";
+import { createHash } from "node:crypto";
 import { db } from "../db";
 
 type AdminVariables = {
   userId: string;
 };
 
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 /**
- * Admin middleware: validates Bearer token AND verifies the user has role === "ADMIN".
+ * Admin middleware: validates Bearer token (SHA-256 hashed) AND verifies the user has role === "ADMIN".
  * Sets c.var.userId on success.
  */
 export const adminMiddleware = createMiddleware<{ Variables: AdminVariables }>(
@@ -27,8 +32,9 @@ export const adminMiddleware = createMiddleware<{ Variables: AdminVariables }>(
       );
     }
 
+    const tokenHash = hashToken(token);
     const session = await db.userSession.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { user: true },
     });
 

@@ -11,6 +11,8 @@ import { I18nManager } from 'react-native';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { fetch } from 'expo/fetch';
 import { crashReporter } from '@/lib/crash-reporter';
 
@@ -171,6 +173,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
         />
       </Stack>
       <Toast />
+        <OfflineBanner />
     </ThemeProvider>
   );
 }
@@ -197,7 +200,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardProvider>
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <RootLayoutNav colorScheme={colorScheme} />
+          <ErrorBoundary>
+            <RootLayoutNav colorScheme={colorScheme} />
+          </ErrorBoundary>
         </KeyboardProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>

@@ -45,6 +45,11 @@ function validateEnv() {
  */
 export const env = validateEnv();
 
+// Warn loudly if SETUP_SECRET is not set in production
+if (process.env.NODE_ENV === "production" && !env.SETUP_SECRET) {
+  console.warn("⚠️  WARNING: SETUP_SECRET is not set. The /api/admin/setup endpoint is unprotected in production. Set SETUP_SECRET env var immediately.");
+}
+
 /**
  * Type of the validated environment variables
  */

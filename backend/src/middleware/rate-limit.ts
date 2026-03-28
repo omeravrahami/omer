@@ -37,10 +37,16 @@ function createRateLimiter(config: RateLimitConfig) {
 
     if (!entry || now > entry.resetAt) {
       store.set(ip, { count: 1, resetAt: now + config.windowMs });
+      c.header("X-RateLimit-Limit", String(config.maxRequests));
+      c.header("X-RateLimit-Remaining", String(config.maxRequests - 1));
       return next();
     }
 
     if (entry.count >= config.maxRequests) {
+      const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+      c.header("Retry-After", String(retryAfterSeconds));
+      c.header("X-RateLimit-Limit", String(config.maxRequests));
+      c.header("X-RateLimit-Remaining", "0");
       return c.json(
         {
           error: {
@@ -53,6 +59,8 @@ function createRateLimiter(config: RateLimitConfig) {
     }
 
     entry.count++;
+    c.header("X-RateLimit-Limit", String(config.maxRequests));
+    c.header("X-RateLimit-Remaining", String(config.maxRequests - entry.count));
     return next();
   };
 }

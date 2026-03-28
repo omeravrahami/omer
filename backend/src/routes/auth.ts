@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 
 import bcrypt from "bcryptjs";
 import { db } from "../db";
@@ -14,6 +14,11 @@ import {
   sendWelcomeEmail,
 } from "../services/email";
 import { auditLog } from "../lib/audit";
+import { logger } from "../lib/logger";
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 export const authRoutes = new Hono();
 
@@ -119,17 +124,17 @@ async function createSessionToken(
   userId: string,
   options?: { platform?: string; deviceName?: string }
 ): Promise<string> {
-  const token = crypto.randomUUID();
+  const rawToken = crypto.randomUUID();
   await db.userSession.create({
     data: {
       userId,
-      token,
+      token: hashToken(rawToken),
       expiresAt: createExpiryDate(),
       platform: options?.platform ?? null,
       deviceName: options?.deviceName ?? null,
     },
   });
-  return token;
+  return rawToken;
 }
 
 function getCurrentToken(authHeader: string | undefined): string | null {
@@ -181,9 +186,21 @@ authRoutes.post(
 
     const token = await createSessionToken(user.id, { platform, deviceName });
 
+    await auditLog({
+      userId: user.id,
+      action: "REGISTER",
+      resource: "auth",
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
+    logger.info("user registered", {
+      userId: user.id,
+      ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+    });
+
     // Send welcome email (non-blocking)
     sendWelcomeEmail(email, username ?? email.split("@")[0] ?? email).catch((err) => {
-      console.error("[email] Failed to send welcome email:", err);
+      logger.warn("email send failed", { error: err instanceof Error ? err.message : String(err), type: "welcome" });
     });
 
     return c.json(
@@ -264,14 +281,12 @@ authRoutes.post(
 
     const token = await createSessionToken(user.id, { platform, deviceName });
 
-    console.log(JSON.stringify({
-      event: "user_login",
+    logger.info("user login", {
       userId: user.id,
       email: user.email,
       platform,
-      timestamp: new Date().toISOString(),
       ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
-    }));
+    });
 
     await auditLog({
       userId: user.id,
@@ -306,15 +321,14 @@ authRoutes.post("/logout", async (c) => {
   const authorization = c.req.header("Authorization");
   if (authorization && authorization.startsWith("Bearer ")) {
     const token = authorization.slice(7).trim();
-    const session = await db.userSession.findUnique({ where: { token } }).catch(() => null);
-    await db.userSession.deleteMany({ where: { token } }).catch(() => {});
+    const tokenHash = hashToken(token);
+    const session = await db.userSession.findUnique({ where: { token: tokenHash } }).catch(() => null);
+    await db.userSession.deleteMany({ where: { token: tokenHash } }).catch(() => {});
     if (session) {
-      console.log(JSON.stringify({
-        event: "user_logout",
+      logger.info("user logout", {
         userId: session.userId,
-        timestamp: new Date().toISOString(),
         ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
-      }));
+      });
     }
   }
   return c.json({ data: { success: true } });
@@ -397,7 +411,7 @@ authRoutes.post(
       resetToken,
       user.username ?? user.email.split("@")[0] ?? user.email
     ).catch((err) => {
-      console.error("[email] Failed to send password reset email:", err);
+      logger.warn("email send failed", { error: err instanceof Error ? err.message : String(err), type: "password-reset" });
     });
 
     const responseData: {
@@ -469,12 +483,10 @@ authRoutes.post(
     // Delete all sessions for this user (force re-login)
     await db.userSession.deleteMany({ where: { userId: resetToken.userId } });
 
-    console.log(JSON.stringify({
-      event: "password_reset",
+    logger.info("password reset", {
       userId: resetToken.userId,
-      timestamp: new Date().toISOString(),
       ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
-    }));
+    });
 
     return c.json({ data: { success: true } });
   }
@@ -625,12 +637,9 @@ authRoutes.delete(
     await db.userSettings.deleteMany({ where: { userId } });
     await db.user.delete({ where: { id: userId } });
 
-    console.log(JSON.stringify({
-      event: "account_deleted",
+    logger.info("account deleted", {
       userId,
-      email: user.email,
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     await auditLog({
       userId,
@@ -676,6 +685,7 @@ authRoutes.post(
 authRoutes.get("/sessions", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const currentToken = getCurrentToken(c.req.header("Authorization"));
+  const currentTokenHash = currentToken ? hashToken(currentToken) : null;
 
   const sessions = await db.userSession.findMany({
     where: { userId, isActive: true, expiresAt: { gt: new Date() } },
@@ -688,7 +698,7 @@ authRoutes.get("/sessions", authMiddleware, async (c) => {
     platform: session.platform,
     lastSeenAt: session.lastSeenAt,
     createdAt: session.createdAt,
-    isCurrent: session.token === currentToken,
+    isCurrent: session.token === currentTokenHash,
   }));
 
   return c.json({ data });
@@ -702,6 +712,7 @@ authRoutes.delete("/sessions/:sessionId", authMiddleware, async (c) => {
   const userId = c.get("userId");
   const sessionId = c.req.param("sessionId");
   const currentToken = getCurrentToken(c.req.header("Authorization"));
+  const currentTokenHash = currentToken ? hashToken(currentToken) : null;
 
   const session = await db.userSession.findFirst({
     where: { id: sessionId, userId },
@@ -714,7 +725,7 @@ authRoutes.delete("/sessions/:sessionId", authMiddleware, async (c) => {
     );
   }
 
-  if (session.token === currentToken) {
+  if (session.token === currentTokenHash) {
     return c.json(
       { error: { message: "לא ניתן לבטל את הסשן הנוכחי", code: "CANNOT_REVOKE_CURRENT_SESSION" } },
       400
@@ -770,7 +781,7 @@ authRoutes.post("/send-verification", authMiddleware, async (c) => {
     verifyToken,
     user.username ?? user.email.split("@")[0] ?? user.email
   ).catch((err) => {
-    console.error("[email] Failed to send verification email:", err);
+    logger.warn("email send failed", { error: err instanceof Error ? err.message : String(err), type: "email-verification" });
   });
 
   const responseData: { success: boolean; verifyToken?: string } = {

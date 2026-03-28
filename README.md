@@ -2,6 +2,8 @@
 
 A Hebrew RTL time-tracking application for employees, freelancers, and students. The app is free and ad-supported (AdMob). It features real-time shift timers, break tracking, automatic pay calculation, session history, analytics, and a full Israeli tax and salary engine.
 
+> **Production Hardening Status (March 2026):** SHA-256 session token hashing, centralized structured logging, global error handling, correlation IDs, rate limit headers, DB production indexes, 50-test suite with salary engine edge cases, ErrorBoundary, offline detection, and comprehensive handoff docs. Ready for production deployment.
+
 ---
 
 ## Table of Contents

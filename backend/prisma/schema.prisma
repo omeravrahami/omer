@@ -35,6 +35,9 @@ model UserSession {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([userId, isActive])
 }
 
 model PasswordResetToken {
@@ -46,6 +49,9 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
 }
 
 model AppConfig {
@@ -119,4 +125,6 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+  @@index([action])
+  @@index([userId, createdAt])
 }

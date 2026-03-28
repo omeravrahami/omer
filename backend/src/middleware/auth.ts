@@ -1,9 +1,14 @@
 import { createMiddleware } from "hono/factory";
+import { createHash } from "node:crypto";
 import { db } from "../db";
 
 type AuthVariables = {
   userId: string;
 };
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 /**
  * Extracts and validates Bearer token from the Authorization header.
@@ -28,8 +33,9 @@ export const authMiddleware = createMiddleware<{ Variables: AuthVariables }>(
       );
     }
 
+    const tokenHash = hashToken(token);
     const session = await db.userSession.findUnique({
-      where: { token },
+      where: { token: tokenHash },
       include: { user: true },
     });
 
