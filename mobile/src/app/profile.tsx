@@ -533,9 +533,9 @@ export default function ProfileScreen() {
         >
           <View
             style={{
-              width: 88,
-              height: 88,
-              borderRadius: 28,
+              width: 96,
+              height: 96,
+              borderRadius: 48,
               backgroundColor: avatarColor,
               alignItems: 'center',
               justifyContent: 'center',
@@ -545,6 +545,8 @@ export default function ProfileScreen() {
               shadowOpacity: 0.4,
               shadowRadius: 16,
               elevation: 8,
+              borderWidth: 3,
+              borderColor: 'rgba(255,255,255,0.15)',
             }}
           >
             <Text style={{ fontSize: 32, fontWeight: '800', color: '#fff' }}>{initials}</Text>
@@ -787,13 +789,15 @@ export default function ProfileScreen() {
         {/* Save Button */}
         <Animated.View
           entering={FadeInUp.delay(280).duration(400)}
-          style={{ marginHorizontal: 16, marginTop: 4 }}
+          style={{ marginHorizontal: 16, marginTop: 4, flexDirection: 'row-reverse', gap: 10 }}
         >
+          {/* Save button - takes most space */}
           <Pressable
             testID="save-profile-button"
             onPress={handleSave}
             disabled={saving}
             style={({ pressed }) => ({
+              flex: 1,
               backgroundColor: saving ? 'rgba(96,165,250,0.5)' : pressed ? 'rgba(96,165,250,0.85)' : ACCENT,
               borderRadius: 16,
               paddingVertical: 16,
@@ -808,28 +812,35 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Check size={18} color="#fff" />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'שמור שינויים'}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'שמור'}</Text>
               </>
             )}
           </Pressable>
-        </Animated.View>
 
-        {/* Tiny delete account link at bottom */}
-        <Pressable
-          testID="delete-account-button"
-          onPress={handleOpenDeleteModal}
-          disabled={deletingAccount}
-          style={({ pressed }) => ({
-            alignItems: 'center',
-            paddingVertical: 16,
-            paddingBottom: 8,
-            opacity: pressed ? 0.5 : 1,
-          })}
-        >
-          <Text style={{ fontSize: 12, color: '#94A3B8', textDecorationLine: 'underline' }}>
-            {'מחיקת חשבון'}
-          </Text>
-        </Pressable>
+          {/* Delete button - small, on the side */}
+          <Pressable
+            testID="delete-account-button"
+            onPress={handleOpenDeleteModal}
+            disabled={deletingAccount}
+            style={({ pressed }) => ({
+              width: 52,
+              borderRadius: 16,
+              paddingVertical: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(248,113,113,0.1)',
+              borderWidth: 1,
+              borderColor: 'rgba(248,113,113,0.2)',
+              opacity: pressed || deletingAccount ? 0.6 : 1,
+            })}
+          >
+            {deletingAccount ? (
+              <ActivityIndicator color={ERROR_COLOR} size="small" />
+            ) : (
+              <Trash2 size={18} color={ERROR_COLOR} />
+            )}
+          </Pressable>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
