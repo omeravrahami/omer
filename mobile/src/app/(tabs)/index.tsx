@@ -198,7 +198,7 @@ function ActiveSessionHero({
       {/* Timer row: character to side + big timer centered */}
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         {showCharacterActive ? (
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={48} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={72} />
         ) : null}
 
         {/* Timer block */}
@@ -327,7 +327,7 @@ function EmptySessionHero({ token }: { token: string }) {
     >
       {/* Character — centered, main visual */}
       {showCharacterEmpty ? (
-        <MoneyCharacter state={characterState} size={80} />
+        <MoneyCharacter state={characterState} size={130} />
       ) : (
         <View style={{ height: 16 }} />
       )}
