@@ -1023,83 +1023,52 @@ export default function DashboardScreen() {
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
             <View style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: 24,
+              borderRadius: 14,
               marginHorizontal: 16,
-              marginBottom: 16,
+              marginBottom: 10,
               overflow: 'hidden',
               shadowColor: '#0B1020',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.07,
-              shadowRadius: 14,
-              elevation: 4,
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 6,
+              elevation: 2,
             }}>
               <View style={{ flexDirection: 'row-reverse' }}>
               {/* Week stat */}
-                <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '700', marginBottom: 4, letterSpacing: 0.8 }}>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 9, fontWeight: '700', marginBottom: 2, letterSpacing: 0.6 }}>
                     {'השבוע'}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
-                    <Text style={{ color: '#2563EB', fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 32 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 26 }}>
                       {weekStats ? weekStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#93C5FD', fontSize: 12, fontWeight: '700', marginBottom: 1 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#93C5FD', fontSize: 11, fontWeight: '700' }}>{'שע׳'}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#BFDBFE' }} />
-                    <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '500' }}>
-                      {`${weekStats?.workDaysCount ?? 0} ימים`}
-                    </Text>
-                  </View>
+                  <Text style={{ color: '#94A3B8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>
+                    {`${weekStats?.workDaysCount ?? 0} ימים`}
+                  </Text>
                 </View>
 
                 {/* Divider */}
-                <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 16 }} />
+                <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 10 }} />
 
                 {/* Month stat */}
-                <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '700', marginBottom: 4, letterSpacing: 0.8 }}>
+                <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 9, fontWeight: '700', marginBottom: 2, letterSpacing: 0.6 }}>
                     {'החודש'}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
-                    <Text style={{ color: '#059669', fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 32 }}>
+                    <Text style={{ color: '#059669', fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 26 }}>
                       {monthStats ? monthStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '700', marginBottom: 1 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#34D399', fontSize: 11, fontWeight: '700' }}>{'שע׳'}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#86EFAC' }} />
-                    <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '500' }}>
-                      {`${monthStats?.workDaysCount ?? 0} ימים`}
-                    </Text>
-                  </View>
-                  {dynamicMonthlyGross > 0 ? (
-                    <Text style={{ color: '#059669', fontSize: 12, marginTop: 4, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
-                      {formatCurrency(dynamicMonthlyGross)}
-                    </Text>
-                  ) : null}
+                  <Text style={{ color: '#94A3B8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>
+                    {`${monthStats?.workDaysCount ?? 0} ימים`}
+                  </Text>
                 </View>
               </View>
-
-              {/* Progress bar toward monthly hour goal */}
-              {dynamicMonthlyGross > 0 ? (
-                <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
-                  <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ fontSize: 10, color: '#94A3B8' }}>{'ברוטו רגיל'}</Text>
-                    <Text style={{ fontSize: 10, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
-                      {formatCurrency(dynamicMonthlyGross)}
-                    </Text>
-                  </View>
-                  <View style={{ height: 3, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
-                    <View style={{
-                      height: 3,
-                      borderRadius: 2,
-                      backgroundColor: '#059669',
-                      width: '100%',
-                    }} />
-                  </View>
-                </View>
-              ) : null}
             </View>
           </Animated.View>
 
