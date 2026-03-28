@@ -198,7 +198,7 @@ function ActiveSessionHero({
       {/* Timer row: character to side + big timer centered */}
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         {showCharacterActive ? (
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={72} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={56} />
         ) : null}
 
         {/* Timer block */}
@@ -323,11 +323,11 @@ function EmptySessionHero({ token }: { token: string }) {
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 4, gap: 0 }}
+      style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 0, gap: 0 }}
     >
       {/* Character — centered, main visual */}
       {showCharacterEmpty ? (
-        <MoneyCharacter state={characterState} size={130} />
+        <MoneyCharacter state={characterState} size={80} />
       ) : (
         <View style={{ height: 16 }} />
       )}

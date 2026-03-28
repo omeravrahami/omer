@@ -3,7 +3,6 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { randomUUID } from "node:crypto";
 import "./env";
-import { sampleRouter } from "./routes/sample";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
@@ -47,7 +46,6 @@ app.use("*", httpLogger);
 app.get("/health", (c) => c.json({ status: "ok" }));
 
 // Routes
-app.route("/api/sample", sampleRouter);
 app.route("", workclockRoutes);
 app.route("/api/auth", authRoutes);
 // Public admin routes (no auth) must be mounted before protected ones
