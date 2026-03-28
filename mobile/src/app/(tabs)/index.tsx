@@ -862,7 +862,11 @@ export default function DashboardScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F1F5F9' }} testID="dashboard-screen">
+    <View style={{ flex: 1, backgroundColor: '#0B1020' }} testID="dashboard-screen">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
       {/* Dark hero section */}
       <View style={{ backgroundColor: '#0B1020', paddingTop: insets.top }}>
         {/* Header */}
@@ -947,7 +951,7 @@ export default function DashboardScreen() {
           <View style={{
             flexDirection: 'row-reverse',
             paddingHorizontal: 20,
-            paddingBottom: 16,
+            paddingBottom: 28,
             gap: 10,
           }}>
             {/* Month hours pill */}
@@ -1007,17 +1011,14 @@ export default function DashboardScreen() {
       {/* Light section with top rounding */}
       <View
         style={{
-          flex: 1,
           backgroundColor: '#F1F5F9',
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
           marginTop: -28,
+          paddingTop: 20,
+          minHeight: 600,
         }}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}
-        >
           {/* Weekly / Monthly stats */}
           <Animated.View entering={FadeInUp.delay(100).duration(400)}>
             <View style={{
@@ -1198,8 +1199,8 @@ export default function DashboardScreen() {
           <Animated.View entering={FadeInUp.delay(300).duration(400)}>
             <AdBanner />
           </Animated.View>
-        </ScrollView>
       </View>
+      </ScrollView>
     </View>
   );
 }
