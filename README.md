@@ -571,4 +571,33 @@ Returns total users, active users, suspended users, admin count, total sessions,
 - **Token security**: Store session tokens securely on the client (SecureStore on mobile). Never log tokens.
 - **CORS**: The backend echoes the specific origin rather than using `*`, which is required for requests sent with `credentials: include`.
 - **Email in production**: Set `NODE_ENV=production` to prevent reset and verification tokens from being exposed in API responses.
-- **AdMob**: Ad components are in `mobile/src/components/ads/` as placeholders. Activate them after publishing to the app stores and configuring AdMob app IDs.
+- **AdMob**: Production ad unit IDs are read from ENV vars (`EXPO_PUBLIC_ADMOB_BANNER_ID`, `EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID`, `EXPO_PUBLIC_ADMOB_REWARDED_ID`). Set `enabled: true` in `mobile/src/lib/ads/index.ts` once an AdMob account is configured and EAS build is ready.
+
+---
+
+## Store Submission Checklist
+
+### Legal pages (already live at backend URL)
+- **Privacy Policy**: `$BACKEND_URL/privacy` — full Hebrew privacy policy
+- **Delete Account**: `$BACKEND_URL/delete-account` — App Store / Play Store required page
+
+### What's ready
+- [x] Privacy Policy web page (`/privacy`)
+- [x] Delete Account web page (`/delete-account`)
+- [x] In-app delete account flow (Settings → מחיקת חשבון)
+- [x] In-app Privacy link (Settings footer → פרטיות ותנאי שימוש)
+- [x] Crash reporter stub ready for Sentry (see `mobile/src/lib/crash-reporter.ts`)
+- [x] AdMob test IDs wired (official Google test IDs, safe for review)
+- [x] AdMob production ID slots ready (set via ENV vars, flip `enabled: true` post-launch)
+- [x] No hardcoded secrets or placeholder patterns in shipped code
+
+### Still needed before final submission
+- [ ] **Icon**: Upload final 1024×1024 app icon via Vibecode IMAGES tab, then reference in app.json
+- [ ] **Splash screen**: Upload final splash image
+- [ ] **Screenshots**: Capture 6.7-inch iPhone and iPad screenshots (min 3 per device)
+- [ ] **AdMob App ID**: Add `ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX` to app.json under `plugins`
+- [ ] **Sentry DSN**: Add `EXPO_PUBLIC_SENTRY_DSN` via ENV tab for production crash monitoring
+- [ ] **Production AdMob unit IDs**: Add via ENV tab, then set `enabled: true` in `ads/index.ts`
+- [ ] **App Store Connect**: Set Privacy Policy URL to `$BACKEND_URL/privacy`
+- [ ] **App Store Connect**: Data Safety — declare: Work hours data (account-linked), no third-party sharing
+- [ ] **Publish**: Use Vibecode "Publish" button (top-right) to submit EAS build

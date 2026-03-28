@@ -10,26 +10,27 @@ interface AdConfig {
   placements: Record<AdPlacement, { unitId: string; testUnitId: string }>;
 }
 
-// TODO: Replace unit IDs with real AdMob unit IDs when account is ready
+// Production unit IDs — replace with real IDs from https://apps.admob.com before release
+// Set via ENV tab: EXPO_PUBLIC_ADMOB_BANNER_ID, EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID, EXPO_PUBLIC_ADMOB_REWARDED_ID
 export const adConfig: AdConfig = {
-  enabled: false, // Set to true when AdMob account is connected
-  testMode: true,  // Always use test IDs in development
+  enabled: false, // Set to true when AdMob account is connected and EAS build is ready
+  testMode: true,  // Flip to false only in production builds
   placements: {
     home_banner: {
-      unitId: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      testUnitId: 'ca-app-pub-3940256099942544/6300978111', // Google test banner
+      unitId: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
+      testUnitId: 'ca-app-pub-3940256099942544/6300978111', // Official Google test banner
     },
     history_banner: {
-      unitId: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
+      unitId: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
       testUnitId: 'ca-app-pub-3940256099942544/6300978111',
     },
     report_interstitial: {
-      unitId: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      testUnitId: 'ca-app-pub-3940256099942544/1033173712', // Google test interstitial
+      unitId: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID ?? '',
+      testUnitId: 'ca-app-pub-3940256099942544/1033173712', // Official Google test interstitial
     },
     simulation_rewarded: {
-      unitId: 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX',
-      testUnitId: 'ca-app-pub-3940256099942544/5224354917', // Google test rewarded
+      unitId: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ID ?? '',
+      testUnitId: 'ca-app-pub-3940256099942544/5224354917', // Official Google test rewarded
     },
   },
 };

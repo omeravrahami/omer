@@ -198,7 +198,7 @@ function ActiveSessionHero({
       {/* Timer row: character to side + big timer centered */}
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         {showCharacterActive ? (
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={64} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={48} />
         ) : null}
 
         {/* Timer block */}
@@ -323,17 +323,17 @@ function EmptySessionHero({ token }: { token: string }) {
     <Animated.View
       entering={FadeInDown.duration(500)}
       testID="empty-session-card"
-      style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 8, gap: 0 }}
+      style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 4, gap: 0 }}
     >
       {/* Character — centered, main visual */}
       {showCharacterEmpty ? (
-        <MoneyCharacter state={characterState} size={120} />
+        <MoneyCharacter state={characterState} size={80} />
       ) : (
         <View style={{ height: 16 }} />
       )}
 
       {/* Wide pill start button */}
-      <Animated.View style={[animStyle, { width: '100%', marginTop: 8 }]}>
+      <Animated.View style={[animStyle, { width: '100%', marginTop: 6 }]}>
         <Pressable
           onPressIn={() => { scale.value = withSpring(0.97, { damping: 15 }); }}
           onPressOut={() => { scale.value = withSpring(1, { damping: 12 }); }}
@@ -941,6 +941,67 @@ export default function DashboardScreen() {
             <EmptySessionHero token={token} />
           )}
         </View>
+
+        {/* Compact financial strip — show when there is monthly data */}
+        {dynamicMonthlyGross > 0 ? (
+          <View style={{
+            flexDirection: 'row-reverse',
+            paddingHorizontal: 20,
+            paddingBottom: 16,
+            gap: 10,
+          }}>
+            {/* Month hours pill */}
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+            }}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '600', letterSpacing: 0.5, marginBottom: 3 }}>
+                {'החודש'}
+              </Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+                {`${totalNetHoursHome.toFixed(1)} שע׳`}
+              </Text>
+            </View>
+            {/* Gross pill */}
+            <View style={{
+              flex: 1,
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+            }}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '600', letterSpacing: 0.5, marginBottom: 3 }}>
+                {'ברוטו'}
+              </Text>
+              <Text style={{ color: '#60A5FA', fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+                {formatCurrency(dynamicMonthlyGross)}
+              </Text>
+            </View>
+            {/* Net pill */}
+            <View style={{
+              flex: 1.2,
+              backgroundColor: 'rgba(34,197,94,0.1)',
+              borderRadius: 14,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(34,197,94,0.2)',
+            }}>
+              <Text style={{ color: '#86EFAC', fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginBottom: 3 }}>
+                {'נטו לקבלה'}
+              </Text>
+              <Text style={{ color: '#22C55E', fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>
+                {formatCurrency(homeTaxResult.finalTakeHome)}
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {/* Light section with top rounding */}
