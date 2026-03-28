@@ -782,45 +782,6 @@ export default function ProfileScreen() {
             <ChevronRight size={16} color={TEXT_SECONDARY} style={{ marginRight: 4 }} />
           </Pressable>
 
-          {/* Delete account button */}
-          <Pressable
-            testID="delete-account-button"
-            onPress={handleOpenDeleteModal}
-            disabled={deletingAccount}
-            style={({ pressed }) => ({
-              flexDirection: 'row-reverse',
-              alignItems: 'center',
-              gap: 12,
-              paddingVertical: 14,
-              opacity: pressed || deletingAccount ? 0.7 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: 'rgba(248,113,113,0.12)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {deletingAccount ? (
-                <ActivityIndicator color={ERROR_COLOR} size="small" />
-              ) : (
-                <Trash2 size={18} color={ERROR_COLOR} />
-              )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: ERROR_COLOR, textAlign: 'right' }}>
-                {'מחיקת חשבון'}
-              </Text>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 2 }}>
-                {'פעולה בלתי הפיכה — כל הנתונים יימחקו'}
-              </Text>
-            </View>
-            <AlertTriangle size={16} color={ERROR_COLOR} />
-          </Pressable>
         </SectionCard>
 
         {/* Save Button */}
@@ -852,6 +813,23 @@ export default function ProfileScreen() {
             )}
           </Pressable>
         </Animated.View>
+
+        {/* Tiny delete account link at bottom */}
+        <Pressable
+          testID="delete-account-button"
+          onPress={handleOpenDeleteModal}
+          disabled={deletingAccount}
+          style={({ pressed }) => ({
+            alignItems: 'center',
+            paddingVertical: 16,
+            paddingBottom: 8,
+            opacity: pressed ? 0.5 : 1,
+          })}
+        >
+          <Text style={{ fontSize: 12, color: '#94A3B8', textDecorationLine: 'underline' }}>
+            {'מחיקת חשבון'}
+          </Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
