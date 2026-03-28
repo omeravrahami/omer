@@ -191,14 +191,14 @@ function ActiveSessionHero({
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(500)}
+      entering={FadeInDown.duration(220)}
       testID="active-session-card"
       style={{ paddingHorizontal: 24, paddingVertical: 8 }}
     >
       {/* Timer row: character to side + big timer centered */}
       <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         {showCharacterActive ? (
-          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={56} />
+          <MoneyCharacter state={isOnBreak ? 'break' : 'working'} size={72} />
         ) : null}
 
         {/* Timer block */}
@@ -321,13 +321,13 @@ function EmptySessionHero({ token }: { token: string }) {
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(500)}
+      entering={FadeInDown.duration(220)}
       testID="empty-session-card"
       style={{ alignItems: 'center', paddingHorizontal: 32, paddingVertical: 0, gap: 0 }}
     >
       {/* Character — centered, main visual */}
       {showCharacterEmpty ? (
-        <MoneyCharacter state={characterState} size={80} />
+        <MoneyCharacter state={characterState} size={100} />
       ) : (
         <View style={{ height: 16 }} />
       )}
@@ -871,7 +871,7 @@ export default function DashboardScreen() {
       <View style={{ backgroundColor: '#0B1020', paddingTop: insets.top }}>
         {/* Header */}
         <Animated.View
-          entering={FadeInDown.duration(350)}
+          entering={FadeInDown.duration(200)}
           style={{
             paddingHorizontal: 20,
             paddingTop: 12,
@@ -1034,20 +1034,20 @@ export default function DashboardScreen() {
               elevation: 4,
             }}>
               <View style={{ flexDirection: 'row-reverse' }}>
-                {/* Week stat */}
-                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 16, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.8 }}>
+              {/* Week stat */}
+                <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '700', marginBottom: 4, letterSpacing: 0.8 }}>
                     {'השבוע'}
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                    <Text style={{ color: '#2563EB', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 38 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 32 }}>
                       {weekStats ? weekStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#93C5FD', fontSize: 14, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#93C5FD', fontSize: 12, fontWeight: '700', marginBottom: 1 }}>{'שע׳'}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#BFDBFE' }} />
-                    <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500' }}>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#BFDBFE' }} />
+                    <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '500' }}>
                       {`${weekStats?.workDaysCount ?? 0} ימים`}
                     </Text>
                   </View>
@@ -1057,52 +1057,47 @@ export default function DashboardScreen() {
                 <View style={{ width: 1, backgroundColor: '#EEF2FF', marginVertical: 16 }} />
 
                 {/* Month stat */}
-                <View style={{ flex: 1, paddingVertical: 20, paddingHorizontal: 16, alignItems: 'center' }}>
-                  <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '700', marginBottom: 6, letterSpacing: 0.8 }}>
+                <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center' }}>
+                  <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '700', marginBottom: 4, letterSpacing: 0.8 }}>
                     {'החודש'}
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                    <Text style={{ color: '#059669', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 38 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+                    <Text style={{ color: '#059669', fontSize: 28, fontWeight: '800', fontVariant: ['tabular-nums'], lineHeight: 32 }}>
                       {monthStats ? monthStats.totalHours.toFixed(1) : '0'}
                     </Text>
-                    <Text style={{ color: '#34D399', fontSize: 14, fontWeight: '700', marginBottom: 2 }}>{'שע׳'}</Text>
+                    <Text style={{ color: '#34D399', fontSize: 12, fontWeight: '700', marginBottom: 1 }}>{'שע׳'}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#86EFAC' }} />
-                    <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '500' }}>
+                  <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#86EFAC' }} />
+                    <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: '500' }}>
                       {`${monthStats?.workDaysCount ?? 0} ימים`}
                     </Text>
                   </View>
                   {dynamicMonthlyGross > 0 ? (
                     <Text style={{ color: '#059669', fontSize: 12, marginTop: 4, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
-                      {`נטו ${formatCurrency(homeTaxResult.finalTakeHome)}`}
+                      {formatCurrency(dynamicMonthlyGross)}
                     </Text>
                   ) : null}
                 </View>
               </View>
 
               {/* Progress bar toward monthly hour goal */}
-              {homeTaxResult.finalTakeHome > 0 ? (
-                <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+              {dynamicMonthlyGross > 0 ? (
+                <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
                   <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 4 }}>
                     <Text style={{ fontSize: 10, color: '#94A3B8' }}>{'ברוטו רגיל'}</Text>
                     <Text style={{ fontSize: 10, color: '#94A3B8', fontVariant: ['tabular-nums'] }}>
-                      {`${formatCurrency(dynamicMonthlyGross)} → נטו ${formatCurrency(homeTaxResult.finalTakeHome)}`}
+                      {formatCurrency(dynamicMonthlyGross)}
                     </Text>
                   </View>
-                  <View style={{ height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
+                  <View style={{ height: 3, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
                     <View style={{
-                      height: 4,
+                      height: 3,
                       borderRadius: 2,
                       backgroundColor: '#059669',
-                      width: dynamicMonthlyGross > 0
-                        ? `${Math.min(100, Math.round((homeTaxResult.finalTakeHome / dynamicMonthlyGross) * 100))}%`
-                        : '0%',
+                      width: '100%',
                     }} />
                   </View>
-                  <Text style={{ fontSize: 9, color: '#94A3B8', textAlign: 'right', marginTop: 3 }}>
-                    {`${Math.round(homeTaxResult.netToGrossRatio * 100)}% נטו מברוטו`}
-                  </Text>
                 </View>
               ) : null}
             </View>

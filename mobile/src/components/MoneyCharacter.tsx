@@ -43,9 +43,9 @@ export default function MoneyCharacter({ state = 'idle', size = 560 }: MoneyChar
   const opacity = useSharedValue(1);
   useEffect(() => {
     opacity.value = 0;
-    scale.value   = 0.88;
-    opacity.value = withTiming(1,   { duration: 260, easing: Easing.out(Easing.quad) });
-    scale.value   = withTiming(1,   { duration: 280, easing: Easing.out(Easing.back(1.4)) });
+    scale.value   = 0.90;
+    opacity.value = withTiming(1,   { duration: 160, easing: Easing.out(Easing.quad) });
+    scale.value   = withTiming(1,   { duration: 180, easing: Easing.out(Easing.back(1.6)) });
   }, [key]);
 
   const animStyle = useAnimatedStyle(() => ({
