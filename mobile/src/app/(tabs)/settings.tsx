@@ -8,13 +8,14 @@ import {
   Switch,
   ActivityIndicator,
   Modal,
+  Linking,
 } from 'react-native';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
-import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX } from 'lucide-react-native';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX, ExternalLink } from 'lucide-react-native';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useAuthUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
@@ -1423,32 +1424,43 @@ export default function SettingsScreen() {
 
         {/* Delete Account button — shown only for authenticated non-guest users */}
         {authToken && !authIsGuest ? (
-          <Animated.View entering={FadeInDown.delay(430).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <>
+            <Animated.View entering={FadeInDown.delay(430).duration(400)} style={{ marginHorizontal: 16, marginBottom: 8 }}>
+              <Pressable
+                testID="delete-account-button"
+                onPress={openDeleteModal}
+                style={({ pressed }) => ({
+                  backgroundColor: pressed ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.07)',
+                  borderRadius: 20,
+                  padding: 18,
+                  borderWidth: 1,
+                  borderColor: 'rgba(239,68,68,0.25)',
+                  flexDirection: 'row-reverse',
+                  alignItems: 'center',
+                  gap: 12,
+                })}
+              >
+                <UserX size={20} color="#EF4444" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#EF4444', textAlign: 'right' }}>
+                    {'מחיקת חשבון'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: 'rgba(239,68,68,0.6)', textAlign: 'right', marginTop: 2 }}>
+                    {'פעולה בלתי הפיכה — כל הנתונים יימחקו'}
+                  </Text>
+                </View>
+              </Pressable>
+            </Animated.View>
             <Pressable
-              testID="delete-account-button"
-              onPress={openDeleteModal}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.07)',
-                borderRadius: 20,
-                padding: 18,
-                borderWidth: 1,
-                borderColor: 'rgba(239,68,68,0.25)',
-                flexDirection: 'row-reverse',
-                alignItems: 'center',
-                gap: 12,
-              })}
+              testID="delete-account-web-link"
+              onPress={() => Linking.openURL((process.env.EXPO_PUBLIC_BACKEND_URL ?? '') + '/delete-account')}
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignItems: 'center', marginHorizontal: 16, marginBottom: 12 })}
             >
-              <UserX size={20} color="#EF4444" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#EF4444', textAlign: 'right' }}>
-                  {'מחיקת חשבון'}
-                </Text>
-                <Text style={{ fontSize: 11, color: 'rgba(239,68,68,0.6)', textAlign: 'right', marginTop: 2 }}>
-                  {'פעולה בלתי הפיכה — כל הנתונים יימחקו'}
-                </Text>
-              </View>
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                {'הצג הוראות מחיקה באינטרנט'}
+              </Text>
             </Pressable>
-          </Animated.View>
+          </>
         ) : null}
 
         {/* Delete Account Modal */}
@@ -1550,15 +1562,25 @@ export default function SettingsScreen() {
             {'מס 2026 | \u00A9 2026 WorkClock'}
           </Text>
           <View style={{ flexDirection: 'row-reverse', gap: 16, marginTop: 4 }}>
-            <Pressable
-              testID="privacy-link"
-              onPress={() => router.push('/privacy' as never)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-            >
-              <Text style={{ fontSize: 11, color: ACCENT_BLUE, fontWeight: '600' }}>
-                {'פרטיות ותנאי שימוש'}
-              </Text>
-            </Pressable>
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <Pressable
+                testID="privacy-link"
+                onPress={() => router.push('/privacy' as never)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              >
+                <Text style={{ fontSize: 11, color: ACCENT_BLUE, fontWeight: '600' }}>
+                  {'פרטיות ותנאי שימוש'}
+                </Text>
+              </Pressable>
+              <Pressable
+                testID="privacy-link-browser"
+                onPress={() => Linking.openURL((process.env.EXPO_PUBLIC_BACKEND_URL ?? '') + '/privacy')}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, flexDirection: 'row', alignItems: 'center', gap: 3 })}
+              >
+                <ExternalLink size={10} color="rgba(59,130,246,0.6)" />
+                <Text style={{ fontSize: 10, color: 'rgba(59,130,246,0.6)' }}>{'פתח בדפדפן'}</Text>
+              </Pressable>
+            </View>
             <Pressable
               testID="support-link"
               onPress={() => {

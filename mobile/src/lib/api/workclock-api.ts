@@ -12,32 +12,47 @@ interface ApiResponse<T> {
   data: T;
 }
 
+const AUTH_REQUEST_TIMEOUT_MS = 20_000;
+
 async function authRequest<T>(
   method: string,
   path: string,
   token: string,
   body?: Record<string, unknown>
 ): Promise<T> {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
 
-  if (response.status === 204) {
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal,
+    });
+
+    if (response.status === 204) {
+      return null as unknown as T;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      const json: ApiResponse<T> = await response.json();
+      return (json.data ?? null) as T;
+    }
+
     return null as unknown as T;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('הבקשה נכשלה: תם הזמן הקצוב. בדוק את החיבור לאינטרנט.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const contentType = response.headers.get('content-type');
-  if (contentType?.includes('application/json')) {
-    const json: ApiResponse<T> = await response.json();
-    return (json.data ?? null) as T;
-  }
-
-  return null as unknown as T;
 }
 
 // ─── Authenticated hooks ──────────────────────────────────────────────────────
@@ -68,7 +83,7 @@ export function useAuthActiveSession(token: string) {
     queryKey: ['user-active-session-v2', token],
     queryFn: () => authRequest<WorkSession | null>('GET', '/api/user/sessions/active', token),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 15000, // 15s for reliable multi-device sync
   });
 }
 

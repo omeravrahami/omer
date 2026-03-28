@@ -7,30 +7,46 @@ interface ApiResponse<T> {
 
 const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
 
+// Default request timeout in milliseconds
+const REQUEST_TIMEOUT_MS = 20_000;
+
 const request = async <T>(
   url: string,
   options: { method?: string; body?: string } = {}
 ): Promise<T> => {
-  const response = await fetch(`${baseUrl}${url}`, {
-    ...options,
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  // 1. Handle 204 No Content
-  if (response.status === 204) {
+  try {
+    const response = await fetch(`${baseUrl}${url}`, {
+      ...options,
+      headers: options.body ? { "Content-Type": "application/json" } : undefined,
+      signal: controller.signal,
+    });
+
+    // 1. Handle 204 No Content
+    if (response.status === 204) {
+      return null as unknown as T;
+    }
+
+    // 2. JSON responses: parse and unwrap { data }
+    const contentType = response.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      const json: ApiResponse<T> = await response.json();
+      // TanStack Query forbids undefined — coerce to null
+      return (json.data ?? null) as T;
+    }
+
+    // 3. Non-JSON: return null (undefined is forbidden by TanStack Query)
     return null as unknown as T;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("הבקשה נכשלה: תם הזמן הקצוב (timeout). בדוק את החיבור לאינטרנט.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  // 2. JSON responses: parse and unwrap { data }
-  const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
-    const json: ApiResponse<T> = await response.json();
-    // TanStack Query forbids undefined — coerce to null
-    return (json.data ?? null) as T;
-  }
-
-  // 3. Non-JSON: return null (undefined is forbidden by TanStack Query)
-  return null as unknown as T;
 };
 
 export const api = {
