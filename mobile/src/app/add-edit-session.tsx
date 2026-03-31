@@ -36,6 +36,7 @@ import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthCreateSession, useAuthEditSession } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatCurrency } from '@/lib/utils';
+import { markShiftCreatedAndCheckReview } from '@/lib/review-utils';
 
 // ─── Dark theme ───────────────────────────────────────────────────────────────
 
@@ -501,7 +502,11 @@ export default function AddEditSessionScreen() {
       createSession.mutate(
         { date: sessionDate, startTime: sTime.toISOString(), endTime: eTime.toISOString(), notes: notes.trim() || undefined, breaks: breakPayload },
         {
-          onSuccess: () => { showToast('הרשומה נשמרה בהצלחה!'); router.back(); },
+          onSuccess: () => {
+            showToast('הרשומה נשמרה בהצלחה!');
+            markShiftCreatedAndCheckReview().catch(() => null);
+            router.back();
+          },
           onError: (err: unknown) => { showToast(err instanceof Error ? err.message : 'שגיאה בשמירה, נסו שוב', 'error'); },
         }
       );

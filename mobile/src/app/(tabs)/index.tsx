@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -60,6 +61,8 @@ import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
 import MoneyCharacter, { type MoneyCharacterState } from '@/components/MoneyCharacter';
 import { InsightsCards } from '@/components/InsightsCards';
 import type { WorkSession } from '@/lib/types';
+import { checkAndClearPendingReview } from '@/lib/review-utils';
+import ReviewPromptModal from '@/components/ReviewPromptModal';
 
 // ─── WorkClock Logo ───────────────────────────────────────────────────────────
 
@@ -861,6 +864,18 @@ export default function DashboardScreen() {
     return () => clearInterval(iv);
   }, []);
 
+  const [showReview, setShowReview] = useState<boolean>(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkAndClearPendingReview().then((should) => {
+        if (should) {
+          setTimeout(() => setShowReview(true), 600);
+        }
+      }).catch(() => null);
+    }, [])
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: '#0B1020' }} testID="dashboard-screen">
       <ScrollView
@@ -1165,6 +1180,11 @@ export default function DashboardScreen() {
           </Animated.View>
       </View>
       </ScrollView>
+
+      <ReviewPromptModal
+        visible={showReview}
+        onClose={() => setShowReview(false)}
+      />
     </View>
   );
 }
