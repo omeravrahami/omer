@@ -8,6 +8,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { TAX_CONFIG, calcIsraeliTax } from '@/lib/utils/tax-calc';
 import { formatCurrency } from '@/lib/utils';
+import { useAuthStore } from '@/lib/state/auth-store';
+import { useAuthSessions } from '@/lib/api/workclock-api';
+import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
+import type { WorkSession } from '@/lib/types';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -142,28 +146,79 @@ function BracketRow({
 export default function TaxBracketsScreen() {
   const router = useRouter();
 
+  const token = useAuthStore((s) => s.token) ?? '';
+
+  const currentMonthKey = useMemo(() => new Date().toISOString().slice(0, 7), []);
+
+  const { data: currentMonthSessions } = useAuthSessions(token, currentMonthKey);
+
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
-  const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
+  const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
+  const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
+  const overtimeMode = useSettingsStore((s) => s.overtimeMode);
+  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
+  const trainingFundType = useSettingsStore((s) => s.trainingFundType);
+  const transportationValue = useSettingsStore((s) => s.transportationValue);
+  const transportationType = useSettingsStore((s) => s.transportationType);
+  const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
 
-  // Estimate monthly gross from hourly rate * ~186 hours
-  const estimatedMonthlyGross = useMemo(() => hourlyRate * 186, [hourlyRate]);
+  // Filter shifts — exclude sick/vacation
+  const currentMonthShifts = useMemo(
+    () => (currentMonthSessions ?? []).filter((s: WorkSession) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
+    [currentMonthSessions]
+  );
 
+  // Base gross (overtime-aware)
+  const baseMonthlyGross = useMemo(() => {
+    if (!overtimeEnabled) return currentMonthShifts.reduce((t: number, s: WorkSession) => t + (s.netMinutes / 60) * hourlyRate, 0);
+    if (overtimeMode === 'daily') return calcOvertimePayMonthly(currentMonthShifts, hourlyRate);
+    const totalNetMinutes = currentMonthShifts.reduce((t: number, s: WorkSession) => t + s.netMinutes, 0);
+    return calcOvertimePay(totalNetMinutes, hourlyRate, 'monthly');
+  }, [currentMonthShifts, hourlyRate, overtimeEnabled, overtimeMode]);
+
+  const oneTimeBonusTotal = useMemo(
+    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.type === 'bonus').reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditions, currentMonthKey]
+  );
+
+  const oneTimeGiftTotal = useMemo(
+    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.type === 'gift').reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditions, currentMonthKey]
+  );
+
+  const totalNetHours = useMemo(
+    () => currentMonthShifts.reduce((t: number, s: WorkSession) => t + s.netMinutes / 60, 0),
+    [currentMonthShifts]
+  );
+
+  // Full tax calculation using real session data
   const taxResult = useMemo(
-    () =>
-      calcIsraeliTax({
-        monthlyGross: estimatedMonthlyGross,
-        carBenefitMonthly,
-        carGrossupMonthly,
-        creditPoints: taxCreditPoints,
-      }),
-    [estimatedMonthlyGross, carBenefitMonthly, carGrossupMonthly, taxCreditPoints]
+    () => calcIsraeliTax({
+      monthlyGross: baseMonthlyGross,
+      carBenefitMonthly,
+      carGrossupMonthly,
+      creditPoints: taxCreditPoints,
+      trainingFundValue,
+      trainingFundType,
+      transportationValue,
+      transportationType,
+      oneTimeBonusTotal,
+      oneTimeGiftTotal,
+      employerPensionRate: employerPensionRate / 100,
+      totalHours: totalNetHours > 0 ? totalNetHours : undefined,
+    }),
+    [baseMonthlyGross, carBenefitMonthly, carGrossupMonthly, taxCreditPoints,
+     trainingFundValue, trainingFundType, transportationValue,
+     transportationType, oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate,
+     totalNetHours]
   );
 
   const annualTaxable = useMemo(
-    () => (estimatedMonthlyGross + carGrossupMonthly + carBenefitMonthly) * 12,
-    [estimatedMonthlyGross, carGrossupMonthly, carBenefitMonthly]
+    () => (baseMonthlyGross + carGrossupMonthly + carBenefitMonthly + oneTimeBonusTotal + oneTimeGiftTotal) * 12,
+    [baseMonthlyGross, carGrossupMonthly, carBenefitMonthly, oneTimeBonusTotal, oneTimeGiftTotal]
   );
 
   // Determine which bracket the user is in
@@ -246,7 +301,7 @@ export default function TaxBracketsScreen() {
             }}
           >
             <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 4 }}>
-              {'המשכורת החודשית המשוערת שלך (186 שעות)'}
+              {'המשכורת החודשית שלך החודש'}
             </Text>
             <Text style={{ fontSize: 28, fontWeight: '800', color: '#60A5FA', textAlign: 'right' }}>
               {formatCurrency(taxResult.regularGross)}
@@ -267,7 +322,7 @@ export default function TaxBracketsScreen() {
               </View>
               <View style={{ width: 1, backgroundColor: BORDER }} />
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>{'נטו משוער'}</Text>
+                <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>{'נטו'}</Text>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: '#4ADE80', marginTop: 2 }}>
                   {formatCurrency(taxResult.netPay)}
                 </Text>
@@ -346,7 +401,7 @@ export default function TaxBracketsScreen() {
         </Animated.View>
 
         <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', textAlign: 'right', marginTop: 8 }}>
-          {'הערכה בלבד לפי נתוני רשות המסים 2026. אינו תחליף לייעוץ מס.'}
+          {'לפי נתוני רשות המסים 2026. אינו תחליף לייעוץ מס.'}
         </Text>
       </ScrollView>
     </SafeAreaView>
