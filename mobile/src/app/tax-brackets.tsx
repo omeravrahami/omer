@@ -145,6 +145,7 @@ export default function TaxBracketsScreen() {
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
+  const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
 
   // Estimate monthly gross from hourly rate * ~186 hours
   const estimatedMonthlyGross = useMemo(() => hourlyRate * 186, [hourlyRate]);
@@ -154,14 +155,15 @@ export default function TaxBracketsScreen() {
       calcIsraeliTax({
         monthlyGross: estimatedMonthlyGross,
         carBenefitMonthly,
+        carGrossupMonthly,
         creditPoints: taxCreditPoints,
       }),
-    [estimatedMonthlyGross, carBenefitMonthly, taxCreditPoints]
+    [estimatedMonthlyGross, carBenefitMonthly, carGrossupMonthly, taxCreditPoints]
   );
 
   const annualTaxable = useMemo(
-    () => (estimatedMonthlyGross + carBenefitMonthly) * 12,
-    [estimatedMonthlyGross, carBenefitMonthly]
+    () => (estimatedMonthlyGross + carGrossupMonthly + carBenefitMonthly) * 12,
+    [estimatedMonthlyGross, carGrossupMonthly, carBenefitMonthly]
   );
 
   // Determine which bracket the user is in
@@ -247,7 +249,7 @@ export default function TaxBracketsScreen() {
               {'המשכורת החודשית המשוערת שלך (186 שעות)'}
             </Text>
             <Text style={{ fontSize: 28, fontWeight: '800', color: '#60A5FA', textAlign: 'right' }}>
-              {formatCurrency(estimatedMonthlyGross)}
+              {formatCurrency(taxResult.regularGross)}
             </Text>
             <View style={{ flexDirection: 'row-reverse', gap: 16, marginTop: 12 }}>
               <View style={{ alignItems: 'flex-end' }}>
