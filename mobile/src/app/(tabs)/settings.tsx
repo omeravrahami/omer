@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   Modal,
   Linking,
+  Platform,
 } from 'react-native';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
-import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX, ExternalLink } from 'lucide-react-native';
+import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX, ExternalLink, Star } from 'lucide-react-native';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
 import { useAuthUpdateSettings } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
