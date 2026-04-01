@@ -28,6 +28,7 @@ import {
   getSmartTips,
   TAX_CONFIG,
 } from '@/lib/utils/tax-calc';
+import { calcRegionalTax } from '@/lib/utils/regional-tax-engine';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import { TAG_COLORS, type SalaryTag } from '@/lib/utils/salary-engine';
 
@@ -939,6 +940,7 @@ export default function ReportsScreen() {
   const overtimeMode        = useSettingsStore((s) => s.overtimeMode);
   const oneTimeAdditions    = useSettingsStore((s) => s.oneTimeAdditions);
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
+  const region = useSettingsStore((s) => s.region);
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
@@ -982,7 +984,8 @@ export default function ReportsScreen() {
   }, [totalNetHours, hourlyRate, overtimeEnabled, overtimeMode, shiftSessions]);
 
   const taxResult = useMemo(
-    () => calcIsraeliTax({
+    () => calcRegionalTax({
+      region: (region as 'IL' | 'US' | 'UK' | 'EU') || 'IL',
       monthlyGross: currentMonthlyGross,
       carBenefitMonthly,
       creditPoints: taxCreditPoints,
@@ -997,7 +1000,7 @@ export default function ReportsScreen() {
       employerPensionRate: employerPensionRate / 100,
       totalHours: totalNetHours > 0 ? totalNetHours : undefined,
     }),
-    [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
+    [region, currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
      trainingFundType, transportationValue, transportationType, carGrossupMonthly,
      oneTimeBonusTotal, oneTimeGiftTotal, oneTimePensionTotal, employerPensionRate, totalNetHours]
   );
@@ -1031,7 +1034,8 @@ export default function ReportsScreen() {
     [oneTimeAdditions, lastMonth]
   );
   const lastMonthTax = useMemo(
-    () => calcIsraeliTax({
+    () => calcRegionalTax({
+      region: (region as 'IL' | 'US' | 'UK' | 'EU') || 'IL',
       monthlyGross: lastMonthGross,
       carBenefitMonthly,
       creditPoints: taxCreditPoints,
@@ -1045,7 +1049,7 @@ export default function ReportsScreen() {
       oneTimePensionTotal: lastMonthPensionTotal,
       employerPensionRate: employerPensionRate / 100,
     }),
-    [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
+    [region, lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
      trainingFundType, transportationValue, transportationType, carGrossupMonthly,
      lastMonthBonusTotal, lastMonthGiftTotal, lastMonthPensionTotal, employerPensionRate]
   );

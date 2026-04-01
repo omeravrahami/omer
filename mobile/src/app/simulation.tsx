@@ -21,6 +21,7 @@ import {
   simulateExtraHours,
   getBracketInfo,
 } from '@/lib/utils/tax-calc';
+import { calcRegionalTax } from '@/lib/utils/regional-tax-engine';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 
 const HOUR_STEPS = [5, 10, 15, 20, 30, 40];
@@ -43,6 +44,7 @@ export default function SimulationScreen() {
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
   const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const region = useSettingsStore((s) => s.region);
 
   const currentMonthKey = useMemo(() => {
     const n = new Date();
@@ -108,14 +110,33 @@ export default function SimulationScreen() {
   ]);
 
   const currentTaxResult = useMemo(
-    () => calcIsraeliTax({ ...taxContext, monthlyGross: baseMonthlyGross }),
-    [taxContext, baseMonthlyGross]
+    () => calcRegionalTax({ region: (region as 'IL' | 'US' | 'UK' | 'EU') || 'IL', ...taxContext, monthlyGross: baseMonthlyGross }),
+    [region, taxContext, baseMonthlyGross]
   );
 
-  const simResult = useMemo(
-    () => simulateExtraHours(baseMonthlyGross, selectedHours, hourlyRate, taxContext),
-    [baseMonthlyGross, selectedHours, hourlyRate, taxContext]
-  );
+  const simResult = useMemo(() => {
+    if (region === 'IL' || !region) {
+      return simulateExtraHours(baseMonthlyGross, selectedHours, hourlyRate, taxContext);
+    }
+    // For non-IL: simple linear approximation
+    const extraGross = selectedHours * hourlyRate;
+    const newGross = baseMonthlyGross + extraGross;
+    const newTax = calcRegionalTax({ region: (region as 'IL' | 'US' | 'UK' | 'EU'), ...taxContext, monthlyGross: newGross });
+    const baseTax = currentTaxResult;
+    return {
+      extraGross,
+      extraNet: newTax.finalTakeHome - baseTax.finalTakeHome,
+      newMonthlyGross: newGross,
+      newNetPay: newTax.finalTakeHome,
+      extraTax: newTax.incomeTax - baseTax.incomeTax,
+      marginalRate: extraGross > 0 ? ((newTax.incomeTax - baseTax.incomeTax) / extraGross) * 100 : 0,
+      currentBracket: { label: '', nextRate: 0, remainingInBracket: 0 },
+      wouldCrossBracket: false,
+      regularGross: newTax.regularGross,
+      finalTakeHome: newTax.finalTakeHome,
+      bracketCrossed: false,
+    };
+  }, [region, baseMonthlyGross, selectedHours, hourlyRate, taxContext, currentTaxResult]);
 
   const impact = useMemo(
     () => calcExtraHoursImpact(baseMonthlyGross, hourlyRate, selectedHours),

@@ -22,6 +22,7 @@ export interface RegionalTaxInput {
   carGrossupMonthly?: number;
   oneTimeBonusTotal?: number;
   oneTimeGiftTotal?: number;
+  oneTimePensionTotal?: number;
   employerPensionRate?: number;
   // US specific
   filingStatus?: 'single' | 'married' | 'head_of_household';
@@ -67,6 +68,7 @@ export function calcRegionalTax(input: RegionalTaxInput): RegionalTaxResult {
         carGrossupMonthly: input.carGrossupMonthly,
         oneTimeBonusTotal: input.oneTimeBonusTotal,
         oneTimeGiftTotal: input.oneTimeGiftTotal,
+        oneTimePensionTotal: input.oneTimePensionTotal,
         employerPensionRate: input.employerPensionRate,
         totalHours: input.totalHours,
       };

@@ -56,6 +56,7 @@ import {
   getSmartTips,
   type TaxResult,
 } from '@/lib/utils/tax-calc';
+import { calcRegionalTax, type RegionalTaxInput } from '@/lib/utils/regional-tax-engine';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
 import MoneyCharacter, { type MoneyCharacterState } from '@/components/MoneyCharacter';
@@ -796,6 +797,7 @@ export default function DashboardScreen() {
   const transportationValueHome = useSettingsStore((s) => s.transportationValue);
   const transportationTypeHome  = useSettingsStore((s) => s.transportationType);
   const employerPensionRateHome = useSettingsStore((s) => s.employerPensionRate);
+  const regionHome = useSettingsStore((s) => s.region);
 
   // Filter shifts — same as reports page
   const currentMonthShifts = useMemo(
@@ -831,7 +833,8 @@ export default function DashboardScreen() {
 
   // Full tax calculation — same inputs as reports page
   const homeTaxResult = useMemo(
-    () => calcIsraeliTax({
+    () => calcRegionalTax({
+      region: (regionHome as 'IL' | 'US' | 'UK' | 'EU') || 'IL',
       monthlyGross: baseMonthlyGross,
       carBenefitMonthly: carBenefitHome,
       carGrossupMonthly: carGrossupHome,
@@ -842,13 +845,12 @@ export default function DashboardScreen() {
       transportationType: transportationTypeHome,
       oneTimeBonusTotal: oneTimeBonusTotalHome,
       oneTimeGiftTotal: oneTimeGiftTotalHome,
-      oneTimePensionTotal: oneTimePensionTotalHome,
       employerPensionRate: employerPensionRateHome / 100,
       totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
     }),
-    [baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
+    [regionHome, baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
      trainingFundValueHome, trainingFundTypeHome, transportationValueHome,
-     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, oneTimePensionTotalHome, employerPensionRateHome,
+     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome,
      totalNetHoursHome]
   );
 
