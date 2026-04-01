@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useSettingsStore } from './settings-store';
+import { crashReporter } from '@/lib/crash-reporter';
 
 export interface AuthUser {
   id: string;
@@ -51,13 +52,17 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isGuest: false,
 
-      setAuth: (token, user) => set({ token, user, isGuest: false }),
+      setAuth: (token, user) => {
+        crashReporter.setUser(user.id);
+        set({ token, user, isGuest: false });
+      },
 
       setUser: (user) => set({ user }),
 
       setGuest: () => set({ token: null, user: null, isGuest: true }),
 
       logout: () => {
+        crashReporter.setUser(null);
         // Clear user-specific financial data for privacy
         useSettingsStore.getState().clearUserData();
         set({ token: null, user: null, isGuest: false });

@@ -53,6 +53,14 @@ export const adminMiddleware = createMiddleware<{ Variables: AdminVariables }>(
       );
     }
 
+    // Block suspended or inactive accounts (even admins)
+    if (session.user.status === "SUSPENDED" || session.user.status === "DISABLED") {
+      return c.json(
+        { error: { message: "Account suspended", code: "ACCOUNT_SUSPENDED" } },
+        401
+      );
+    }
+
     if (session.user.role !== "ADMIN") {
       return c.json(
         { error: { message: "Forbidden: admin access required", code: "FORBIDDEN" } },
