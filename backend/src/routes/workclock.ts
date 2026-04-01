@@ -127,7 +127,7 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
   const [userSettings, userRecord] = await Promise.all([
     db.userSettings.findUnique({
       where: { userId },
-      select: { isPremium: true, subscriptionStatus: true },
+      select: { isPremium: true, subscriptionStatus: true, subscriptionEndDate: true },
     }),
     db.user.findUnique({
       where: { id: userId },
@@ -135,7 +135,9 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
     }),
   ]);
 
-  const isPremium = userSettings?.isPremium ?? false;
+  const now = new Date();
+  const isPremium = (userSettings?.isPremium ?? false) &&
+    (!userSettings?.subscriptionEndDate || userSettings.subscriptionEndDate > now);
   const isAdmin = userRecord?.role === 'ADMIN';
   const hasFullAccess = isPremium || isAdmin;
 
@@ -212,6 +214,26 @@ workclockRoutes.get('/api/user/sessions/months', authMiddleware, async (c) => {
     return c.json({ data: { months } });
   } catch {
     return c.json({ error: { message: 'Failed to fetch months' } }, 500);
+  }
+});
+
+// DELETE /api/user/account — permanently delete user account and all data (GDPR)
+workclockRoutes.delete("/api/user/account", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+  try {
+    // Delete all user data in dependency order
+    await db.$transaction([
+      db.breakSession.deleteMany({
+        where: { workSession: { userId } },
+      }),
+      db.workSession.deleteMany({ where: { userId } }),
+      db.userSettings.deleteMany({ where: { userId } }),
+      db.passwordResetToken.deleteMany({ where: { userId } }),
+      db.user.delete({ where: { id: userId } }),
+    ]);
+    return c.json({ data: { success: true } });
+  } catch (e) {
+    return c.json({ error: { message: "שגיאה במחיקת החשבון", code: "DELETE_FAILED" } }, 500);
   }
 });
 
@@ -306,29 +328,38 @@ workclockRoutes.post(
       return c.json({ data: final }, 201);
     }
 
-    // Live session start
-    const existing = await db.workSession.findFirst({
-      where: { userId, status: "active" },
-    });
-    if (existing) {
-      return c.json(
-        { error: { message: "כבר קיימת משמרת פעילה. סיים אותה לפני שתתחיל חדשה", code: "ACTIVE_SESSION_EXISTS" } },
-        400
-      );
+    // Live session start — use transaction to prevent race condition
+    let session;
+    try {
+      session = await db.$transaction(async (tx) => {
+        const existing = await tx.workSession.findFirst({
+          where: { userId, status: "active" },
+        });
+        if (existing) {
+          throw Object.assign(new Error("ACTIVE_SESSION_EXISTS"), { code: "ACTIVE_SESSION_EXISTS" });
+        }
+        return tx.workSession.create({
+          data: {
+            userId,
+            date,
+            startTime,
+            workplaceName: body.workplaceName ?? "",
+            notes: body.notes ?? "",
+            sessionType,
+            status: "active",
+          },
+          include: { breaks: true },
+        });
+      });
+    } catch (e: unknown) {
+      if (e instanceof Error && (e as any).code === "ACTIVE_SESSION_EXISTS") {
+        return c.json(
+          { error: { message: "כבר קיימת משמרת פעילה. סיים אותה לפני שתתחיל חדשה", code: "ACTIVE_SESSION_EXISTS" } },
+          400
+        );
+      }
+      throw e;
     }
-
-    const session = await db.workSession.create({
-      data: {
-        userId,
-        date,
-        startTime,
-        workplaceName: body.workplaceName ?? "",
-        notes: body.notes ?? "",
-        sessionType,
-        status: "active",
-      },
-      include: { breaks: true },
-    });
     return c.json({ data: session }, 201);
   }
 );

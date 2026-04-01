@@ -13,8 +13,20 @@ interface RateLimitConfig {
 function createRateLimiter(config: RateLimitConfig) {
   const store = new Map<string, RateLimitEntry>();
 
+  // Cleanup expired entries every 5 minutes (prevent memory leak)
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of store.entries()) {
+      if (now > entry.resetAt) store.delete(key);
+    }
+  }, 5 * 60 * 1000);
+  // Don't hold process open
+  if (typeof cleanupInterval === 'object' && 'unref' in cleanupInterval) {
+    (cleanupInterval as NodeJS.Timeout).unref?.();
+  }
+
   function cleanup() {
-    if (store.size > 1000) {
+    if (store.size > 500) {
       const now = Date.now();
       for (const [key, entry] of store.entries()) {
         if (now > entry.resetAt) {

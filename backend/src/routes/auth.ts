@@ -397,12 +397,13 @@ authRoutes.post(
     });
 
     const resetToken = randomBytes(32).toString("hex");
+    const hashedToken = createHash("sha256").update(resetToken).digest("hex");
     const expiresAt = new Date(Date.now() + ONE_HOUR_MS);
 
     await db.passwordResetToken.create({
       data: {
         userId: user.id,
-        token: resetToken,
+        token: hashedToken,
         type: "password_reset",
         expiresAt,
       },
@@ -446,8 +447,9 @@ authRoutes.post(
   async (c) => {
     const { token, newPassword } = c.req.valid("json");
 
+    const hashedToken = createHash("sha256").update(token).digest("hex");
     const resetToken = await db.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: hashedToken },
     });
 
     if (!resetToken || resetToken.type !== "password_reset") {
@@ -768,12 +770,13 @@ authRoutes.post("/send-verification", authMiddleware, async (c) => {
   });
 
   const verifyToken = randomBytes(32).toString("hex");
+  const hashedVerifyToken = createHash("sha256").update(verifyToken).digest("hex");
   const expiresAt = new Date(Date.now() + SIX_HOURS_MS);
 
   await db.passwordResetToken.create({
     data: {
       userId,
-      token: verifyToken,
+      token: hashedVerifyToken,
       type: "email_verification",
       expiresAt,
     },
@@ -808,7 +811,8 @@ authRoutes.post(
   async (c) => {
     const { token } = c.req.valid("json");
 
-    const record = await db.passwordResetToken.findUnique({ where: { token } });
+    const hashedToken = createHash("sha256").update(token).digest("hex");
+    const record = await db.passwordResetToken.findUnique({ where: { token: hashedToken } });
 
     if (!record || record.type !== "email_verification") {
       return c.json(

@@ -17,8 +17,6 @@ import {
   Server,
   ChevronLeft,
   Settings2,
-  Download,
-  MessageSquare,
   Database,
   CheckCircle,
   ClipboardList,
@@ -416,83 +414,6 @@ export default function AdminDashboard() {
             ) : null}
           </>
         ) : null}
-
-        {/* Quick Actions */}
-        <Animated.View entering={FadeInDown.delay(460).duration(400)} style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10, letterSpacing: 0.4 }}>
-            {'פעולות מהירות'}
-          </Text>
-          <View style={{ gap: 8 }}>
-            <Pressable
-              testID="export-users-button"
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                showToast('ייצוא רשימת משתמשים בקרוב');
-              }}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.07)',
-                borderRadius: 14,
-                padding: 14,
-                borderWidth: 1,
-                borderColor: 'rgba(34,197,94,0.2)',
-                flexDirection: 'row-reverse',
-                alignItems: 'center',
-                gap: 12,
-              })}
-            >
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <Download size={17} color="#22C55E" />
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#22C55E' }}>{'ייצוא רשימת משתמשים'}</Text>
-            </Pressable>
-
-            <Pressable
-              testID="broadcast-message-button"
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                showToast('שליחת הודעה לכולם — בקרוב');
-              }}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? 'rgba(96,165,250,0.12)' : 'rgba(96,165,250,0.07)',
-                borderRadius: 14,
-                padding: 14,
-                borderWidth: 1,
-                borderColor: 'rgba(96,165,250,0.2)',
-                flexDirection: 'row-reverse',
-                alignItems: 'center',
-                gap: 12,
-              })}
-            >
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(96,165,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <MessageSquare size={17} color={ACCENT} />
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: ACCENT }}>{'שלח הודעה לכולם'}</Text>
-            </Pressable>
-
-            <Pressable
-              testID="backup-button"
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                showToast('גיבוי נתונים — בקרוב');
-              }}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? 'rgba(167,139,250,0.12)' : 'rgba(167,139,250,0.07)',
-                borderRadius: 14,
-                padding: 14,
-                borderWidth: 1,
-                borderColor: 'rgba(167,139,250,0.2)',
-                flexDirection: 'row-reverse',
-                alignItems: 'center',
-                gap: 12,
-              })}
-            >
-              <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                <Database size={17} color="#A78BFA" />
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#A78BFA' }}>{'גיבוי נתונים'}</Text>
-            </Pressable>
-          </View>
-        </Animated.View>
 
         {/* Quick links */}
         <Animated.View entering={FadeInDown.delay(500).duration(400)}>

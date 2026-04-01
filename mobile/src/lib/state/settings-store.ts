@@ -64,13 +64,14 @@ interface SettingsState {
   oneTimeAdditions: OneTimeAddition[];
   employerPensionRate: number;
 
-  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition'>>) => void;
+  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition' | 'clearUserData'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
   addDeduction: (d: Omit<Deduction, 'id'>) => void;
   removeDeduction: (id: string) => void;
   updateDeduction: (id: string, partial: Partial<Omit<Deduction, 'id'>>) => void;
   addOneTimeAddition: (a: Omit<OneTimeAddition, 'id'>) => void;
   removeOneTimeAddition: (id: string) => void;
+  clearUserData: () => void;
 }
 
 let _idSeq = Date.now();
@@ -128,6 +129,13 @@ export const useSettingsStore = create<SettingsState>()(
 
       removeOneTimeAddition: (id) =>
         set((s) => ({ oneTimeAdditions: s.oneTimeAdditions.filter((a) => a.id !== id) })),
+
+      clearUserData: () => set({
+        oneTimeAdditions: [],
+        isPremium: false,
+        subscriptionStatus: 'free',
+        planType: 'free',
+      }),
     }),
     {
       name: 'workclock-settings',

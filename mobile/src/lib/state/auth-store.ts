@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { useSettingsStore } from './settings-store';
 
 export interface AuthUser {
   id: string;
@@ -56,7 +57,11 @@ export const useAuthStore = create<AuthState>()(
 
       setGuest: () => set({ token: null, user: null, isGuest: true }),
 
-      logout: () => set({ token: null, user: null, isGuest: false }),
+      logout: () => {
+        // Clear user-specific financial data for privacy
+        useSettingsStore.getState().clearUserData();
+        set({ token: null, user: null, isGuest: false });
+      },
 
       isAuthenticated: () => {
         const state = get();

@@ -798,6 +798,7 @@ export default function DashboardScreen() {
   const transportationTypeHome  = useSettingsStore((s) => s.transportationType);
   const employerPensionRateHome = useSettingsStore((s) => s.employerPensionRate);
   const regionHome = useSettingsStore((s) => s.region);
+  const isPremiumHome = useSettingsStore((s) => s.isPremium);
 
   // Filter shifts — same as reports page
   const currentMonthShifts = useMemo(
@@ -845,17 +846,20 @@ export default function DashboardScreen() {
       transportationType: transportationTypeHome,
       oneTimeBonusTotal: oneTimeBonusTotalHome,
       oneTimeGiftTotal: oneTimeGiftTotalHome,
+      oneTimePensionTotal: oneTimePensionTotalHome,
       employerPensionRate: employerPensionRateHome / 100,
       totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
     }),
     [regionHome, baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
      trainingFundValueHome, trainingFundTypeHome, transportationValueHome,
-     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome,
-     totalNetHoursHome]
+     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, oneTimePensionTotalHome,
+     employerPensionRateHome, totalNetHoursHome]
   );
 
   // Keep for display (ברוטו רגיל = regularGross — cash components)
   const dynamicMonthlyGross = homeTaxResult.regularGross;
+
+  const showEstimateWarning = (regionHome !== 'IL') && (homeTaxResult as any).isEstimate;
 
   // Keep weekStats for the week column
   const { data: monthStats } = useAuthStats(token, 'month');
@@ -1029,6 +1033,11 @@ export default function DashboardScreen() {
               <Text style={{ color: '#22C55E', fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>
                 {formatCurrency(homeTaxResult.finalTakeHome)}
               </Text>
+              {showEstimateWarning ? (
+                <View style={{ backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4, alignSelf: 'flex-start' }}>
+                  <Text style={{ fontSize: 10, color: '#F59E0B' }}>{'הערכה בלבד — לא כולל מיסי מדינה/עירייה'}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         ) : null}
@@ -1186,9 +1195,11 @@ export default function DashboardScreen() {
           </Animated.View>
 
           {/* Ad Banner */}
-          <Animated.View entering={FadeInUp.delay(300).duration(400)}>
-            <AdBanner />
-          </Animated.View>
+          {!isPremiumHome && (
+            <Animated.View entering={FadeInUp.delay(300).duration(400)}>
+              <AdBanner />
+            </Animated.View>
+          )}
       </View>
       </ScrollView>
 
