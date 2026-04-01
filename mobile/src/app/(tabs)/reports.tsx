@@ -21,6 +21,7 @@ import {
 } from 'lucide-react-native';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
 import { useAuthSessions } from '@/lib/api/workclock-api';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -1017,21 +1018,27 @@ function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => v
 
 function MonthSlider({
   todayMonth,
+  availableMonths,
   selectedMonth,
   onSelect,
   maxMonthsBack,
 }: {
   todayMonth: string;
+  availableMonths: string[];
   selectedMonth: string;
   onSelect: (month: string) => void;
   maxMonthsBack: number;
 }) {
-  const allMonths = useMemo(() => generateMonths(todayMonth, 24), [todayMonth]);
+  const allMonths = useMemo(() => availableMonths, [availableMonths]);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const handleSelect = useCallback((month: string, index: number) => {
-    const isLocked = index >= maxMonthsBack;
+    // Lock based on how far back this month is from today (in months)
+    const [ty, tm] = todayMonth.split('-').map(Number);
+    const [my, mm] = month.split('-').map(Number);
+    const monthsBack = ((ty ?? 2026) - (my ?? 2026)) * 12 + ((tm ?? 1) - (mm ?? 1));
+    const isLocked = monthsBack >= maxMonthsBack;
     if (isLocked) {
       setShowUpgrade(true);
       return;
@@ -1197,6 +1204,30 @@ export default function ReportsScreen() {
 
   const todayMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+
+  // Fetch months that actually have session data
+  const { data: monthsData } = useQuery({
+    queryKey: ['session-months', token, todayMonth],
+    queryFn: async () => {
+      if (!token) return { months: [todayMonth] };
+      const resp = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/user/sessions/months`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!resp.ok) return { months: [todayMonth] };
+      const json = await resp.json() as { data: { months: string[] } };
+      return json.data;
+    },
+    enabled: !!token,
+    staleTime: 60_000,
+  });
+
+  const availableMonths = useMemo(() => {
+    const base = monthsData?.months ?? [todayMonth];
+    // Always include today's month
+    if (!base.includes(todayMonth)) return [todayMonth, ...base];
+    return base;
+  }, [monthsData, todayMonth]);
 
   const oneTimeBonusTotal = useMemo(
     () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
@@ -1372,6 +1403,7 @@ export default function ReportsScreen() {
         {/* Month Slider */}
         <MonthSlider
           todayMonth={todayMonth}
+          availableMonths={availableMonths}
           selectedMonth={selectedMonth}
           onSelect={setSelectedMonth}
           maxMonthsBack={maxMonthsBack}

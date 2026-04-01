@@ -189,6 +189,32 @@ workclockRoutes.get("/api/user/sessions/active", authMiddleware, async (c) => {
   return c.json({ data: session });
 });
 
+// GET /api/user/sessions/months - returns distinct months with session data
+workclockRoutes.get('/api/user/sessions/months', authMiddleware, async (c) => {
+  const userId = c.get('userId');
+  try {
+    const sessions = await db.workSession.findMany({
+      where: { userId },
+      select: { date: true },
+      orderBy: { date: 'desc' },
+    });
+    // Extract unique YYYY-MM keys
+    const monthSet = new Set<string>();
+    for (const s of sessions) {
+      const m = s.date.slice(0, 7);
+      monthSet.add(m);
+    }
+    // Always include current month
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    monthSet.add(currentMonth);
+    const months = Array.from(monthSet).sort().reverse();
+    return c.json({ data: { months } });
+  } catch {
+    return c.json({ error: { message: 'Failed to fetch months' } }, 500);
+  }
+});
+
 // POST /api/user/sessions — create a new work session for authenticated user
 workclockRoutes.post(
   "/api/user/sessions",
