@@ -24,6 +24,7 @@ import { useToastStore } from '@/lib/state/toast-store';
 import { fetch } from 'expo/fetch';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
+import { applyLanguageDirection } from '@/lib/i18n';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
 
@@ -1805,6 +1806,15 @@ export default function SettingsScreen() {
                   setPendingLanguage(null);
                   await i18next.changeLanguage(lang);
                   save({ language: lang });
+                  const needsReload = applyLanguageDirection(lang);
+                  if (needsReload) {
+                    showToast(
+                      lang === 'he'
+                        ? 'נדרש אתחול האפליקציה לשינוי כיוון'
+                        : 'Restart the app to apply direction change',
+                      'info'
+                    );
+                  }
                 }}
                 style={{ flex: 1, backgroundColor: ACCENT_BLUE, borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
                 testID="confirm-language-button"

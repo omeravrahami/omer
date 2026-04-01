@@ -47,15 +47,16 @@ export function formatHours(minutes: number): string {
   return `${h}:${String(Math.round(m)).padStart(2, '0')}`;
 }
 
-export function formatCurrency(amount: number, currency: string = 'ILS'): string {
+export function formatCurrency(amount: number, currency: string = 'ILS', locale?: string): string {
+  const resolvedLocale = locale ?? (currency === 'USD' ? 'en-US' : currency === 'GBP' ? 'en-GB' : 'he-IL');
   try {
-    return new Intl.NumberFormat('he-IL', {
+    return new Intl.NumberFormat(resolvedLocale, {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
     }).format(amount);
   } catch {
-    return `${Math.round(amount)} \u20AA`;
+    return `${Math.round(amount)} ${currency}`;
   }
 }
 

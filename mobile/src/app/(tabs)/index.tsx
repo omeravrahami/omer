@@ -57,7 +57,7 @@ import {
   getSmartTips,
   type TaxResult,
 } from '@/lib/utils/tax-calc';
-import { calcRegionalTax, type RegionalTaxInput } from '@/lib/utils/regional-tax-engine';
+import { calcRegionalTax, getRegionCurrency, type RegionalTaxInput } from '@/lib/utils/regional-tax-engine';
 import { calcOvertimePay, calcOvertimePayMonthly } from '@/lib/utils/overtime-calc';
 import { AdBanner as AdBannerComponent } from '@/components/ads/AdBanner';
 import MoneyCharacter, { type MoneyCharacterState } from '@/components/MoneyCharacter';
@@ -390,6 +390,8 @@ function MonthlySalaryCard({
   carGrossupMonthly,
   bonusAdditions,
   giftAdditions,
+  region,
+  currency,
 }: {
   baseGross: number;
   taxResult: TaxResult;
@@ -397,12 +399,26 @@ function MonthlySalaryCard({
   carGrossupMonthly: number;
   bonusAdditions: OneTimeAddition[];
   giftAdditions: OneTimeAddition[];
+  region?: string;
+  currency?: string;
 }) {
   const router = useRouter();
   if (taxResult.taxableGross <= 0 && baseGross <= 0) return null;
 
   const regularGross = taxResult.regularGross;
   const taxableGross = taxResult.taxableGross;
+
+  const isIL = !region || region === 'IL';
+  const isUK = region === 'UK';
+  // Deduction label mapping
+  const incomeLabel = isIL ? 'מס הכנסה' : isUK ? 'Income Tax' : 'Federal Tax';
+  const socialLabel = isIL ? 'ביטוח לאומי' : isUK ? 'National Insurance' : 'Social Security';
+  const healthLabel = isIL ? 'ביטוח בריאות' : isUK ? null : 'Medicare';
+  // Summary label mapping
+  const grossLabel = isIL ? 'ברוטו רגיל' : 'Gross Pay';
+  const taxableLabel = isIL ? 'ברוטו למס' : 'Taxable';
+  const netLabel = isIL ? 'נטו לקבלה' : 'Take Home';
+  const netBeforeLabel = isIL ? 'נטו לפני נסיעות' : 'Net (before transport)';
 
   type RowKind = 'income' | 'deduction' | 'neutral' | 'total';
 
@@ -422,9 +438,9 @@ function MonthlySalaryCard({
   ];
 
   const deductionRows: { label: string; value: number; kind: RowKind; icon: string }[] = [
-    { label: 'מס הכנסה', value: taxResult.incomeTax, kind: 'deduction', icon: '📊' },
-    { label: 'ביטוח לאומי', value: taxResult.nationalInsurance, kind: 'deduction', icon: '🏥' },
-    { label: 'ביטוח בריאות', value: taxResult.healthInsurance, kind: 'deduction', icon: '💊' },
+    { label: incomeLabel, value: taxResult.incomeTax, kind: 'deduction', icon: '📊' },
+    { label: socialLabel, value: taxResult.nationalInsurance, kind: 'deduction', icon: '🏥' },
+    ...(healthLabel && taxResult.healthInsurance > 0 ? [{ label: healthLabel, value: taxResult.healthInsurance, kind: 'deduction' as RowKind, icon: '💊' }] : []),
     ...(taxResult.trainingFundDeduction > 0
       ? [{ label: 'קרן השתלמות', value: taxResult.trainingFundDeduction, kind: 'deduction' as RowKind, icon: '🏦' }]
       : []),
@@ -442,7 +458,7 @@ function MonthlySalaryCard({
           </View>
         </View>
         <Text style={{ fontSize: 13, fontWeight: '700', color, fontVariant: ['tabular-nums'] }}>
-          {kind === 'deduction' ? `-${formatCurrency(value)}` : formatCurrency(value)}
+          {kind === 'deduction' ? `-${formatCurrency(value, currency ?? 'ILS')}` : formatCurrency(value, currency ?? 'ILS')}
         </Text>
       </View>
     );
@@ -484,16 +500,16 @@ function MonthlySalaryCard({
       {/* 3-pill stat strip */}
       <View style={{ flexDirection: 'row-reverse', gap: 8, marginBottom: 14 }}>
         <View style={{ flex: 1, backgroundColor: 'rgba(59,130,246,0.05)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(59,130,246,0.1)' }}>
-          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{'ברוטו רגיל'}</Text>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(96,165,250,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{grossLabel}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(96,165,250,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross, currency ?? 'ILS')}</Text>
         </View>
         <View style={{ flex: 1, backgroundColor: 'rgba(245,158,11,0.05)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(245,158,11,0.1)' }}>
-          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{'ברוטו למס'}</Text>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(245,158,11,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+          <Text style={{ fontSize: 9, color: 'rgba(148,163,184,0.7)', marginBottom: 3 }}>{taxableLabel}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(245,158,11,0.6)', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross, currency ?? 'ILS')}</Text>
         </View>
         <View style={{ flex: 1.4, backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(34,197,94,0.2)' }}>
-          <Text style={{ fontSize: 9, color: '#86EFAC', marginBottom: 3, fontWeight: '700' }}>{'נטו לקבלה'}</Text>
-          <Text style={{ fontSize: 14, fontWeight: '800', color: '#22c55e', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>{formatCurrency(taxResult.finalTakeHome)}</Text>
+          <Text style={{ fontSize: 9, color: '#86EFAC', marginBottom: 3, fontWeight: '700' }}>{netLabel}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '800', color: '#22c55e', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>{formatCurrency(taxResult.finalTakeHome, currency ?? 'ILS')}</Text>
         </View>
       </View>
 
@@ -502,8 +518,8 @@ function MonthlySalaryCard({
 
       {/* ברוטו רגיל summary line */}
       <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4 }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>{'= ברוטו רגיל'}</Text>
-        <Text style={{ fontSize: 14, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross)}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#60A5FA', textAlign: 'right' }}>{`= ${grossLabel}`}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '800', color: '#60A5FA', fontVariant: ['tabular-nums'] }}>{formatCurrency(regularGross, currency ?? 'ILS')}</Text>
       </View>
 
       {/* Tax-only additions */}
@@ -523,13 +539,13 @@ function MonthlySalaryCard({
                     {r.sub ? <Text style={{ fontSize: 10, color: '#F59E0B', textAlign: 'right', marginTop: 1 }}>{r.sub}</Text> : null}
                   </View>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(r.value)}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(r.value, currency ?? 'ILS')}</Text>
               </View>
             ))}
           </View>
           <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>{'= ברוטו למס'}</Text>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross)}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#F59E0B', textAlign: 'right' }}>{`= ${taxableLabel}`}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: '#F59E0B', fontVariant: ['tabular-nums'] }}>{formatCurrency(taxableGross, currency ?? 'ILS')}</Text>
           </View>
         </>
       ) : null}
@@ -542,9 +558,9 @@ function MonthlySalaryCard({
       {/* Net pay subtotal */}
       <Divider />
       <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 }}>
-        <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>{'נטו לפני נסיעות'}</Text>
+        <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'right' }}>{netBeforeLabel}</Text>
         <Text style={{ fontSize: 13, fontWeight: '700', color: '#F0F6FF', fontVariant: ['tabular-nums'] }}>
-          {formatCurrency(taxResult.netPay)}
+          {formatCurrency(taxResult.netPay, currency ?? 'ILS')}
         </Text>
       </View>
 
@@ -556,7 +572,7 @@ function MonthlySalaryCard({
             <Text style={{ fontSize: 13, color: '#CBD5E1' }}>{'נסיעות / החזר'}</Text>
           </View>
           <Text style={{ fontSize: 13, fontWeight: '700', color: '#22C55E', fontVariant: ['tabular-nums'] }}>
-            {`+${formatCurrency(taxResult.transportationAllowance)}`}
+            {`+${formatCurrency(taxResult.transportationAllowance, currency ?? 'ILS')}`}
           </Text>
         </View>
       ) : null}
@@ -573,9 +589,9 @@ function MonthlySalaryCard({
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#F0F6FF' }}>{'נטו לקבלה'}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#F0F6FF' }}>{netLabel}</Text>
         <Text style={{ fontSize: 22, fontWeight: '800', color: '#22c55e', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }}>
-          {formatCurrency(taxResult.finalTakeHome)}
+          {formatCurrency(taxResult.finalTakeHome, currency ?? 'ILS')}
         </Text>
       </View>
 
@@ -936,7 +952,7 @@ export default function DashboardScreen() {
                     textShadowOffset: { width: 0, height: 0 },
                     textShadowRadius: 6,
                   }}>
-                    {formatCurrency(homeTaxResult.finalTakeHome)}
+                    {formatCurrency(homeTaxResult.finalTakeHome, getRegionCurrency(regionHome as any))}
                   </Text>
                   <View style={{ width: 1, height: 20, backgroundColor: 'rgba(255,255,255,0.1)' }} />
                   <Text style={{
@@ -1014,7 +1030,7 @@ export default function DashboardScreen() {
                 {'ברוטו'}
               </Text>
               <Text style={{ color: '#60A5FA', fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
-                {formatCurrency(dynamicMonthlyGross)}
+                {formatCurrency(dynamicMonthlyGross, getRegionCurrency(regionHome as any))}
               </Text>
             </View>
             {/* Net pill */}
@@ -1032,11 +1048,15 @@ export default function DashboardScreen() {
                 {'נטו לקבלה'}
               </Text>
               <Text style={{ color: '#22C55E', fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(34,197,94,0.4)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8 }}>
-                {formatCurrency(homeTaxResult.finalTakeHome)}
+                {formatCurrency(homeTaxResult.finalTakeHome, getRegionCurrency(regionHome as any))}
               </Text>
               {showEstimateWarning ? (
                 <View style={{ backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4, alignSelf: 'flex-start' }}>
-                  <Text style={{ fontSize: 10, color: '#F59E0B' }}>{'הערכה בלבד — לא כולל מיסי מדינה/עירייה'}</Text>
+                  <Text style={{ fontSize: 10, color: '#F59E0B' }}>
+                    {regionHome === 'UK'
+                      ? 'PAYE estimate — actual depends on tax code'
+                      : 'Federal estimate — state/local taxes excluded'}
+                  </Text>
                 </View>
               ) : null}
             </View>
@@ -1116,6 +1136,8 @@ export default function DashboardScreen() {
             carGrossupMonthly={carGrossupHome}
             bonusAdditions={oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'bonus')}
             giftAdditions={oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'gift')}
+            region={regionHome}
+            currency={getRegionCurrency(regionHome as any)}
           />
 
           {/* Insights cards — shown when there is monthly data */}
