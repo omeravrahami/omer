@@ -40,6 +40,10 @@ const DEFAULT_CONFIGS = [
   { key: "vat_rate", value: "18", description: "Israeli VAT percentage" },
   { key: "app_name", value: "WorkClock", description: "Application name" },
   { key: "support_email", value: "support@workclock.app", description: "Support email address" },
+  { key: "premium_enabled", value: "true", description: "Enable premium subscription features" },
+  { key: "retention_months_free", value: "3", description: "Months of history available to free users" },
+  { key: "premium_price_monthly", value: "9.99", description: "Monthly premium subscription price" },
+  { key: "ads_enabled", value: "true", description: "Enable ads for free users" },
 ];
 
 adminPublicRoutes.post(
@@ -250,6 +254,15 @@ adminRoutes.get("/users/:id", async (c) => {
       createdAt: true,
       lastLoginAt: true,
       isEmailVerified: true,
+      settings: {
+        select: {
+          isPremium: true,
+          subscriptionStatus: true,
+          subscriptionStartDate: true,
+          subscriptionEndDate: true,
+          planType: true,
+        },
+      },
       sessions: {
         orderBy: { lastSeenAt: "desc" },
         take: 5,
@@ -557,6 +570,79 @@ adminRoutes.delete("/users/:id", async (c) => {
   });
 
   return new Response(null, { status: 204 });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/users/:userId/subscription — manually set premium status
+// ---------------------------------------------------------------------------
+
+adminRoutes.patch(
+  "/users/:userId/subscription",
+  zValidator("json", z.object({
+    isPremium: z.boolean(),
+    subscriptionStatus: z.enum(["free", "active", "expired", "trial", "canceled"]).optional(),
+    planType: z.enum(["free", "monthly", "yearly"]).optional(),
+    subscriptionEndDate: z.string().datetime().optional().nullable(),
+  })),
+  async (c) => {
+    const { userId } = c.req.param();
+    const { isPremium, subscriptionStatus, planType, subscriptionEndDate } = c.req.valid("json");
+
+    const updated = await db.userSettings.upsert({
+      where: { userId },
+      update: {
+        isPremium,
+        subscriptionStatus: subscriptionStatus ?? (isPremium ? "active" : "free"),
+        planType: planType ?? (isPremium ? "monthly" : "free"),
+        subscriptionStartDate: isPremium ? new Date() : null,
+        subscriptionEndDate: subscriptionEndDate ? new Date(subscriptionEndDate) : null,
+      },
+      create: {
+        userId,
+        isPremium,
+        subscriptionStatus: subscriptionStatus ?? (isPremium ? "active" : "free"),
+        planType: planType ?? (isPremium ? "monthly" : "free"),
+      },
+    });
+
+    return c.json({ data: updated });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/admin/subscriptions/stats — premium stats overview
+// ---------------------------------------------------------------------------
+
+adminRoutes.get("/subscriptions/stats", async (c) => {
+  const [totalUsers, premiumUsers, freeUsers] = await Promise.all([
+    db.user.count(),
+    db.userSettings.count({ where: { isPremium: true } }),
+    db.userSettings.count({ where: { isPremium: false } }),
+  ]);
+
+  const recentPremium = await db.userSettings.findMany({
+    where: { isPremium: true },
+    include: { user: { select: { email: true, username: true } } },
+    orderBy: { subscriptionStartDate: "desc" },
+    take: 10,
+  });
+
+  return c.json({
+    data: {
+      totalUsers,
+      premiumUsers,
+      freeUsers,
+      conversionRate: totalUsers > 0 ? (premiumUsers / totalUsers * 100).toFixed(1) : "0",
+      recentPremium: recentPremium.map(s => ({
+        userId: s.userId,
+        email: s.user.email,
+        username: s.user.username,
+        startDate: s.subscriptionStartDate,
+        endDate: s.subscriptionEndDate,
+        planType: s.planType,
+      })),
+    },
+  });
 });
 
 // ---------------------------------------------------------------------------

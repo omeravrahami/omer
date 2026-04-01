@@ -123,7 +123,27 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
   const month = c.req.query("month");
   const status = c.req.query("status");
 
-  const where: Record<string, unknown> = { userId };
+  // Get user settings including premium status
+  const userSettings = await db.userSettings.findUnique({
+    where: { userId },
+    select: { isPremium: true, subscriptionStatus: true },
+  });
+
+  const isPremium = userSettings?.isPremium ?? false;
+
+  let dateFilter: Record<string, unknown> = {};
+  if (!isPremium) {
+    const retentionConfig = await db.appConfig.findUnique({
+      where: { key: "retention_months_free" },
+    });
+    const retentionMonths = parseInt(retentionConfig?.value ?? "3", 10);
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
+    const cutoffDateStr = cutoffDate.toISOString().split("T")[0]; // YYYY-MM-DD
+    dateFilter = { date: { gte: cutoffDateStr } };
+  }
+
+  const where: Record<string, unknown> = { userId, ...dateFilter };
   if (month) {
     where.date = { startsWith: month };
   }
@@ -136,7 +156,7 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
     include: { breaks: true },
     orderBy: { startTime: "desc" },
   });
-  return c.json({ data: sessions });
+  return c.json({ data: { sessions, isDataRestricted: !isPremium } });
 });
 
 // GET /api/user/sessions/active — get active session for authenticated user

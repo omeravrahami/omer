@@ -24,6 +24,10 @@ interface SettingsState {
   currency: string;
   language: string;
   taxCountry: string;
+  region: string;
+  isPremium: boolean;
+  subscriptionStatus: string;
+  planType: string;
   dailyGoalHours: number;
   weeklyGoalHours: number;
   defaultBreakMinutes: number;
@@ -65,6 +69,10 @@ export const useSettingsStore = create<SettingsState>()(
       currency: 'ILS',
       language: 'he',
       taxCountry: 'IL',
+      region: 'IL',
+      isPremium: false,
+      subscriptionStatus: 'free',
+      planType: 'free',
       dailyGoalHours: 8,
       weeklyGoalHours: 40,
       defaultBreakMinutes: 30,

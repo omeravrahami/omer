@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Shield, ShieldOff, LogOut, Key, ChevronLeft, Smartphone, Trash2, CheckCircle, XCircle } from 'lucide-react-native';
+import { Shield, ShieldOff, LogOut, Key, ChevronLeft, Smartphone, Trash2, CheckCircle, XCircle, Crown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/admin-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { useAuthStore } from '@/lib/state/auth-store';
+import { fetch } from 'expo/fetch';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -32,6 +33,7 @@ const BORDER = 'rgba(255,255,255,0.08)';
 const TEXT_PRIMARY = '#F0F6FF';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.45)';
 const ACCENT = '#60A5FA';
+const GOLD = '#F59E0B';
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: '#34D399',
@@ -153,12 +155,23 @@ function ConfirmModal({ visible, title, message, confirmLabel, onConfirm, onCanc
   );
 }
 
+const baseAdminUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+
+interface UserSubscription {
+  isPremium: boolean;
+  subscriptionStatus: string;
+  planType: string;
+  subscriptionStartDate: string | null;
+  subscriptionEndDate: string | null;
+}
+
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const showToast = useToastStore((s) => s.showToast);
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const token = useAuthStore((s) => s.token);
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
@@ -234,6 +247,47 @@ export default function UserDetailScreen() {
     },
     onError: (e: Error) => {
       showToast(e.message ?? 'שגיאה במחיקה', 'error');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    },
+  });
+
+  const { data: subData, refetch: refetchSub } = useQuery<UserSubscription | null>({
+    queryKey: ['admin', 'user-subscription', id, token],
+    queryFn: async () => {
+      if (!id || !token) return null;
+      const response = await fetch(`${baseAdminUrl}/api/admin/users/${id}/subscription`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) return null;
+      const json = await response.json() as { data: UserSubscription };
+      return json.data ?? null;
+    },
+    enabled: !!id && !!token,
+  });
+
+  const subMut = useMutation({
+    mutationFn: (action: 'grant' | 'revoke') =>
+      fetch(`${baseAdminUrl}/api/admin/users/${id ?? ''}/subscription`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action }),
+      }).then(async (r) => {
+        const json = await r.json() as { data: UserSubscription; error?: { message: string } };
+        if (!r.ok) throw new Error(json.error?.message ?? 'שגיאה');
+        return json.data;
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user-subscription', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'subscription-stats'] });
+      refetchSub();
+      showToast('מנוי עודכן', 'success');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (e: Error) => {
+      showToast(e.message ?? 'שגיאה בעדכון מנוי', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     },
   });
@@ -572,6 +626,96 @@ export default function UserDetailScreen() {
             </View>
           </Animated.View>
         ) : null}
+
+        {/* Section: מנוי */}
+        <Animated.View
+          entering={FadeInDown.delay(290).duration(400)}
+          style={{
+            backgroundColor: BG_CARD,
+            borderRadius: 20,
+            padding: 20,
+            borderWidth: 1,
+            borderColor: BORDER,
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 14, letterSpacing: 0.4 }}>
+            {'מנוי'}
+          </Text>
+
+          {/* Status badge row */}
+          <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+              <Crown size={18} color={subData?.isPremium ? GOLD : TEXT_SECONDARY} />
+              <Text style={{ fontSize: 15, fontWeight: '700', color: subData?.isPremium ? GOLD : TEXT_SECONDARY }}>
+                {subData?.isPremium ? 'פרמיום' : 'חינמי'}
+              </Text>
+            </View>
+            {subData?.isPremium ? (
+              <View
+                style={{
+                  backgroundColor: 'rgba(245,158,11,0.12)',
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderWidth: 1,
+                  borderColor: 'rgba(245,158,11,0.3)',
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: GOLD }}>{subData.planType === 'monthly' ? 'חודשי' : subData.planType}</Text>
+              </View>
+            ) : (
+              <View
+                style={{
+                  backgroundColor: 'rgba(148,163,184,0.1)',
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderWidth: 1,
+                  borderColor: 'rgba(148,163,184,0.2)',
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: TEXT_SECONDARY }}>{'Free'}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Expiry info */}
+          {subData?.subscriptionEndDate ? (
+            <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 14 }}>
+              {`תפוגה: ${new Date(subData.subscriptionEndDate).toLocaleDateString('he-IL')}`}
+            </Text>
+          ) : null}
+
+          {/* Grant / Revoke button */}
+          <Pressable
+            testID={subData?.isPremium ? 'revoke-premium-btn' : 'grant-premium-btn'}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              subMut.mutate(subData?.isPremium ? 'revoke' : 'grant');
+            }}
+            disabled={subMut.isPending}
+            style={({ pressed }) => ({
+              backgroundColor: subData?.isPremium
+                ? (pressed ? 'rgba(248,113,113,0.15)' : 'rgba(248,113,113,0.08)')
+                : (pressed ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.1)'),
+              borderRadius: 12,
+              paddingVertical: 12,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: subData?.isPremium ? 'rgba(248,113,113,0.3)' : 'rgba(245,158,11,0.3)',
+              opacity: subMut.isPending ? 0.6 : 1,
+            })}
+          >
+            {subMut.isPending ? (
+              <ActivityIndicator color={subData?.isPremium ? '#F87171' : GOLD} size="small" />
+            ) : (
+              <Text style={{ fontSize: 14, fontWeight: '700', color: subData?.isPremium ? '#F87171' : GOLD }}>
+                {subData?.isPremium ? 'בטל מנוי פרמיום' : 'הענק מנוי פרמיום'}
+              </Text>
+            )}
+          </Pressable>
+        </Animated.View>
 
         {/* Section 4: פעולות */}
         <Animated.View entering={FadeInDown.delay(320).duration(400)}>

@@ -15,10 +15,11 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ChevronLeft, ChevronRight, Clock, Calendar, Pencil, Plus, Heart, Sun, Share2 } from 'lucide-react-native';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
-import { useAuthSessions, useAuthDeleteSessionById } from '@/lib/api/workclock-api';
+import { useAuthSessionsData, useAuthDeleteSessionById } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { formatTime, formatCurrency, getHebrewMonthYear, getMonthKey } from '@/lib/utils';
 import { calcOvertimePay } from '@/lib/utils/overtime-calc';
+import { LockedHistoryBanner } from '@/components/LockedHistoryBanner';
 import type { WorkSession } from '@/lib/types';
 
 // ─── Dark theme ───────────────────────────────────────────────────────────────
@@ -113,11 +114,22 @@ export default function HistoryScreen() {
   const showToast = useToastStore((s) => s.showToast);
   const currency = useSettingsStore((s) => s.currency);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
+  const isPremium = useSettingsStore((s) => s.isPremium);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
 
-  const { data: sessions, isLoading } = useAuthSessions(token, monthKey);
+  // Free plan: only allow viewing 3 months back from today
+  const isMonthLocked = useMemo(() => {
+    if (isPremium) return false;
+    const today = new Date();
+    const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    const viewingDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    return viewingDate < threeMonthsAgo;
+  }, [isPremium, currentDate]);
+
+  const { data: sessionsData, isLoading } = useAuthSessionsData(token, monthKey);
+  const sessions: WorkSession[] = sessionsData?.sessions ?? [];
   const deleteSession = useAuthDeleteSessionById(token);
 
   const navigateMonth = (dir: number) => {
@@ -281,12 +293,15 @@ export default function HistoryScreen() {
           </Animated.View>
         )}
 
+        {/* Locked month banner for free users */}
+        <LockedHistoryBanner visible={isMonthLocked} />
+
         {/* Session List */}
         {isLoading ? (
           <View style={{ paddingVertical: 48, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={ACCENT_BLUE} testID="loading-indicator" />
           </View>
-        ) : sortedDates.length === 0 ? (
+        ) : isMonthLocked ? null : sortedDates.length === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={{ alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: BG_CARD, alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: BORDER }}>
               <Calendar size={28} color={TEXT_SECONDARY} />

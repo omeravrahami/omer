@@ -18,9 +18,10 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX, ExternalLink, Star } from 'lucide-react-native';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
-import { useAuthUpdateSettings } from '@/lib/api/workclock-api';
+import { useAuthUpdateSettings, useSubscriptionStatus } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { fetch } from 'expo/fetch';
+import { useTranslation } from 'react-i18next';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ function NumericInput({
   onCommit: (n: number) => void;
   testID?: string;
 }) {
+  const { t } = useTranslation();
   const [local, setLocal] = useState(String(storeValue));
   const [saved, setSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,7 +148,7 @@ function NumericInput({
           style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}
         >
           <Check size={13} color="#22C55E" />
-          <Text style={{ fontSize: 11, color: '#22C55E', fontWeight: '700' }}>{'נשמר'}</Text>
+          <Text style={{ fontSize: 11, color: '#22C55E', fontWeight: '700' }}>{t('settings.saved_indicator')}</Text>
         </Animated.View>
       ) : null}
       <Animated.View style={[{ borderRadius: 12, borderWidth: 1.5 }, animBorderStyle]}>
@@ -931,6 +933,7 @@ function OvertimeSection() {
 export default function SettingsScreen() {
   const router = useRouter();
   const showToast = useToastStore((s) => s.showToast);
+  const { t } = useTranslation();
 
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const currency = useSettingsStore((s) => s.currency);
@@ -944,6 +947,7 @@ export default function SettingsScreen() {
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const isPremium = useSettingsStore((s) => s.isPremium);
 
   const authToken = useAuthStore((s) => s.token) ?? '';
   const authIsGuest = useAuthStore((s) => s.isGuest);
@@ -951,6 +955,20 @@ export default function SettingsScreen() {
   const authUserRole = useAuthStore((s) => s.user?.role);
   const authUser = useAuthStore((s) => s.user);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
+
+  // Sync subscription status from API
+  const token = useAuthStore((s) => s.token);
+  const { data: subStatus } = useSubscriptionStatus(token);
+
+  useEffect(() => {
+    if (subStatus) {
+      updateSettings({
+        isPremium: subStatus.isPremium,
+        subscriptionStatus: subStatus.subscriptionStatus,
+        planType: subStatus.planType,
+      });
+    }
+  }, [subStatus, updateSettings]);
 
   // Delete account modal state
   const [deleteModalVisible, setDeleteModalVisible] = useState<boolean>(false);
@@ -1311,29 +1329,36 @@ export default function SettingsScreen() {
         {/* Premium */}
         <Animated.View entering={FadeInDown.delay(400).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
           <Pressable
-            onPress={() => router.push('/premium' as never)}
+            onPress={() => !isPremium && router.push('/premium' as never)}
+            disabled={isPremium}
             style={{
-              backgroundColor: 'rgba(245,158,11,0.1)',
+              backgroundColor: isPremium ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
               borderRadius: 20,
               padding: 20,
               borderWidth: 1,
-              borderColor: 'rgba(245,158,11,0.25)',
+              borderColor: isPremium ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)',
             }}
             testID="premium-link"
           >
             <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
-                <Crown size={24} color="#F59E0B" />
+                <Crown size={24} color={isPremium ? '#22C55E' : '#F59E0B'} />
                 <View>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FCD34D', textAlign: 'right' }}>
-                    {'WorkClock'}
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: isPremium ? '#34D399' : '#FCD34D', textAlign: 'right' }}>
+                    {isPremium ? t('settings.premium_active') : t('settings.upgrade_to_premium')}
                   </Text>
-                  <Text style={{ fontSize: 12, color: 'rgba(252,211,77,0.6)', textAlign: 'right', marginTop: 2 }}>
-                    {'גישה לכל התכונות — בחינם'}
-                  </Text>
+                  {isPremium ? (
+                    <View style={{ backgroundColor: 'rgba(34,197,94,0.15)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, alignSelf: 'flex-end' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#22C55E' }}>{t('premium.subscription_active')}</Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: 'rgba(252,211,77,0.6)', textAlign: 'right', marginTop: 2 }}>
+                      {t('premium.subtitle')}
+                    </Text>
+                  )}
                 </View>
               </View>
-              <ChevronLeft size={18} color="#F59E0B" />
+              {!isPremium ? <ChevronLeft size={18} color="#F59E0B" /> : null}
             </View>
           </Pressable>
         </Animated.View>

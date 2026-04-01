@@ -63,6 +63,10 @@ export default function AdminLayout() {
         name="health"
         options={{ title: 'בריאות המערכת', headerBackTitle: 'חזרה' }}
       />
+      <Stack.Screen
+        name="subscriptions"
+        options={{ title: 'מנויים', headerBackTitle: 'חזרה' }}
+      />
     </Stack>
   );
 }

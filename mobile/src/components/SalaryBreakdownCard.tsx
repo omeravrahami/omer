@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { formatCurrency } from '@/lib/utils';
 import type { SalaryBreakdown } from '@/lib/utils/salary-engine';
 import { TAG_COLORS, type SalaryTag } from '@/lib/utils/salary-engine';
+import { getRegionCurrencySymbol, type Region } from '@/lib/utils/regional-tax-engine';
+import { useTranslation } from 'react-i18next';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -12,6 +14,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 interface SalaryBreakdownCardProps {
   breakdown: SalaryBreakdown;
+  region?: Region;
 }
 
 function TagPill({ tag }: { tag: string }) {
@@ -34,13 +37,54 @@ function TagPill({ tag }: { tag: string }) {
   );
 }
 
-export function SalaryBreakdownCard({ breakdown }: SalaryBreakdownCardProps) {
+export function SalaryBreakdownCard({ breakdown, region = 'IL' }: SalaryBreakdownCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { t, i18n } = useTranslation();
+  const isNonIL = region !== 'IL';
+  const isRTL = i18n.language === 'he';
 
   const handleToggle = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded((prev) => !prev);
   }, []);
+
+  // Region-specific label helpers
+  const incomeTaxLabel = isNonIL
+    ? region === 'US'
+      ? t('us_salary.federal_income_tax')
+      : t('uk_salary.income_tax')
+    : t('salary.income_tax');
+
+  const niLabel = isNonIL
+    ? region === 'US'
+      ? t('us_salary.social_security')
+      : t('uk_salary.national_insurance')
+    : t('salary.national_insurance');
+
+  const healthLabel = isNonIL
+    ? region === 'US'
+      ? t('us_salary.medicare')
+      : t('salary.health_insurance')
+    : t('salary.health_insurance');
+
+  const grossLabel = isNonIL
+    ? region === 'US' ? t('us_salary.gross') : t('uk_salary.gross')
+    : t('salary.regular_gross');
+
+  const taxGrossLabel = isNonIL
+    ? region === 'US' ? t('us_salary.gross') : t('uk_salary.gross')
+    : t('salary.taxable_gross');
+
+  const netLabel = isNonIL
+    ? region === 'US' ? t('us_salary.net') : t('uk_salary.net')
+    : t('salary.net_pay');
+
+  const currencySymbol = getRegionCurrencySymbol(region);
+
+  const formatAmt = (amount: number) => {
+    if (region === 'IL') return formatCurrency(amount);
+    return `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  };
 
   return (
     <View
@@ -69,20 +113,20 @@ export function SalaryBreakdownCard({ breakdown }: SalaryBreakdownCardProps) {
         }}
       >
         <HeaderCell
-          label={'ברוטו רגיל'}
-          value={formatCurrency(breakdown.regularGross)}
+          label={grossLabel}
+          value={formatAmt(breakdown.regularGross)}
           valueColor={'#2563EB'}
         />
         <View style={{ width: 1, backgroundColor: 'rgba(0,0,0,0.06)' }} />
         <HeaderCell
-          label={'ברוטו למס'}
-          value={formatCurrency(breakdown.taxGross)}
+          label={taxGrossLabel}
+          value={formatAmt(breakdown.taxGross)}
           valueColor={'#D97706'}
         />
         <View style={{ width: 1, backgroundColor: 'rgba(0,0,0,0.06)' }} />
         <HeaderCell
-          label={'נטו'}
-          value={formatCurrency(breakdown.netSalary)}
+          label={netLabel}
+          value={formatAmt(breakdown.netSalary)}
           valueColor={'#059669'}
         />
       </View>
@@ -101,11 +145,11 @@ export function SalaryBreakdownCard({ breakdown }: SalaryBreakdownCardProps) {
         })}
       >
         <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
-          {'פרטי רכיבים'}
+          {isRTL ? 'פרטי רכיבים' : 'Breakdown Details'}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Text style={{ fontSize: 12, color: '#64748B' }}>
-            {expanded ? 'סגור' : `${breakdown.components.length} רכיבים`}
+            {expanded ? (isRTL ? 'סגור' : 'Close') : `${breakdown.components.length} ${isRTL ? 'רכיבים' : 'items'}`}
           </Text>
           {expanded
             ? <ChevronUp size={16} color="#64748B" strokeWidth={2.5} />
@@ -155,7 +199,7 @@ export function SalaryBreakdownCard({ breakdown }: SalaryBreakdownCardProps) {
                     marginLeft: 8,
                   }}
                 >
-                  {formatCurrency(component.amount)}
+                  {formatAmt(component.amount)}
                 </Text>
               </View>
 
@@ -202,25 +246,50 @@ export function SalaryBreakdownCard({ breakdown }: SalaryBreakdownCardProps) {
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#475569', textAlign: 'right', marginBottom: 10 }}>
-              {'סיכום ניכויים'}
+              {isRTL ? 'סיכום ניכויים' : 'Deductions Summary'}
             </Text>
-            <DeductionRow label={'מס הכנסה'} value={breakdown.incomeTax} color={'#DC2626'} />
-            <DeductionRow label={'ביטוח לאומי'} value={breakdown.nationalInsurance} color={'#D97706'} />
-            <DeductionRow label={'מס בריאות'} value={breakdown.healthInsurance} color={'#7C3AED'} />
+            <DeductionRow label={incomeTaxLabel} value={breakdown.incomeTax} color={'#DC2626'} formatAmt={formatAmt} />
+            <DeductionRow label={niLabel} value={breakdown.nationalInsurance} color={'#D97706'} formatAmt={formatAmt} />
+            {!isNonIL || region === 'US' ? (
+              <DeductionRow label={healthLabel} value={breakdown.healthInsurance} color={'#7C3AED'} formatAmt={formatAmt} />
+            ) : null}
             <View style={{ height: 1, backgroundColor: 'rgba(0,0,0,0.08)', marginVertical: 8 }} />
             <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{'סך ניכויים'}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {isRTL ? 'סך ניכויים' : 'Total Deductions'}
+              </Text>
               <Text style={{ fontSize: 13, fontWeight: '800', color: '#DC2626', fontVariant: ['tabular-nums'] }}>
-                {`-${formatCurrency(breakdown.totalDeductions)}`}
+                {`-${formatAmt(breakdown.totalDeductions)}`}
               </Text>
             </View>
             <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginTop: 6 }}>
-              <Text style={{ fontSize: 11, color: '#94A3B8' }}>{'שיעור ניכוי אפקטיבי'}</Text>
+              <Text style={{ fontSize: 11, color: '#94A3B8' }}>
+                {isRTL ? 'שיעור ניכוי אפקטיבי' : 'Effective Tax Rate'}
+              </Text>
               <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B', fontVariant: ['tabular-nums'] }}>
                 {`${Math.round(breakdown.effectiveRate)}%`}
               </Text>
             </View>
           </View>
+
+          {/* Estimate disclaimer for non-IL regions */}
+          {isNonIL ? (
+            <View
+              style={{
+                marginHorizontal: 12,
+                marginBottom: 8,
+                padding: 12,
+                borderRadius: 10,
+                backgroundColor: 'rgba(245,158,11,0.06)',
+                borderWidth: 1,
+                borderColor: 'rgba(245,158,11,0.15)',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#92400E', textAlign: isRTL ? 'right' : 'left', lineHeight: 16 }}>
+                {t('tax_region.estimate_disclaimer')}
+              </Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -250,13 +319,13 @@ function HeaderCell({ label, value, valueColor }: { label: string; value: string
   );
 }
 
-function DeductionRow({ label, value, color }: { label: string; value: number; color: string }) {
+function DeductionRow({ label, value, color, formatAmt }: { label: string; value: number; color: string; formatAmt: (n: number) => string }) {
   if (value <= 0) return null;
   return (
     <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', marginBottom: 6 }}>
       <Text style={{ fontSize: 12, color: '#64748B' }}>{label}</Text>
       <Text style={{ fontSize: 12, fontWeight: '700', color, fontVariant: ['tabular-nums'] }}>
-        {`-${formatCurrency(value)}`}
+        {`-${formatAmt(value)}`}
       </Text>
     </View>
   );

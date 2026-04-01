@@ -7,6 +7,7 @@ import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
 import { legalRoutes } from "./routes/legal";
+import subscriptionRouter from "./routes/subscription";
 import { httpLogger, logger } from "./lib/logger";
 
 const app = new Hono();
@@ -51,6 +52,8 @@ app.route("/api/auth", authRoutes);
 // Public admin routes (no auth) must be mounted before protected ones
 app.route("/api/admin", adminPublicRoutes);
 app.route("/api/admin", adminRoutes);
+// Subscription routes
+app.route("/api/subscription", subscriptionRouter);
 // Public legal pages (privacy policy, delete account)
 app.route("", legalRoutes);
 

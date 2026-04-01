@@ -65,12 +65,37 @@ export interface EditSessionPayload {
   breaks: Array<{ startTime: string; endTime: string }>;
 }
 
+export interface SessionsResponse {
+  sessions: WorkSession[];
+  isDataRestricted: boolean;
+}
+
+// Returns just the sessions array (backward-compatible); isDataRestricted is in the raw query below.
 export function useAuthSessions(token: string, month?: string) {
   return useQuery({
     queryKey: ['user-sessions-v2', token, month ?? 'all'],
-    queryFn: () => {
+    queryFn: async () => {
       const params = month ? `?month=${month}` : '';
-      return authRequest<WorkSession[]>('GET', `/api/user/sessions${params}`, token);
+      const result = await authRequest<SessionsResponse | WorkSession[]>('GET', `/api/user/sessions${params}`, token);
+      // Unwrap to plain array so all existing callers keep working
+      if (Array.isArray(result)) return result;
+      return result?.sessions ?? [];
+    },
+    enabled: !!token,
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
+// Returns the full { sessions, isDataRestricted } shape for components that need it.
+export function useAuthSessionsData(token: string, month?: string) {
+  return useQuery({
+    queryKey: ['user-sessions-full-v2', token, month ?? 'all'],
+    queryFn: async () => {
+      const params = month ? `?month=${month}` : '';
+      const result = await authRequest<SessionsResponse | WorkSession[]>('GET', `/api/user/sessions${params}`, token);
+      if (Array.isArray(result)) return { sessions: result, isDataRestricted: false } as SessionsResponse;
+      return (result ?? { sessions: [], isDataRestricted: false }) as SessionsResponse;
     },
     enabled: !!token,
     staleTime: 0,
@@ -241,5 +266,43 @@ export function useAuthCreateDayRecord(token: string) {
       qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
+  });
+}
+
+// ─── Subscription hooks ───────────────────────────────────────────────────────
+
+export interface SubscriptionStatus {
+  isPremium: boolean;
+  subscriptionStatus: string;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
+  planType: string;
+}
+
+export interface SubscriptionConfig {
+  premium_price_monthly: string;
+  premium_enabled: string;
+  retention_months_free: string;
+  ads_enabled: string;
+}
+
+export function useSubscriptionStatus(token: string | null) {
+  return useQuery({
+    queryKey: ['subscription', 'status', token],
+    queryFn: () => authRequest<SubscriptionStatus>('GET', '/api/subscription/status', token!),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000, // 5 min
+  });
+}
+
+export function useSubscriptionConfig() {
+  return useQuery({
+    queryKey: ['subscription', 'config'],
+    queryFn: async () => {
+      const response = await fetch(`${baseUrl}/api/subscription/config`);
+      const json = await response.json() as { data: SubscriptionConfig };
+      return json.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 min
   });
 }
