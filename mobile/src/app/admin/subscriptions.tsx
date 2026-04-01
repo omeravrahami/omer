@@ -24,7 +24,7 @@ interface SubscriptionStats {
   totalUsers: number;
   premiumUsers: number;
   freeUsers: number;
-  conversionRate: number;
+  conversionRate: string;
   recentPremiumUsers: Array<{
     id: string;
     username: string | null;
@@ -102,8 +102,36 @@ export default function AdminSubscriptionsScreen() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const json = await response.json() as { data: SubscriptionStats };
-      return json.data;
+      const json = await response.json() as {
+        data: {
+          totalUsers: number;
+          premiumUsers: number;
+          freeUsers: number;
+          conversionRate: string;
+          recentPremium: Array<{
+            userId: string;
+            email: string;
+            username: string | null;
+            startDate: string | null;
+            endDate: string | null;
+            planType: string;
+          }>;
+        }
+      };
+      const raw = json.data;
+      return {
+        totalUsers: raw.totalUsers,
+        premiumUsers: raw.premiumUsers,
+        freeUsers: raw.freeUsers,
+        conversionRate: raw.conversionRate,
+        recentPremiumUsers: (raw.recentPremium ?? []).map((u) => ({
+          id: u.userId,
+          username: u.username,
+          email: u.email,
+          subscriptionStartDate: u.startDate,
+          planType: u.planType,
+        })),
+      };
     },
     enabled: !!token,
     staleTime: 2 * 60 * 1000,
@@ -135,7 +163,7 @@ export default function AdminSubscriptionsScreen() {
   }
 
   const conversionPct = data.conversionRate != null
-    ? `${data.conversionRate.toFixed(1)}%`
+    ? `${data.conversionRate}%`
     : data.totalUsers > 0
       ? `${((data.premiumUsers / data.totalUsers) * 100).toFixed(1)}%`
       : '0%';

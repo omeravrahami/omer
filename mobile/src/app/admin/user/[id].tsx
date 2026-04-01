@@ -172,7 +172,7 @@ export default function UserDetailScreen() {
   const showToast = useToastStore((s) => s.showToast);
   const currentUserId = useAuthStore((s) => s.user?.id);
   const token = useAuthStore((s) => s.token);
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetPasswordSent, setResetPasswordSent] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   const { data: user, isLoading, isError, refetch, isRefetching } = useQuery<AdminUser>({
@@ -216,7 +216,7 @@ export default function UserDetailScreen() {
   const resetPwMut = useMutation({
     mutationFn: () => resetUserPassword(id ?? ''),
     onSuccess: (result) => {
-      setResetToken(result.resetToken);
+      setResetPasswordSent(result.expiresAt);
       showToast('קישור איפוס נוצר', 'success');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
@@ -760,7 +760,7 @@ export default function UserDetailScreen() {
           </Pressable>
 
           {/* Show reset token if available */}
-          {resetToken !== null ? (
+          {resetPasswordSent !== null ? (
             <Animated.View
               entering={FadeInDown.duration(300)}
               style={{
@@ -773,18 +773,16 @@ export default function UserDetailScreen() {
               }}
             >
               <Text style={{ fontSize: 11, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 4 }}>
-                {'טוקן איפוס (חד-פעמי):'}
+                {'אימייל איפוס סיסמה נשלח'}
               </Text>
               <Text
                 style={{
                   fontSize: 12,
                   color: ACCENT,
                   textAlign: 'right',
-                  fontFamily: 'monospace',
                 }}
-                selectable
               >
-                {resetToken}
+                {`תוקף עד: ${new Date(resetPasswordSent).toLocaleString('he-IL')}`}
               </Text>
             </Animated.View>
           ) : null}

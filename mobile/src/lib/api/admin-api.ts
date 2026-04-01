@@ -150,7 +150,7 @@ export const getUser = (id: string): Promise<AdminUser> =>
 export const updateUser = (id: string, data: { status?: AdminUser['status']; role?: AdminUser['role'] }): Promise<AdminUser> =>
   adminPut<AdminUser>(`/api/admin/users/${id}`, data as Record<string, unknown>);
 
-export const resetUserPassword = (id: string): Promise<{ resetToken: string; expiresAt: string }> =>
+export const resetUserPassword = (id: string): Promise<{ success: boolean; message: string; expiresAt: string }> =>
   adminPost(`/api/admin/users/${id}/reset-password`);
 
 export const logoutUserSessions = (id: string): Promise<{ success: boolean; deletedCount: number }> =>
@@ -246,10 +246,10 @@ export const getAdminDashboard = (): Promise<DashboardStats> =>
   adminGet<DashboardStats>('/api/admin/dashboard');
 
 export const getUsageAnalytics = (): Promise<UsageAnalytics> =>
-  adminGet<UsageAnalytics>('/api/admin/analytics/usage');
+  adminGet<UsageAnalytics>('/api/admin/usage-analytics');
 
 export const getSalaryAnalytics = (): Promise<SalaryAnalytics> =>
-  adminGet<SalaryAnalytics>('/api/admin/analytics/salary');
+  adminGet<SalaryAnalytics>('/api/admin/salary-analytics');
 
 export const getAdsConfig = (): Promise<AdsConfig> =>
   adminGet<AdsConfig>('/api/admin/ads');
@@ -258,7 +258,7 @@ export const updateAdsConfig = (body: Partial<AdsConfig>): Promise<AdsConfig> =>
   adminPut<AdsConfig>('/api/admin/ads', body as Record<string, unknown>);
 
 export const getSystemStats = (): Promise<SystemStats> =>
-  adminGet<SystemStats>('/api/admin/system/stats');
+  adminGet<SystemStats>('/api/admin/system-stats');
 
 export const patchUserStatus = (userId: string, status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED'): Promise<void> =>
   adminPatch<void>(`/api/admin/users/${userId}/status`, { status });
