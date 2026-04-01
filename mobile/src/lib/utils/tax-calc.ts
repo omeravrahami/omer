@@ -55,6 +55,7 @@ export interface TaxInput {
   carGrossupMonthly?: number;
   oneTimeBonusTotal?: number;   // bonus — taxable + cash
   oneTimeGiftTotal?: number;    // gifts — taxable only (not cash)
+  oneTimePensionTotal?: number; // additions included in pension base
   employerPensionRate?: number; // default 0.065 (6.5%)
   totalHours?: number;          // optional: for effectiveHourlyNet calc
 }
@@ -195,8 +196,9 @@ export function calcIsraeliTax(input: TaxInput): TaxResult {
   // finalTakeHome = net + transportation (transportation is added post-tax)
   const finalTakeHome = Math.max(0, netPay + transportationAllowance);
 
-  // Employer pension: base salary ONLY (no bonus, no grossup)
-  const employerPension = monthlyGross * empPensionRate;
+  // Employer pension: base salary + pension-eligible one-time additions
+  const pensionBase = monthlyGross + (input.oneTimePensionTotal ?? 0);
+  const employerPension = pensionBase * empPensionRate;
 
   // Effective hourly net
   const effectiveHourlyNet = (totalHours && totalHours > 0) ? finalTakeHome / totalHours : 0;

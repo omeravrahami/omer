@@ -620,11 +620,15 @@ function TaxStatusCard() {
   );
 
   const oneTimeBonusTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
   const oneTimeGiftTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+  const oneTimePensionTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
   const oneTimeTotal = oneTimeBonusTotal + oneTimeGiftTotal;
@@ -808,11 +812,15 @@ export default function DashboardScreen() {
   }, [currentMonthShifts, hourlyRateHome, overtimeEnabledHome, overtimeModeHome]);
 
   const oneTimeBonusTotalHome = useMemo(
-    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'bonus').reduce((t, a) => t + a.amount, 0),
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.isGross && !a.isTaxOnly).reduce((t, a) => t + a.amount, 0),
     [oneTimeAdditionsHome, currentMonthKey]
   );
   const oneTimeGiftTotalHome = useMemo(
-    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.type === 'gift').reduce((t, a) => t + a.amount, 0),
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.isTaxOnly).reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditionsHome, currentMonthKey]
+  );
+  const oneTimePensionTotalHome = useMemo(
+    () => oneTimeAdditionsHome.filter(a => a.month === currentMonthKey && a.isPension).reduce((t, a) => t + a.amount, 0),
     [oneTimeAdditionsHome, currentMonthKey]
   );
 
@@ -834,12 +842,13 @@ export default function DashboardScreen() {
       transportationType: transportationTypeHome,
       oneTimeBonusTotal: oneTimeBonusTotalHome,
       oneTimeGiftTotal: oneTimeGiftTotalHome,
+      oneTimePensionTotal: oneTimePensionTotalHome,
       employerPensionRate: employerPensionRateHome / 100,
       totalHours: totalNetHoursHome > 0 ? totalNetHoursHome : undefined,
     }),
     [baseMonthlyGross, carBenefitHome, carGrossupHome, taxCreditPointsHome,
      trainingFundValueHome, trainingFundTypeHome, transportationValueHome,
-     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, employerPensionRateHome,
+     transportationTypeHome, oneTimeBonusTotalHome, oneTimeGiftTotalHome, oneTimePensionTotalHome, employerPensionRateHome,
      totalNetHoursHome]
   );
 

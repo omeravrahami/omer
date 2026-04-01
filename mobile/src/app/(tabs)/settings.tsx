@@ -185,6 +185,48 @@ function NumericInput({
   );
 }
 
+// ─── Flag Chip ────────────────────────────────────────────────────────────────
+
+function FlagChip({
+  label,
+  active,
+  onPress,
+  color = '#3B82F6',
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  color?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        backgroundColor: active ? `${color}25` : 'rgba(255,255,255,0.05)',
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderWidth: 1,
+        borderColor: active ? color : 'rgba(255,255,255,0.1)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      {active ? <Check size={10} color={color} /> : null}
+      <Text style={{ fontSize: 11, fontWeight: '600', color: active ? color : 'rgba(255,255,255,0.35)' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Derive default flags from a type preset */
+function defaultFlagsForType(type: 'bonus' | 'gift' | 'custom'): { isGross: boolean; isTaxOnly: boolean; isPension: boolean } {
+  if (type === 'gift') return { isGross: false, isTaxOnly: true, isPension: false };
+  return { isGross: true, isTaxOnly: false, isPension: false };
+}
+
 // ─── One-Time Additions Section ───────────────────────────────────────────────
 
 function OneTimeAdditionsSection() {
@@ -196,19 +238,65 @@ function OneTimeAdditionsSection() {
   const [newName, setNewName] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newMonth, setNewMonth] = useState(getCurrentMonth);
-  const [newType, setNewType] = useState<'bonus' | 'gift'>('bonus');
+  const [newType, setNewType] = useState<'bonus' | 'gift' | 'custom'>('bonus');
+  const [newIsGross, setNewIsGross] = useState(true);
+  const [newIsTaxOnly, setNewIsTaxOnly] = useState(false);
+  const [newIsPension, setNewIsPension] = useState(false);
+
+  const handleTypeChange = useCallback((t: 'bonus' | 'gift' | 'custom') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNewType(t);
+    const flags = defaultFlagsForType(t);
+    setNewIsGross(flags.isGross);
+    setNewIsTaxOnly(flags.isTaxOnly);
+    setNewIsPension(flags.isPension);
+  }, []);
+
+  const handleToggleIsGross = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNewIsGross((v) => {
+      const next = !v;
+      if (next) setNewIsTaxOnly(false); // mutual exclusivity
+      return next;
+    });
+  }, []);
+
+  const handleToggleIsTaxOnly = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNewIsTaxOnly((v) => {
+      const next = !v;
+      if (next) setNewIsGross(false); // mutual exclusivity
+      return next;
+    });
+  }, []);
+
+  const handleToggleIsPension = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNewIsPension((v) => !v);
+  }, []);
 
   const handleAdd = useCallback(() => {
     const amount = parseFloat(newAmount.replace(',', '.'));
     if (!newName.trim() || isNaN(amount) || amount < 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    addOneTimeAddition({ name: newName.trim(), amount, month: newMonth, type: newType });
+    addOneTimeAddition({
+      name: newName.trim(),
+      amount,
+      month: newMonth,
+      type: newType,
+      isGross: newIsGross,
+      isTaxOnly: newIsTaxOnly,
+      isPension: newIsPension,
+    });
     setNewName('');
     setNewAmount('');
     setNewMonth(getCurrentMonth());
     setNewType('bonus');
+    setNewIsGross(true);
+    setNewIsTaxOnly(false);
+    setNewIsPension(false);
     setExpanded(false);
-  }, [newName, newAmount, newMonth, newType, addOneTimeAddition]);
+  }, [newName, newAmount, newMonth, newType, newIsGross, newIsTaxOnly, newIsPension, addOneTimeAddition]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -237,56 +325,42 @@ function OneTimeAdditionsSection() {
           <View
             key={a.id}
             style={{
-              flexDirection: 'row-reverse',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               paddingVertical: 12,
               borderBottomWidth: 1,
               borderBottomColor: BORDER,
+              gap: 6,
             }}
             testID={`one-time-addition-row-${a.id}`}
           >
-            {/* Name + type badge + month on the right */}
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
-                {a.name}
-              </Text>
-              <View
-                style={{
-                  backgroundColor: a.type === 'bonus' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)',
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 11,
-                    fontWeight: '700',
-                    color: a.type === 'bonus' ? ACCENT_BLUE : '#F59E0B',
-                  }}
-                >
-                  {a.type === 'bonus' ? 'בונוס — נכנס לנטו' : 'מתנה — מס בלבד'}
+            {/* Row 1: Name + amount + delete */}
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: TEXT_PRIMARY, textAlign: 'right' }}>
+                  {a.name}
+                </Text>
+                <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
+                  {getHebrewMonthLabel(a.month)}
                 </Text>
               </View>
-              <Text style={{ fontSize: 11, color: TEXT_SECONDARY }}>
-                {getHebrewMonthLabel(a.month)}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>
+                  {`₪${a.amount.toLocaleString()}`}
+                </Text>
+                <Pressable
+                  onPress={() => handleDelete(a.id)}
+                  hitSlop={8}
+                  testID={`one-time-addition-delete-${a.id}`}
+                  style={{ padding: 6 }}
+                >
+                  <Trash2 size={18} color="#F87171" />
+                </Pressable>
+              </View>
             </View>
-
-            {/* Amount + delete on the left */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, fontVariant: ['tabular-nums'] }}>
-                {`₪${a.amount.toLocaleString()}`}
-              </Text>
-              <Pressable
-                onPress={() => handleDelete(a.id)}
-                hitSlop={8}
-                testID={`one-time-addition-delete-${a.id}`}
-                style={{ padding: 6 }}
-              >
-                <Trash2 size={18} color="#F87171" />
-              </Pressable>
+            {/* Row 2: behavior flag chips (read-only display) */}
+            <View style={{ flexDirection: 'row-reverse', gap: 6, flexWrap: 'wrap' }}>
+              <FlagChip label="נכנס לברוטו" active={a.isGross} onPress={() => {}} color="#22C55E" />
+              <FlagChip label="לצורכי מס בלבד" active={a.isTaxOnly} onPress={() => {}} color="#F59E0B" />
+              <FlagChip label="נגזר לפנסיה" active={a.isPension} onPress={() => {}} color="#14B8A6" />
             </View>
           </View>
         ))
@@ -363,71 +437,70 @@ function OneTimeAdditionsSection() {
 
           {/* Month picker */}
           <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', backgroundColor: BG_INPUT, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: BORDER }}>
-            {/* Right arrow = older month */}
-            <Pressable
-              onPress={() => setNewMonth((m) => offsetMonth(m, -1))}
-              testID="month-picker-older"
-              hitSlop={8}
-            >
+            <Pressable onPress={() => setNewMonth((m) => offsetMonth(m, -1))} testID="month-picker-older" hitSlop={8}>
               <ChevronRight size={20} color={TEXT_SECONDARY} />
             </Pressable>
-
             <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY }}>
               {getHebrewMonthLabel(newMonth)}
             </Text>
-
-            {/* Left arrow = newer month */}
-            <Pressable
-              onPress={() => setNewMonth((m) => offsetMonth(m, 1))}
-              testID="month-picker-newer"
-              hitSlop={8}
-            >
+            <Pressable onPress={() => setNewMonth((m) => offsetMonth(m, 1))} testID="month-picker-newer" hitSlop={8}>
               <ChevronLeft size={20} color={TEXT_SECONDARY} />
             </Pressable>
           </View>
 
-          {/* Type toggle */}
-          <View style={{ flexDirection: 'row-reverse', gap: 8 }}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setNewType('bonus');
-              }}
-              testID="one-time-type-bonus"
-              style={{
-                flex: 1,
-                backgroundColor: newType === 'bonus' ? ACCENT_BLUE : BG_INPUT,
-                borderRadius: 10,
-                paddingVertical: 12,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: newType === 'bonus' ? ACCENT_BLUE : BORDER,
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: newType === 'bonus' ? '#FFF' : TEXT_SECONDARY }}>
-                {'בונוס'}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setNewType('gift');
-              }}
-              testID="one-time-type-gift"
-              style={{
-                flex: 1,
-                backgroundColor: newType === 'gift' ? ACCENT_GREEN : BG_INPUT,
-                borderRadius: 10,
-                paddingVertical: 12,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: newType === 'gift' ? ACCENT_GREEN : BORDER,
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: newType === 'gift' ? '#FFF' : TEXT_SECONDARY }}>
-                {'מתנה'}
-              </Text>
-            </Pressable>
+          {/* Type selector — 3 options */}
+          <View style={{ flexDirection: 'row-reverse', gap: 6 }}>
+            {(['bonus', 'gift', 'custom'] as const).map((t) => {
+              const labels = { bonus: 'בונוס', gift: 'מתנה/שי', custom: 'מותאם' };
+              const active = newType === t;
+              return (
+                <Pressable
+                  key={t}
+                  onPress={() => handleTypeChange(t)}
+                  testID={`one-time-type-${t}`}
+                  style={{
+                    flex: 1,
+                    backgroundColor: active ? ACCENT_BLUE : BG_INPUT,
+                    borderRadius: 10,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: active ? ACCENT_BLUE : BORDER,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#FFF' : TEXT_SECONDARY }}>
+                    {labels[t]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Behavioral flags */}
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right' }}>
+              {'התנהגות'}
+            </Text>
+            <View style={{ flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap' }}>
+              <FlagChip
+                label="נכנס לברוטו"
+                active={newIsGross}
+                onPress={handleToggleIsGross}
+                color="#22C55E"
+              />
+              <FlagChip
+                label="לצורכי מס בלבד"
+                active={newIsTaxOnly}
+                onPress={handleToggleIsTaxOnly}
+                color="#F59E0B"
+              />
+              <FlagChip
+                label="נגזר לפנסיה"
+                active={newIsPension}
+                onPress={handleToggleIsPension}
+                color="#14B8A6"
+              />
+            </View>
           </View>
 
           {/* Confirm button */}

@@ -180,12 +180,17 @@ export default function TaxBracketsScreen() {
   }, [currentMonthShifts, hourlyRate, overtimeEnabled, overtimeMode]);
 
   const oneTimeBonusTotal = useMemo(
-    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.type === 'bonus').reduce((t, a) => t + a.amount, 0),
+    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.isGross && !a.isTaxOnly).reduce((t, a) => t + a.amount, 0),
     [oneTimeAdditions, currentMonthKey]
   );
 
   const oneTimeGiftTotal = useMemo(
-    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.type === 'gift').reduce((t, a) => t + a.amount, 0),
+    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.isTaxOnly).reduce((t, a) => t + a.amount, 0),
+    [oneTimeAdditions, currentMonthKey]
+  );
+
+  const oneTimePensionTotal = useMemo(
+    () => oneTimeAdditions.filter(a => a.month === currentMonthKey && a.isPension).reduce((t, a) => t + a.amount, 0),
     [oneTimeAdditions, currentMonthKey]
   );
 
@@ -207,12 +212,13 @@ export default function TaxBracketsScreen() {
       transportationType,
       oneTimeBonusTotal,
       oneTimeGiftTotal,
+      oneTimePensionTotal,
       employerPensionRate: employerPensionRate / 100,
       totalHours: totalNetHours > 0 ? totalNetHours : undefined,
     }),
     [baseMonthlyGross, carBenefitMonthly, carGrossupMonthly, taxCreditPoints,
      trainingFundValue, trainingFundType, transportationValue,
-     transportationType, oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate,
+     transportationType, oneTimeBonusTotal, oneTimeGiftTotal, oneTimePensionTotal, employerPensionRate,
      totalNetHours]
   );
 

@@ -14,7 +14,23 @@ export interface OneTimeAddition {
   month: string;      // 'YYYY-MM'
   name: string;       // e.g. 'בונוס', 'מתנת חג'
   amount: number;
-  type: 'bonus' | 'gift';  // bonus = בונוס, gift = מתנה/גיפט קארד
+  type: 'bonus' | 'gift' | 'custom';  // bonus = בונוס, gift = מתנה/גיפט קארד, custom = מותאם אישית
+  // Behavioral flags
+  isGross: boolean;     // true = adds to gross pay & net cash received
+  isTaxOnly: boolean;   // true = adds to taxable gross only (no cash, tax effect only)
+  isPension: boolean;   // true = included in pension base calculation
+}
+
+/** Migrate a stored OneTimeAddition that may be missing the new behavioral flags */
+export function migrateOneTimeAddition(
+  a: Partial<OneTimeAddition> & { id: string; month: string; name: string; amount: number; type: 'bonus' | 'gift' | 'custom' }
+): OneTimeAddition {
+  return {
+    ...a,
+    isGross: a.isGross ?? (a.type !== 'gift'),
+    isTaxOnly: a.isTaxOnly ?? (a.type === 'gift'),
+    isPension: a.isPension ?? false,
+  };
 }
 
 interface SettingsState {
@@ -122,6 +138,13 @@ export const useSettingsStore = create<SettingsState>()(
       },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        // Migrate existing oneTimeAdditions that lack the new behavioral flags
+        if (state?.oneTimeAdditions) {
+          const migrated = state.oneTimeAdditions.map((a) =>
+            migrateOneTimeAddition(a as Parameters<typeof migrateOneTimeAddition>[0])
+          );
+          state.updateSettings({ oneTimeAdditions: migrated });
+        }
       },
     }
   )

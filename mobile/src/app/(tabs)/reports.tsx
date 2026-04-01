@@ -943,11 +943,15 @@ export default function ReportsScreen() {
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
   const oneTimeBonusTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
   const oneTimeGiftTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, currentMonth]
+  );
+  const oneTimePensionTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, currentMonth]
   );
 
@@ -989,12 +993,13 @@ export default function ReportsScreen() {
       carGrossupMonthly,
       oneTimeBonusTotal,
       oneTimeGiftTotal,
+      oneTimePensionTotal,
       employerPensionRate: employerPensionRate / 100,
       totalHours: totalNetHours > 0 ? totalNetHours : undefined,
     }),
     [currentMonthlyGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
      trainingFundType, transportationValue, transportationType, carGrossupMonthly,
-     oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate, totalNetHours]
+     oneTimeBonusTotal, oneTimeGiftTotal, oneTimePensionTotal, employerPensionRate, totalNetHours]
   );
 
   // Last month
@@ -1014,11 +1019,15 @@ export default function ReportsScreen() {
   }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthShifts]);
 
   const lastMonthBonusTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.type === 'bonus').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, lastMonth]
   );
   const lastMonthGiftTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.type === 'gift').reduce((s, a) => s + a.amount, 0),
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonth]
+  );
+  const lastMonthPensionTotal = useMemo(
+    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
     [oneTimeAdditions, lastMonth]
   );
   const lastMonthTax = useMemo(
@@ -1033,11 +1042,12 @@ export default function ReportsScreen() {
       carGrossupMonthly,
       oneTimeBonusTotal: lastMonthBonusTotal,
       oneTimeGiftTotal: lastMonthGiftTotal,
+      oneTimePensionTotal: lastMonthPensionTotal,
       employerPensionRate: employerPensionRate / 100,
     }),
     [lastMonthGross, carBenefitMonthly, taxCreditPoints, trainingFundValue,
      trainingFundType, transportationValue, transportationType, carGrossupMonthly,
-     lastMonthBonusTotal, lastMonthGiftTotal, employerPensionRate]
+     lastMonthBonusTotal, lastMonthGiftTotal, lastMonthPensionTotal, employerPensionRate]
   );
 
   // Bracket info & tips — pass full taxable base (regularGross + benefits)
@@ -1062,21 +1072,22 @@ export default function ReportsScreen() {
     carGrossupMonthly,
     oneTimeBonusTotal,
     oneTimeGiftTotal,
+    oneTimePensionTotal,
     employerPensionRate: employerPensionRate / 100,
   }), [carBenefitMonthly, taxCreditPoints, trainingFundValue, trainingFundType,
        transportationValue, transportationType, carGrossupMonthly,
-       oneTimeBonusTotal, oneTimeGiftTotal, employerPensionRate]);
+       oneTimeBonusTotal, oneTimeGiftTotal, oneTimePensionTotal, employerPensionRate]);
 
   const sim5  = useMemo(() => simulateExtraHours(currentMonthlyGross, 5,  hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
   const sim10 = useMemo(() => simulateExtraHours(currentMonthlyGross, 10, hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
   const sim20 = useMemo(() => simulateExtraHours(currentMonthlyGross, 20, hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
 
   const currentBonusAdditions = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'bonus'),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isGross && !a.isTaxOnly),
     [oneTimeAdditions, currentMonth]
   );
   const currentGiftAdditions = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.type === 'gift'),
+    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isTaxOnly),
     [oneTimeAdditions, currentMonth]
   );
 
