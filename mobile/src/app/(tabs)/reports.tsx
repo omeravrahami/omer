@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
@@ -922,6 +924,252 @@ function SimulationCard({
   );
 }
 
+// ─── Month Slider Helpers ────────────────────────────────────────────────────
+
+function generateMonths(todayKey: string, count: number): string[] {
+  const months: string[] = [];
+  const [y, m] = todayKey.split('-').map(Number);
+  for (let i = 0; i < count; i++) {
+    const date = new Date((y ?? 2026), ((m ?? 1) - 1) - i, 1);
+    months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return months;
+}
+
+function formatMonthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  const date = new Date((y ?? 2026), ((m ?? 1) - 1), 1);
+  return date.toLocaleDateString('he-IL', { month: 'short', year: 'numeric' });
+}
+
+// ─── Upgrade Prompt Modal ────────────────────────────────────────────────────
+
+function UpgradeModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const router = useRouter();
+  return (
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}
+        onPress={onClose}
+      >
+        <Pressable
+          style={{
+            backgroundColor: '#0F1729',
+            borderRadius: 24,
+            padding: 28,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: 'rgba(245,158,11,0.3)',
+            marginHorizontal: 32,
+            width: 300,
+          }}
+          onPress={() => {}}
+        >
+          <Text style={{ fontSize: 36, marginBottom: 12 }}>{'🔒'}</Text>
+          <Text style={{
+            fontSize: 17,
+            fontWeight: '700',
+            color: '#F0F6FF',
+            textAlign: 'center',
+            marginBottom: 8,
+            lineHeight: 24,
+          }}>
+            {'שדרג לפרימיום לגישה לכל ההיסטוריה'}
+          </Text>
+          <Text style={{
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.5)',
+            textAlign: 'center',
+            marginBottom: 20,
+            lineHeight: 18,
+          }}>
+            {'משתמשי פרימיום יכולים לצפות בנתונים של עד 24 חודשים אחורה'}
+          </Text>
+          <Pressable
+            onPress={() => { onClose(); router.push('/premium' as never); }}
+            style={{
+              backgroundColor: '#F59E0B',
+              borderRadius: 14,
+              paddingHorizontal: 28,
+              paddingVertical: 13,
+              width: '100%',
+              alignItems: 'center',
+            }}
+            testID="upgrade-to-premium-button"
+          >
+            <Text style={{ fontSize: 15, fontWeight: '800', color: '#080E1A' }}>{'שדרג עכשיו'}</Text>
+          </Pressable>
+          <Pressable onPress={onClose} style={{ marginTop: 12, paddingVertical: 6 }}>
+            <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{'ביטול'}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ─── Month Slider Component ──────────────────────────────────────────────────
+
+function MonthSlider({
+  todayMonth,
+  selectedMonth,
+  onSelect,
+  maxMonthsBack,
+}: {
+  todayMonth: string;
+  selectedMonth: string;
+  onSelect: (month: string) => void;
+  maxMonthsBack: number;
+}) {
+  const allMonths = useMemo(() => generateMonths(todayMonth, 24), [todayMonth]);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const handleSelect = useCallback((month: string, index: number) => {
+    const isLocked = index >= maxMonthsBack;
+    if (isLocked) {
+      setShowUpgrade(true);
+      return;
+    }
+    onSelect(month);
+    // Scroll to keep selected chip visible
+    const chipWidth = 90;
+    const gap = 8;
+    scrollRef.current?.scrollTo({ x: Math.max(0, index * (chipWidth + gap) - 80), animated: true });
+  }, [maxMonthsBack, onSelect]);
+
+  // Navigate prev/next
+  const currentIndex = allMonths.indexOf(selectedMonth);
+
+  const goNext = useCallback(() => {
+    if (currentIndex <= 0) return;
+    const nextIndex = currentIndex - 1;
+    handleSelect(allMonths[nextIndex]!, nextIndex);
+  }, [currentIndex, allMonths, handleSelect]);
+
+  const goPrev = useCallback(() => {
+    if (currentIndex >= 23) return;
+    const prevIndex = currentIndex + 1;
+    handleSelect(allMonths[prevIndex]!, prevIndex);
+  }, [currentIndex, allMonths, handleSelect]);
+
+  return (
+    <>
+      <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <View
+        style={{
+          backgroundColor: '#0B1020',
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(255,255,255,0.06)',
+          paddingVertical: 10,
+          marginBottom: 8,
+        }}
+        testID="month-slider"
+      >
+        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 8 }}>
+          {/* Right arrow = go forward in time (decrease index) */}
+          <Pressable
+            onPress={goNext}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: currentIndex <= 0 ? 'rgba(255,255,255,0.03)' : 'rgba(59,130,246,0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: 4,
+            }}
+            testID="month-next-button"
+          >
+            <Text style={{ fontSize: 16, color: currentIndex <= 0 ? 'rgba(255,255,255,0.2)' : '#3B82F6' }}>{'›'}</Text>
+          </Pressable>
+
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 4, gap: 8, flexDirection: 'row-reverse' }}
+            style={{ flexGrow: 1 }}
+          >
+            {allMonths.map((month, index) => {
+              const isSelected = month === selectedMonth;
+              const isLocked = index >= maxMonthsBack;
+              return (
+                <Pressable
+                  key={month}
+                  onPress={() => handleSelect(month, index)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: isSelected
+                      ? '#3B82F6'
+                      : isLocked
+                        ? 'rgba(255,255,255,0.06)'
+                        : 'rgba(255,255,255,0.1)',
+                    backgroundColor: isSelected
+                      ? 'rgba(59,130,246,0.18)'
+                      : isLocked
+                        ? 'rgba(255,255,255,0.02)'
+                        : 'rgba(255,255,255,0.05)',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    shadowColor: isSelected ? '#3B82F6' : 'transparent',
+                    shadowOpacity: isSelected ? 0.4 : 0,
+                    shadowRadius: isSelected ? 8 : 0,
+                    shadowOffset: { width: 0, height: 0 },
+                    elevation: isSelected ? 4 : 0,
+                  }}
+                  testID={`month-chip-${month}`}
+                >
+                  {isLocked ? (
+                    <Text style={{ fontSize: 11, marginRight: 2 }}>{'🔒'}</Text>
+                  ) : null}
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: isSelected ? '700' : '400',
+                    color: isSelected
+                      ? '#60A5FA'
+                      : isLocked
+                        ? 'rgba(255,255,255,0.25)'
+                        : 'rgba(255,255,255,0.6)',
+                  }}>
+                    {formatMonthLabel(month)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Left arrow = go back in time (increase index) */}
+          <Pressable
+            onPress={goPrev}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: currentIndex >= 23 ? 'rgba(255,255,255,0.03)' : 'rgba(59,130,246,0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 4,
+            }}
+            testID="month-prev-button"
+          >
+            <Text style={{ fontSize: 16, color: currentIndex >= 23 ? 'rgba(255,255,255,0.2)' : '#3B82F6' }}>{'‹'}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ReportsScreen() {
@@ -942,29 +1190,35 @@ export default function ReportsScreen() {
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const region = useSettingsStore((s) => s.region);
 
-  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const user = useAuthStore((s) => s.user);
+  const isPremium = useSettingsStore((s) => s.isPremium);
+  const hasFullAccess = isPremium || user?.role === 'ADMIN';
+  const maxMonthsBack = hasFullAccess ? 24 : 3;
+
+  const todayMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
 
   const oneTimeBonusTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, currentMonth]
+    () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, selectedMonth]
   );
   const oneTimeGiftTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, currentMonth]
+    () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, selectedMonth]
   );
   const oneTimePensionTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, currentMonth]
+    () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, selectedMonth]
   );
 
-  const { data: sessions, isLoading } = useAuthSessions(token, currentMonth);
+  const { data: sessions, isLoading } = useAuthSessions(token, selectedMonth);
 
-  const lastMonth = useMemo(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+  const lastMonthKey = useMemo(() => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date((y ?? 2026), ((m ?? 1) - 1) - 1, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }, []);
-  const { data: lastMonthSessions } = useAuthSessions(token, lastMonth);
+  }, [selectedMonth]);
+  const { data: lastMonthSessions } = useAuthSessions(token, lastMonthKey);
 
   const shiftSessions = useMemo(
     () => (sessions ?? []).filter((s) => s.sessionType !== 'sick' && s.sessionType !== 'vacation'),
@@ -1022,16 +1276,16 @@ export default function ReportsScreen() {
   }, [lastMonthHours, hourlyRate, overtimeEnabled, overtimeMode, lastMonthShifts]);
 
   const lastMonthBonusTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, lastMonth]
+    () => oneTimeAdditions.filter((a) => a.month === lastMonthKey && a.isGross && !a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonthKey]
   );
   const lastMonthGiftTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, lastMonth]
+    () => oneTimeAdditions.filter((a) => a.month === lastMonthKey && a.isTaxOnly).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonthKey]
   );
   const lastMonthPensionTotal = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === lastMonth && a.isPension).reduce((s, a) => s + a.amount, 0),
-    [oneTimeAdditions, lastMonth]
+    () => oneTimeAdditions.filter((a) => a.month === lastMonthKey && a.isPension).reduce((s, a) => s + a.amount, 0),
+    [oneTimeAdditions, lastMonthKey]
   );
   const lastMonthTax = useMemo(
     () => calcRegionalTax({
@@ -1087,12 +1341,12 @@ export default function ReportsScreen() {
   const sim20 = useMemo(() => simulateExtraHours(currentMonthlyGross, 20, hourlyRate, simContext), [currentMonthlyGross, hourlyRate, simContext]);
 
   const currentBonusAdditions = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isGross && !a.isTaxOnly),
-    [oneTimeAdditions, currentMonth]
+    () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isGross && !a.isTaxOnly),
+    [oneTimeAdditions, selectedMonth]
   );
   const currentGiftAdditions = useMemo(
-    () => oneTimeAdditions.filter((a) => a.month === currentMonth && a.isTaxOnly),
-    [oneTimeAdditions, currentMonth]
+    () => oneTimeAdditions.filter((a) => a.month === selectedMonth && a.isTaxOnly),
+    [oneTimeAdditions, selectedMonth]
   );
 
   return (
@@ -1114,6 +1368,14 @@ export default function ReportsScreen() {
             {'הכסף שלך, בצורה ברורה — חישוב מס 2026'}
           </Text>
         </Animated.View>
+
+        {/* Month Slider */}
+        <MonthSlider
+          todayMonth={todayMonth}
+          selectedMonth={selectedMonth}
+          onSelect={setSelectedMonth}
+          maxMonthsBack={maxMonthsBack}
+        />
 
         {/* KPI Strip */}
         <KpiStrip
