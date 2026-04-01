@@ -64,8 +64,9 @@ interface SettingsState {
   oneTimeAdditions: OneTimeAddition[];
   employerPensionRate: number;
 
-  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition' | 'clearUserData'>>) => void;
+  updateSettings: (partial: Partial<Omit<SettingsState, 'updateSettings' | 'setOnboardingCompleted' | 'setIsPremium' | 'addDeduction' | 'removeDeduction' | 'updateDeduction' | 'addOneTimeAddition' | 'removeOneTimeAddition' | 'clearUserData'>>) => void;
   setOnboardingCompleted: (val: boolean) => void;
+  setIsPremium: (val: boolean) => void;
   addDeduction: (d: Omit<Deduction, 'id'>) => void;
   removeDeduction: (id: string) => void;
   updateDeduction: (id: string, partial: Partial<Omit<Deduction, 'id'>>) => void;
@@ -112,6 +113,7 @@ export const useSettingsStore = create<SettingsState>()(
 
       updateSettings: (partial) => set(partial),
       setOnboardingCompleted: (val) => set({ onboardingCompleted: val }),
+      setIsPremium: (val) => set({ isPremium: val }),
 
       addDeduction: (d) =>
         set((s) => ({ deductions: [...s.deductions, { ...d, id: uid() }] })),

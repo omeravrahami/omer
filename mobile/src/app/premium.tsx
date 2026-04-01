@@ -324,23 +324,6 @@ export default function PremiumScreen() {
 
           {/* CTA Button */}
           <Animated.View entering={FadeInUp.delay(250).duration(500).springify()}>
-            {/* Coming-soon notice — remove once IAP is wired */}
-            <View
-              style={{
-                backgroundColor: 'rgba(99,102,241,0.08)',
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: 'rgba(99,102,241,0.2)',
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                marginBottom: 16,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: 'rgba(165,180,252,0.8)', textAlign: 'center', lineHeight: 18 }}>
-                {t('premium.payment_coming_soon')}
-              </Text>
-            </View>
             {!isPremium ? (
               <Pressable
                 onPress={handleUpgrade}

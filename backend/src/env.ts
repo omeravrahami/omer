@@ -10,6 +10,8 @@ const envSchema = z.object({
   NODE_ENV: z.string().optional(),
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
   // Database
+  // Production: change to postgresql://... for PostgreSQL/Supabase
+  // Dev: defaults to SQLite (file:./dev.db)
   DATABASE_URL: z.string().optional().default("file:./dev.db"),
   // Email
   RESEND_API_KEY: z.string().optional(),
@@ -48,7 +50,17 @@ export const env = validateEnv();
 
 // Warn loudly if SETUP_SECRET is not set in production
 if (process.env.NODE_ENV === "production" && !env.SETUP_SECRET) {
-  console.warn("⚠️  WARNING: SETUP_SECRET is not set. The /api/admin/setup endpoint is unprotected in production. Set SETUP_SECRET env var immediately.");
+  console.warn("WARNING: SETUP_SECRET is not set. The /api/admin/setup endpoint is unprotected in production. Set SETUP_SECRET env var immediately.");
+}
+
+// Warn if DATABASE_URL still points to SQLite in production
+if (process.env.NODE_ENV === "production" && env.DATABASE_URL.startsWith("file:")) {
+  console.warn("WARNING: DATABASE_URL is set to a SQLite file in production. Switch to PostgreSQL (postgresql://...) for production workloads.");
+}
+
+// Warn if BACKEND_URL is still localhost in production
+if (process.env.NODE_ENV === "production" && (env.BACKEND_URL.includes("localhost") || env.BACKEND_URL.includes("127.0.0.1"))) {
+  console.warn("WARNING: BACKEND_URL is set to a localhost address in production. Set BACKEND_URL to the public URL of this server.");
 }
 
 /**

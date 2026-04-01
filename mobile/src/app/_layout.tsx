@@ -35,6 +35,7 @@ const queryClient = new QueryClient();
 function useRefreshUser() {
   const token = useAuthStore((s) => s.token);
   const setUser = useAuthStore((s) => s.setUser);
+  const setIsPremium = useSettingsStore((s) => s.setIsPremium);
 
   useEffect(() => {
     if (!token) return;
@@ -45,10 +46,13 @@ function useRefreshUser() {
       .then((r) => r.json())
       .then((json) => {
         const user = json?.data;
-        if (user?.id) setUser(user);
+        if (user?.id) {
+          setUser(user);
+          setIsPremium(user.settings?.isPremium ?? false);
+        }
       })
       .catch(() => { /* silent — stale data is fine */ });
-  }, [token, setUser]);
+  }, [token, setUser, setIsPremium]);
 }
 
 function AdminGuard() {

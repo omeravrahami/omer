@@ -286,7 +286,6 @@ authRoutes.post(
 
     logger.info("user login", {
       userId: user.id,
-      email: user.email,
       platform,
       ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
     });
@@ -355,6 +354,14 @@ authRoutes.get("/me", authMiddleware, async (c) => {
       lastLoginAt: true,
       isEmailVerified: true,
       createdAt: true,
+      settings: {
+        select: {
+          isPremium: true,
+          subscriptionStatus: true,
+          planType: true,
+          subscriptionEndDate: true,
+        },
+      },
     },
   });
 

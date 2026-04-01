@@ -195,21 +195,62 @@ workclockRoutes.get("/api/user/sessions/active", authMiddleware, async (c) => {
 workclockRoutes.get('/api/user/sessions/months', authMiddleware, async (c) => {
   const userId = c.get('userId');
   try {
+    // Check premium status for retention enforcement (same logic as /api/user/sessions)
+    const [userSettings, userRecord] = await Promise.all([
+      db.userSettings.findUnique({
+        where: { userId },
+        select: { isPremium: true, subscriptionStatus: true, subscriptionEndDate: true },
+      }),
+      db.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      }),
+    ]);
+
+    const now = new Date();
+    const isPremium = (userSettings?.isPremium ?? false) &&
+      (!userSettings?.subscriptionEndDate || userSettings.subscriptionEndDate > now);
+    const isAdmin = userRecord?.role === 'ADMIN';
+    const hasFullAccess = isPremium || isAdmin;
+
+    // Determine cutoff date for free users
+    let cutoffMonthStr: string | null = null;
+    if (!hasFullAccess) {
+      const retentionConfig = await db.appConfig.findUnique({
+        where: { key: "retention_months_free" },
+      });
+      const retentionMonths = parseInt(retentionConfig?.value ?? "3", 10);
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
+      // YYYY-MM format for month comparison
+      cutoffMonthStr = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    const whereClause: Record<string, unknown> = { userId };
+    if (cutoffMonthStr) {
+      // Only fetch sessions from the retention window
+      whereClause.date = { gte: cutoffMonthStr + '-01' };
+    }
+
     const sessions = await db.workSession.findMany({
-      where: { userId },
+      where: whereClause,
       select: { date: true },
       orderBy: { date: 'desc' },
     });
+
     // Extract unique YYYY-MM keys
     const monthSet = new Set<string>();
     for (const s of sessions) {
       const m = s.date.slice(0, 7);
+      // For free users, skip months older than cutoff
+      if (cutoffMonthStr && m < cutoffMonthStr) continue;
       monthSet.add(m);
     }
+
     // Always include current month
-    const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     monthSet.add(currentMonth);
+
     const months = Array.from(monthSet).sort().reverse();
     return c.json({ data: { months } });
   } catch {
@@ -712,67 +753,6 @@ workclockRoutes.get("/api/user/stats", authMiddleware, async (c) => {
       period,
       startDate: startStr,
       endDate: endStr,
-    },
-  });
-});
-
-// GET /api/subscription/status — get current user's subscription status
-workclockRoutes.get("/api/subscription/status", authMiddleware, async (c) => {
-  const userId = c.get("userId");
-
-  const [userSettings, userRecord] = await Promise.all([
-    db.userSettings.findUnique({
-      where: { userId },
-      select: {
-        isPremium: true,
-        subscriptionStatus: true,
-        subscriptionStartDate: true,
-        subscriptionEndDate: true,
-        planType: true,
-      },
-    }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    }),
-  ]);
-
-  const isAdmin = userRecord?.role === 'ADMIN';
-  const isPremium = isAdmin || (userSettings?.isPremium ?? false);
-
-  return c.json({
-    data: {
-      isPremium,
-      isAdmin,
-      subscriptionStatus: isAdmin ? 'admin' : (userSettings?.subscriptionStatus ?? 'free'),
-      subscriptionStartDate: userSettings?.subscriptionStartDate?.toISOString() ?? null,
-      subscriptionEndDate: userSettings?.subscriptionEndDate?.toISOString() ?? null,
-      planType: isAdmin ? 'admin' : (userSettings?.planType ?? 'free'),
-    },
-  });
-});
-
-// GET /api/subscription/config — public pricing configuration
-workclockRoutes.get("/api/subscription/config", async (c) => {
-  const configs = await db.appConfig.findMany({
-    where: {
-      key: {
-        in: ['premium_price_monthly', 'premium_enabled', 'retention_months_free', 'ads_enabled'],
-      },
-    },
-  });
-
-  const configMap: Record<string, string> = {};
-  for (const cfg of configs) {
-    configMap[cfg.key] = cfg.value;
-  }
-
-  return c.json({
-    data: {
-      premium_price_monthly: configMap['premium_price_monthly'] ?? '9.99',
-      premium_enabled: configMap['premium_enabled'] ?? 'true',
-      retention_months_free: configMap['retention_months_free'] ?? '3',
-      ads_enabled: configMap['ads_enabled'] ?? 'true',
     },
   });
 });
