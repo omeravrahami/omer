@@ -446,7 +446,8 @@
     "manage_subscription": "ניהול מנוי",
     "subscription_active": "פרימיום פעיל",
     "subscription_expires": "יפוג ב-{{date}}",
-    "subscription_expired": "המנוי פג תוקף"
+    "subscription_expired": "המנוי פג תוקף",
+    "payment_coming_soon": "מערכת התשלום עדיין לא מחוברת. כפתור השדרוג יופעל לאחר חיבור IAP."
   },
   "tax_region": {
     "title": "אזור מס",

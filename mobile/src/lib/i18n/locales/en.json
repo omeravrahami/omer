@@ -446,7 +446,8 @@
     "manage_subscription": "Manage Subscription",
     "subscription_active": "Premium Active",
     "subscription_expires": "Expires {{date}}",
-    "subscription_expired": "Subscription Expired"
+    "subscription_expired": "Subscription Expired",
+    "payment_coming_soon": "Payment gateway not yet connected. The upgrade button will be activated once IAP is integrated."
   },
   "tax_region": {
     "title": "Tax Region",

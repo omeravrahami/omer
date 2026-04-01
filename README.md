@@ -564,7 +564,79 @@ Returns total users, active users, suspended users, admin count, total sessions,
 
 ---
 
-## Deployment Notes
+## Pre-Launch: Features Ready But Not Yet Connected
+
+These systems are fully implemented and tested in isolation, but intentionally not activated. They require external accounts / credentials before going live.
+
+### 1. In-App Purchases / Premium
+
+| What | State | Where |
+|------|-------|-------|
+| Premium upgrade screen UI | Ready | `mobile/src/app/premium.tsx` |
+| `handleUpgrade` / `handleRestore` | **Placeholder — no IAP wired** | `premium.tsx:58-66` |
+| `isPremium` flag on User model | Ready | `backend/prisma/schema.prisma` |
+| Admin can manually set `isPremium` | Working | `PUT /api/admin/users/:id` |
+| Subscription stats dashboard | Working | `mobile/src/app/admin/subscriptions.tsx` |
+| Ads disabled for premium users | Working | `mobile/src/lib/ads/index.ts` |
+| History gated for free users | Working | `LockedHistoryBanner` + `retention_months_free` config |
+
+**To activate**: Integrate RevenueCat or native StoreKit/BillingClient. On a successful purchase callback, call a backend endpoint (add to `backend/src/routes/subscription.ts`) that sets `isPremium=true` for the authenticated user. Then remove the "payment not connected" notice in `premium.tsx`.
+
+---
+
+### 2. AdMob (Advertisements)
+
+| What | State | Where |
+|------|-------|-------|
+| AdBanner component | Ready (renders null in prod) | `mobile/src/components/ads/AdBanner.tsx` |
+| Ad config (`enabled: false`) | **Not active** | `mobile/src/lib/ads/index.ts` |
+| Test AdMob IDs | Wired (Google official test IDs) | `mobile/src/lib/ads-config.ts` |
+| Production AdMob ID slots | Ready (read from ENV vars) | `EXPO_PUBLIC_ADMOB_BANNER_ID` etc. |
+| Ad manager (frequency control) | Ready | `ads/index.ts` — 3 sessions per interstitial, 180 s cooldown |
+| Admin ads panel | Ready | `mobile/src/app/admin/ads.tsx` |
+
+**To activate**:
+1. Create an AdMob account and create ad unit IDs.
+2. Add `EXPO_PUBLIC_ADMOB_BANNER_ID`, `EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID`, `EXPO_PUBLIC_ADMOB_REWARDED_ID` via ENV tab.
+3. Add your AdMob App ID to `app.json` under `expo.plugins`.
+4. Set `enabled: true` in `mobile/src/lib/ads/index.ts`.
+5. Publish a new build via the Vibecode "Publish" button.
+
+---
+
+### 3. Crash Reporting (Sentry)
+
+| What | State | Where |
+|------|-------|-------|
+| `crash-reporter.ts` abstraction | Ready (no-op stub) | `mobile/src/lib/crash-reporter.ts` |
+| Sentry DSN env var | **Not set** | `EXPO_PUBLIC_SENTRY_DSN` |
+| Backend Sentry DSN | **Not set** | `SENTRY_DSN` |
+
+**To activate**:
+1. Create a Sentry project (sentry.io).
+2. Add `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_DSN` via ENV tab.
+3. Uncomment the Sentry lines in `crash-reporter.ts`.
+4. Publish a new build.
+
+---
+
+### 4. End-to-End QA Matrix
+
+| Scenario | Behavior | Status |
+|----------|----------|--------|
+| Free user — history older than 3 months | LockedHistoryBanner shown, content hidden | Ready |
+| Premium user — history | All history visible, no banner | Ready (manual toggle via admin) |
+| Free user — ads | AdBanner renders (when `enabled: true`) | Ready (needs AdMob activation) |
+| Premium user — ads | `isAdEnabled(true)` returns false, no ads | Ready |
+| Free user — export | Locked with upgrade prompt | Ready |
+| Premium user — export | Export available | Ready |
+| Admin sets `isPremium=true` | User gets premium benefits immediately | Working |
+| Admin sets `premium_enabled=false` | Premium screen still shows; feature gating skips check | Config-driven |
+| Admin sets `ads_enabled=false` | Ads are hidden app-wide regardless of premium | Config-driven |
+
+---
+
+
 
 - **Database**: The Prisma schema uses SQLite by default (`file:./dev.db`). For production, consider switching to PostgreSQL by updating the `datasource` block in `backend/prisma/schema.prisma` and setting `DATABASE_URL` accordingly.
 - **Schema migrations**: Use `bunx prisma db push` for development and preview environments. Use `bunx prisma migrate deploy` in production.

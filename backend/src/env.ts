@@ -10,7 +10,7 @@ const envSchema = z.object({
   NODE_ENV: z.string().optional(),
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
   // Database
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  DATABASE_URL: z.string().optional().default("file:./dev.db"),
   // Email
   RESEND_API_KEY: z.string().optional(),
   // Admin setup protection
