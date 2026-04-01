@@ -1034,7 +1034,8 @@ function MonthSlider({
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const handleSelect = useCallback((month: string, index: number) => {
+  const handleSelect = useCallback((month: string | undefined, index: number) => {
+    if (!month) return;
     // Lock based on how far back this month is from today (in months)
     const [ty, tm] = todayMonth.split('-').map(Number);
     const [my, mm] = month.split('-').map(Number);
@@ -1061,9 +1062,9 @@ function MonthSlider({
   }, [currentIndex, allMonths, handleSelect]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex >= 23) return;
     const prevIndex = currentIndex + 1;
-    handleSelect(allMonths[prevIndex]!, prevIndex);
+    if (prevIndex >= allMonths.length) return;
+    handleSelect(allMonths[prevIndex], prevIndex);
   }, [currentIndex, allMonths, handleSelect]);
 
   return (
