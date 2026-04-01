@@ -9,7 +9,11 @@ export interface MeResponse extends AuthUser {
   createdAt: string;
 }
 
-const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+const _authBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+if (!_authBaseUrl) {
+  throw new Error('EXPO_PUBLIC_BACKEND_URL is not set. Check your .env file.');
+}
+const baseUrl: string = _authBaseUrl;
 
 async function authPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {

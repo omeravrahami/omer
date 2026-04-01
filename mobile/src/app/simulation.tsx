@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { X, Plus, Minus, TrendingUp, ArrowUpRight, Zap } from 'lucide-react-native';
 import { useSettingsStore } from '@/lib/state/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { useAuthSessions } from '@/lib/api/workclock-api';
 import { formatCurrency } from '@/lib/utils';
@@ -43,7 +44,7 @@ export default function SimulationScreen() {
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
-  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditions = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const region = useSettingsStore((s) => s.region);
 
   const currentMonthKey = useMemo(() => {

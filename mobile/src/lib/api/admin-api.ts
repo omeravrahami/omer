@@ -60,7 +60,11 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+const _adminBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+if (!_adminBaseUrl) {
+  throw new Error('EXPO_PUBLIC_BACKEND_URL is not set. Check your .env file.');
+}
+const baseUrl: string = _adminBaseUrl;
 
 async function adminGet<T>(path: string): Promise<T> {
   const token = useAuthStore.getState().token;

@@ -227,6 +227,7 @@ workclockRoutes.delete("/api/user/account", authMiddleware, async (c) => {
         where: { workSession: { userId } },
       }),
       db.workSession.deleteMany({ where: { userId } }),
+      db.userSession.deleteMany({ where: { userId } }),
       db.userSettings.deleteMany({ where: { userId } }),
       db.passwordResetToken.deleteMany({ where: { userId } }),
       db.user.delete({ where: { id: userId } }),

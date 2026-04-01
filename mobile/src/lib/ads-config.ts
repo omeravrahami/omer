@@ -43,7 +43,7 @@ export const AD_DISPLAY_RULES = {
 // Helper: get the appropriate ad unit ID based on test mode
 export function getAdUnitId(
   type: 'BANNER' | 'INTERSTITIAL' | 'REWARDED',
-  testMode: boolean = true
+  testMode: boolean = __DEV__
 ): string {
   if (testMode) return AD_CONFIG.TEST_IDS[type];
   return AD_CONFIG.PRODUCTION_IDS[type] || AD_CONFIG.TEST_IDS[type];

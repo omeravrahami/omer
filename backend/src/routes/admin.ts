@@ -54,17 +54,21 @@ adminPublicRoutes.post(
     if (!env.SETUP_SECRET) {
       if (env.NODE_ENV === "production") {
         return c.json(
-          { error: { message: "Setup endpoint is disabled in production. Set SETUP_SECRET to enable.", code: "FORBIDDEN" } },
+          { error: { message: "Setup disabled in production", code: "FORBIDDEN" } },
           403
         );
       }
       logger.warn("SETUP_SECRET is not set. Setup endpoint is unprotected.");
     } else {
-      const providedSecret = c.req.header("x-setup-secret");
+      const authorization = c.req.header("Authorization");
+      const providedSecret =
+        authorization && authorization.startsWith("Bearer ")
+          ? authorization.slice(7).trim()
+          : null;
       if (providedSecret !== env.SETUP_SECRET) {
         return c.json(
-          { error: { message: "Invalid or missing setup secret", code: "FORBIDDEN" } },
-          403
+          { error: { message: "Invalid or missing setup secret", code: "UNAUTHORIZED" } },
+          401
         );
       }
     }
@@ -339,19 +343,28 @@ adminRoutes.put(
       },
     });
 
-    if (body.role && body.role !== existing.role) {
-      console.log(JSON.stringify({
-        event: "admin_role_change",
-        targetUserId: id,
-        targetEmail: user.email,
-        oldRole: existing.role,
-        newRole: body.role,
-        timestamp: new Date().toISOString(),
-        ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
-      }));
+    // Revoke all active sessions when suspending or disabling a user
+    if (body.status === "SUSPENDED" || body.status === "DISABLED") {
+      await db.userSession.deleteMany({ where: { userId: id } });
     }
 
     const adminId = c.get("userId");
+
+    if (body.role && body.role !== existing.role) {
+      await auditLog({
+        userId: adminId,
+        action: "ROLE_CHANGED",
+        resource: "user",
+        details: {
+          targetUserId: id,
+          targetEmail: user.email,
+          oldRole: existing.role,
+          newRole: body.role,
+        },
+        ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+      });
+    }
+
     await auditLog({
       userId: adminId,
       action: "UPDATE_USER",
@@ -402,7 +415,7 @@ adminRoutes.post("/users/:id/reset-password", async (c) => {
     ip: c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
   });
 
-  return c.json({ data: { resetToken, expiresAt } });
+  return c.json({ data: { success: true, message: "Password reset email sent", expiresAt } });
 });
 
 // ---------------------------------------------------------------------------
@@ -793,6 +806,11 @@ adminRoutes.patch(
         isEmailVerified: true,
       },
     });
+
+    // Revoke all active sessions when suspending or disabling a user
+    if (status === "SUSPENDED" || status === "DISABLED") {
+      await db.userSession.deleteMany({ where: { userId: id } });
+    }
 
     const action = status === "SUSPENDED" ? "USER_BLOCKED" : "USER_UNBLOCKED";
     await auditLog({

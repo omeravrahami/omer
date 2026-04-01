@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, Pressable, ScrollView, TextInput, Modal,
-  Alert, ActivityIndicator,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -86,7 +86,7 @@ export default function AddDayRecordScreen() {
       end.setHours(endHRef.current, endMRef.current, 0, 0);
 
       if (end <= start) {
-        Alert.alert('שגיאה', 'שעת סיום חייבת להיות אחרי שעת התחלה');
+        showToast('שעת סיום חייבת להיות אחרי שעת התחלה', 'error');
         return;
       }
 

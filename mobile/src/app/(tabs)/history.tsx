@@ -5,7 +5,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
+  Modal,
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -118,6 +118,7 @@ export default function HistoryScreen() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const monthKey = getMonthKey(currentDate);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Free plan: only allow viewing 3 months back from today
   const isMonthLocked = useMemo(() => {
@@ -224,22 +225,15 @@ export default function HistoryScreen() {
 
   const confirmDelete = (sessionId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      'מחיקת משמרת',
-      'האם למחוק את המשמרת הזו?',
-      [
-        { text: 'ביטול', style: 'cancel' },
-        {
-          text: 'מחק',
-          style: 'destructive',
-          onPress: () =>
-            deleteSession.mutate(sessionId, {
-              onSuccess: () => showToast('המשמרת נמחקה'),
-              onError: () => showToast('שגיאה במחיקה', 'error'),
-            }),
-        },
-      ]
-    );
+    setDeleteConfirmId(sessionId);
+  };
+
+  const executeDelete = (sessionId: string) => {
+    setDeleteConfirmId(null);
+    deleteSession.mutate(sessionId, {
+      onSuccess: () => showToast('המשמרת נמחקה'),
+      onError: () => showToast('שגיאה במחיקה', 'error'),
+    });
   };
 
   const handleEdit = (session: WorkSession) => {
@@ -354,6 +348,42 @@ export default function HistoryScreen() {
       >
         <Plus size={24} color="#fff" />
       </Pressable>
+
+      {/* Delete Confirmation Modal */}
+      <Modal visible={deleteConfirmId !== null} transparent animationType="fade">
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 32 }}
+          onPress={() => setDeleteConfirmId(null)}
+        >
+          <Pressable
+            style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 24, width: '100%', borderWidth: 1, borderColor: BORDER }}
+            onPress={() => {}}
+          >
+            <Text style={{ fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right', marginBottom: 8 }}>
+              {'מחיקת משמרת'}
+            </Text>
+            <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 24 }}>
+              {'האם למחוק את המשמרת הזו?'}
+            </Text>
+            <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
+              <Pressable
+                onPress={() => deleteConfirmId && executeDelete(deleteConfirmId)}
+                style={{ flex: 1, backgroundColor: COLOR_RED, borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                testID="confirm-delete-button"
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>{'מחק'}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setDeleteConfirmId(null)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                testID="cancel-delete-button"
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }}>{'ביטול'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

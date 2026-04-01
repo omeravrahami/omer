@@ -9,6 +9,8 @@ const envSchema = z.object({
   PORT: z.string().optional().default("3000"),
   NODE_ENV: z.string().optional(),
   BACKEND_URL: z.string().optional().default("http://localhost:3000"),
+  // Database
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   // Email
   RESEND_API_KEY: z.string().optional(),
   // Admin setup protection
@@ -25,7 +27,6 @@ const envSchema = z.object({
 function validateEnv() {
   try {
     const parsed = envSchema.parse(process.env);
-    console.log("✅ Environment variables validated successfully");
     return parsed;
   } catch (error) {
     if (error instanceof z.ZodError) {

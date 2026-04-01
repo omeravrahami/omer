@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { crashReporter } from '../lib/crash-reporter';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -23,8 +24,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log to crash reporter if available
-    console.error('[ErrorBoundary] Caught error:', error.message, info.componentStack);
+    crashReporter.captureError(error, { extra: info });
   }
 
   handleReset = () => {

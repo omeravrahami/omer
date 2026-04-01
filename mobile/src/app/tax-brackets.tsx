@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { X, Info } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '@/lib/state/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 import { TAX_CONFIG, calcIsraeliTax } from '@/lib/utils/tax-calc';
 import { calcRegionalTax } from '@/lib/utils/regional-tax-engine';
 import { getRegionCurrencySymbol } from '@/lib/utils/regional-tax-engine';
@@ -271,7 +272,7 @@ export default function TaxBracketsScreen() {
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
-  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditions = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const trainingFundValue = useSettingsStore((s) => s.trainingFundValue);
   const trainingFundType = useSettingsStore((s) => s.trainingFundType);
   const transportationValue = useSettingsStore((s) => s.transportationValue);

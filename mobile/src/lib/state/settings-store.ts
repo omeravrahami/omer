@@ -131,10 +131,28 @@ export const useSettingsStore = create<SettingsState>()(
         set((s) => ({ oneTimeAdditions: s.oneTimeAdditions.filter((a) => a.id !== id) })),
 
       clearUserData: () => set({
-        oneTimeAdditions: [],
+        // Subscription / premium
         isPremium: false,
         subscriptionStatus: 'free',
         planType: 'free',
+        // Financial / salary fields
+        hourlyRate: 50,
+        deductions: [],
+        oneTimeAdditions: [],
+        carBenefitMonthly: 0,
+        taxCreditPoints: 2.25,
+        trainingFundValue: 0,
+        trainingFundType: 'percent',
+        transportationValue: 0,
+        transportationType: 'fixed',
+        overtimeEnabled: false,
+        overtimeMode: 'daily',
+        carGrossupMonthly: 0,
+        employerPensionRate: 6.5,
+        // Goals / preferences
+        dailyGoalHours: 8,
+        weeklyGoalHours: 40,
+        defaultBreakMinutes: 30,
       }),
     }),
     {

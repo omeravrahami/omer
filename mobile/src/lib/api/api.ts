@@ -5,7 +5,11 @@ interface ApiResponse<T> {
   data: T;
 }
 
-const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL!;
+const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+if (!backendUrl) {
+  throw new Error('EXPO_PUBLIC_BACKEND_URL is not set. Check your .env file.');
+}
+const baseUrl: string = backendUrl;
 
 // Default request timeout in milliseconds
 const REQUEST_TIMEOUT_MS = 20_000;

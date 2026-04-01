@@ -20,6 +20,7 @@ import {
   BarChart3,
 } from 'lucide-react-native';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthSessions } from '@/lib/api/workclock-api';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/state/auth-store';
@@ -1193,7 +1194,7 @@ export default function ReportsScreen() {
   const transportationType  = useSettingsStore((s) => s.transportationType);
   const overtimeEnabled     = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode        = useSettingsStore((s) => s.overtimeMode);
-  const oneTimeAdditions    = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditions    = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const region = useSettingsStore((s) => s.region);
 

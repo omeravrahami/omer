@@ -325,12 +325,12 @@ export function simulateExtraHours(
 }
 
 /** שיעור נטו אפקטיבי — כמה אחוז מהברוטו נשאר לך */
-export function calcEffectiveNetRate(gross: number): number {
+export function calcEffectiveNetRate(gross: number, creditPoints: number = 2.25): number {
   if (gross <= 0) return 100;
   const result = calcIsraeliTax({
     monthlyGross: gross,
     carBenefitMonthly: 0,
-    creditPoints: 2.25,
+    creditPoints,
   });
   return 100 - (result.totalDeductions / gross) * 100;
 }

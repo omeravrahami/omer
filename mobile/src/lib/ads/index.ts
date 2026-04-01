@@ -14,7 +14,7 @@ interface AdConfig {
 // Set via ENV tab: EXPO_PUBLIC_ADMOB_BANNER_ID, EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID, EXPO_PUBLIC_ADMOB_REWARDED_ID
 export const adConfig: AdConfig = {
   enabled: false, // Set to true when AdMob account is connected and EAS build is ready
-  testMode: true,  // Flip to false only in production builds
+  testMode: __DEV__,  // true in development, false in production builds
   placements: {
     home_banner: {
       unitId: process.env.EXPO_PUBLIC_ADMOB_BANNER_ID ?? '',
@@ -40,6 +40,7 @@ export function getUnitId(placement: AdPlacement): string {
   return adConfig.testMode ? config.testUnitId : config.unitId;
 }
 
-export function isAdEnabled(_placement: AdPlacement): boolean {
+export function isAdEnabled(isPremium: boolean = false): boolean {
+  if (isPremium) return false;
   return adConfig.enabled;
 }

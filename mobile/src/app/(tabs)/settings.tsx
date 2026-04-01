@@ -18,11 +18,11 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Crown, ChevronLeft, ChevronRight, Trash2, Plus, Check, Shield, UserX, ExternalLink, Star } from 'lucide-react-native';
 import { useSettingsStore, Deduction, OneTimeAddition } from '@/lib/state/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthUpdateSettings, useSubscriptionStatus } from '@/lib/api/workclock-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { fetch } from 'expo/fetch';
 import { useTranslation } from 'react-i18next';
-import { Alert } from 'react-native';
 import i18next from 'i18next';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ function defaultFlagsForType(type: 'bonus' | 'gift' | 'custom'): { isGross: bool
 // ─── One-Time Additions Section ───────────────────────────────────────────────
 
 function OneTimeAdditionsSection() {
-  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditions = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const addOneTimeAddition = useSettingsStore((s) => s.addOneTimeAddition);
   const removeOneTimeAddition = useSettingsStore((s) => s.removeOneTimeAddition);
 
@@ -525,7 +525,7 @@ function OneTimeAdditionsSection() {
 // ─── Deductions Section ───────────────────────────────────────────────────────
 
 function DeductionsSection() {
-  const deductions = useSettingsStore((s) => s.deductions);
+  const deductions = useSettingsStore(useShallow((s) => s.deductions));
   const addDeduction = useSettingsStore((s) => s.addDeduction);
   const removeDeduction = useSettingsStore((s) => s.removeDeduction);
   const carBenefitMonthly = useSettingsStore((s) => s.carBenefitMonthly);
@@ -1038,6 +1038,7 @@ export default function SettingsScreen() {
   const authUserRole = useAuthStore((s) => s.user?.role);
   const authUser = useAuthStore((s) => s.user);
   const [loggingOut, setLoggingOut] = useState<boolean>(false);
+  const [pendingLanguage, setPendingLanguage] = useState<'he' | 'en' | null>(null);
 
   // Sync subscription status from API
   const token = useAuthStore((s) => s.token);
@@ -1219,20 +1220,7 @@ export default function SettingsScreen() {
                     onPress={() => {
                       if (lang === i18next.language) return;
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      Alert.alert(
-                        lang === 'en' ? 'Switch to English' : 'עבור לעברית',
-                        lang === 'en' ? 'The app will switch language. Some screens may need a reload.' : 'האפליקציה תעבור לעברית. ייתכן שחלק מהמסכים יצטרכו טעינה מחדש.',
-                        [
-                          { text: lang === 'en' ? 'Cancel' : 'ביטול', style: 'cancel' },
-                          {
-                            text: lang === 'en' ? 'Switch' : 'שנה',
-                            onPress: async () => {
-                              await i18next.changeLanguage(lang);
-                              save({ language: lang });
-                            },
-                          },
-                        ]
-                      );
+                      setPendingLanguage(lang);
                     }}
                     style={{
                       flex: 1,
@@ -1794,6 +1782,51 @@ export default function SettingsScreen() {
         </Animated.View>
 
       </ScrollView>
+
+      {/* Language Switch Confirmation Modal */}
+      <Modal visible={pendingLanguage !== null} transparent animationType="fade">
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 32 }}
+          onPress={() => setPendingLanguage(null)}
+        >
+          <Pressable style={{ backgroundColor: BG_CARD, borderRadius: 20, padding: 24, width: '100%', borderWidth: 1, borderColor: BORDER }} onPress={() => {}}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'right', marginBottom: 8 }}>
+              {pendingLanguage === 'en' ? 'Switch to English' : 'עבור לעברית'}
+            </Text>
+            <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 24 }}>
+              {pendingLanguage === 'en'
+                ? 'The app will switch language. Some screens may need a reload.'
+                : 'האפליקציה תעבור לעברית. ייתכן שחלק מהמסכים יצטרכו טעינה מחדש.'}
+            </Text>
+            <View style={{ flexDirection: 'row-reverse', gap: 12 }}>
+              <Pressable
+                onPress={async () => {
+                  if (!pendingLanguage) return;
+                  const lang = pendingLanguage;
+                  setPendingLanguage(null);
+                  await i18next.changeLanguage(lang);
+                  save({ language: lang });
+                }}
+                style={{ flex: 1, backgroundColor: ACCENT_BLUE, borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                testID="confirm-language-button"
+              >
+                <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                  {pendingLanguage === 'en' ? 'Switch' : 'שנה'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setPendingLanguage(null)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                testID="cancel-language-button"
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }}>
+                  {pendingLanguage === 'en' ? 'Cancel' : 'ביטול'}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

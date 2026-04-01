@@ -32,6 +32,7 @@ import {
   BarChart2,
 } from 'lucide-react-native';
 import { useSettingsStore, type OneTimeAddition } from '@/lib/state/settings-store';
+import { useShallow } from 'zustand/react/shallow';
 import {
   useAuthActiveSession,
   useAuthStartWork,
@@ -602,7 +603,7 @@ function TaxStatusCard() {
   const taxCreditPoints = useSettingsStore((s) => s.taxCreditPoints);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
   const carGrossupMonthly = useSettingsStore((s) => s.carGrossupMonthly);
-  const oneTimeAdditions = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditions = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const employerPensionRate = useSettingsStore((s) => s.employerPensionRate);
   const overtimeEnabled = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeMode = useSettingsStore((s) => s.overtimeMode);
@@ -790,7 +791,7 @@ export default function DashboardScreen() {
   const carGrossupHome   = useSettingsStore((s) => s.carGrossupMonthly);
   const overtimeEnabledHome = useSettingsStore((s) => s.overtimeEnabled);
   const overtimeModeHome    = useSettingsStore((s) => s.overtimeMode);
-  const oneTimeAdditionsHome = useSettingsStore((s) => s.oneTimeAdditions);
+  const oneTimeAdditionsHome = useSettingsStore(useShallow((s) => s.oneTimeAdditions));
   const taxCreditPointsHome  = useSettingsStore((s) => s.taxCreditPoints);
   const trainingFundValueHome = useSettingsStore((s) => s.trainingFundValue);
   const trainingFundTypeHome  = useSettingsStore((s) => s.trainingFundType);

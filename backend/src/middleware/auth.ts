@@ -55,6 +55,14 @@ export const authMiddleware = createMiddleware<{ Variables: AuthVariables }>(
       );
     }
 
+    // Block suspended or inactive accounts
+    if (session.user.status === "SUSPENDED" || session.user.status === "DISABLED") {
+      return c.json(
+        { error: { message: "Account suspended", code: "ACCOUNT_SUSPENDED" } },
+        401
+      );
+    }
+
     // Update lastSeenAt (fire-and-forget, don't block the request)
     db.userSession
       .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })

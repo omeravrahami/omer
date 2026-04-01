@@ -19,6 +19,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { getAdUnitId } from '@/lib/ads-config';
+import { isAdEnabled } from '@/lib/ads';
 
 // Re-export for backward compatibility
 export const TEST_BANNER_ID = getAdUnitId('BANNER', true);
@@ -30,6 +31,8 @@ export type AdUnitType = 'banner' | 'interstitial' | 'rewarded';
 export interface AdBannerProps {
   /** Override the ad unit ID (default: TEST_BANNER_ID in dev, null in prod) */
   adUnitId?: string;
+  /** When true, suppresses the ad entirely */
+  isPremium?: boolean;
 }
 
 const isDev = __DEV__;
@@ -39,7 +42,11 @@ const isDev = __DEV__;
  * see and design around the ad space without a native build.
  * In production it returns null until real AdMob is wired up.
  */
-export const AdBanner = ({ adUnitId: _adUnitId }: AdBannerProps = {}) => {
+export const AdBanner = ({ adUnitId: _adUnitId, isPremium = false }: AdBannerProps = {}) => {
+  if (!isAdEnabled(isPremium)) {
+    return null;
+  }
+
   if (!isDev) {
     // Production: return nothing until native ads are configured.
     return null;
