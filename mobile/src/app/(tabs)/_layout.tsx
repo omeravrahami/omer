@@ -2,8 +2,11 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Clock, TrendingUp, SlidersHorizontal } from 'lucide-react-native';
 import { Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -27,7 +30,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '\u05D1\u05D9\u05EA',
+          title: t('nav.home'),
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Home size={size} color={color} />
           ),
@@ -36,16 +39,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: '\u05D7\u05D5\u05D3\u05E9\u05D9',
+          title: t('nav.history'),
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Clock size={size} color={color} />
           ),
         }}
       />
-<Tabs.Screen
+      <Tabs.Screen
         name="reports"
         options={{
-          title: '\u05EA\u05D5\u05D1\u05E0\u05D5\u05EA',
+          title: t('nav.reports'),
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <TrendingUp size={size} color={color} />
           ),
@@ -54,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: '\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA',
+          title: t('nav.settings'),
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <SlidersHorizontal size={size} color={color} />
           ),

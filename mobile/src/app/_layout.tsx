@@ -8,6 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useEffect } from 'react';
 import { I18nManager } from 'react-native';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/lib/i18n';
 import { useSettingsStore } from '@/lib/state/settings-store';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { Toast } from '@/components/Toast';
@@ -196,15 +198,17 @@ export default function RootLayout() {
   }, [hasHydrated]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <KeyboardProvider>
-          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-          <ErrorBoundary>
-            <RootLayoutNav colorScheme={colorScheme} />
-          </ErrorBoundary>
-        </KeyboardProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <KeyboardProvider>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            <ErrorBoundary>
+              <RootLayoutNav colorScheme={colorScheme} />
+            </ErrorBoundary>
+          </KeyboardProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </I18nextProvider>
   );
 }

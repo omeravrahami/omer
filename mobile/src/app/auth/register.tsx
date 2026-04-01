@@ -18,6 +18,7 @@ import { useAuthStore } from '@/lib/state/auth-store';
 import { register as registerApi, syncUserSettings } from '@/lib/api/auth-api';
 import { useToastStore } from '@/lib/state/toast-store';
 import { useSettingsStore } from '@/lib/state/settings-store';
+import { useTranslation } from 'react-i18next';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -39,6 +40,7 @@ function getPasswordStrength(pw: string): { level: number; label: string; color:
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const setAuth = useAuthStore((s) => s.setAuth);
   const showToast = useToastStore((s) => s.showToast);
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
@@ -72,15 +74,12 @@ export default function RegisterScreen() {
 
   const validate = (): string | null => {
     if (username.trim() && (username.trim().length < 2 || username.trim().length > 30)) {
-      return 'שם משתמש חייב להיות בין 2 ל-30 תווים';
+      return t('auth.register.error_weak_password');
     }
-    if (username.trim() && !/^[\u0590-\u05FFa-zA-Z0-9_\s]+$/.test(username.trim())) {
-      return 'שם משתמש יכול להכיל אותיות בעברית/לועזית, מספרים וקו תחתון';
-    }
-    if (!email.trim()) return 'נא להכניס אימייל';
-    if (!email.includes('@') || !email.includes('.')) return 'כתובת אימייל אינה תקינה';
-    if (password.length < 8) return 'הסיסמה חייבת להכיל לפחות 8 תווים';
-    if (password !== confirmPassword) return 'הסיסמאות אינן תואמות';
+    if (!email.trim()) return t('errors.validation');
+    if (!email.includes('@') || !email.includes('.')) return t('errors.validation');
+    if (password.length < 8) return t('auth.register.error_weak_password');
+    if (password !== confirmPassword) return t('auth.register.error_password_mismatch');
     return null;
   };
 
@@ -101,23 +100,20 @@ export default function RegisterScreen() {
       if (result?.token && result?.user) {
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('החשבון נוצר בהצלחה!', 'success');
+        showToast(t('common.success'), 'success');
         // Sync local settings to the new account in the background
         try {
           await syncUserSettings({ hourlyRate, currency, dailyGoalHours, weeklyGoalHours, defaultBreakMinutes, showSalaryOnDashboard, themeMode, onboardingCompleted } as Record<string, unknown>);
-          if (hourlyRate > 0) {
-            showToast('הנתונים שלך גובו בהצלחה', 'success');
-          }
         } catch {
           // Sync failure is non-critical — user is still logged in
         }
         router.replace('/(tabs)');
       } else {
-        setError('שגיאה ביצירת החשבון, נסה שוב');
+        setError(t('errors.unknown'));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'שגיאה בחיבור לשרת, נסה שוב';
+      const msg = e instanceof Error ? e.message : t('common.server_error');
       setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -148,7 +144,7 @@ export default function RegisterScreen() {
                 opacity: pressed ? 0.6 : 1,
               })}
             >
-              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{'חזרה'}</Text>
+              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{t('common.back')}</Text>
               <ChevronRight size={20} color={ACCENT} />
             </Pressable>
           </Animated.View>
@@ -164,10 +160,10 @@ export default function RegisterScreen() {
                 letterSpacing: -0.5,
               }}
             >
-              {'יצירת חשבון'}
+              {t('auth.register.title')}
             </Text>
             <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 6 }}>
-              {'הצטרף ל-WorkClock ונהל את שעות העבודה שלך'}
+              {t('auth.register.subtitle')}
             </Text>
           </Animated.View>
 
@@ -186,10 +182,10 @@ export default function RegisterScreen() {
             <View style={{ marginBottom: 16 }}>
               <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY }}>
-                  {'שם משתמש'}
+                  {t('auth.register.username')}
                 </Text>
                 <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-                  {'אופציונלי, לפחות 2 תווים'}
+                  {t('common.optional')}
                 </Text>
               </View>
               <View
@@ -208,7 +204,7 @@ export default function RegisterScreen() {
                   testID="username-input"
                   value={username}
                   onChangeText={setUsername}
-                  placeholder={'לדוגמה: עומר / omer123'}
+                  placeholder={t('auth.register.username')}
                   placeholderTextColor={TEXT_SECONDARY}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -224,7 +220,7 @@ export default function RegisterScreen() {
             {/* Email */}
             <View style={{ marginBottom: 16 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                {'אימייל'}
+                {t('auth.register.email')}
               </Text>
               <View
                 style={{
@@ -243,7 +239,7 @@ export default function RegisterScreen() {
                   testID="email-input"
                   value={email}
                   onChangeText={setEmail}
-                  placeholder={'הכנס אימייל'}
+                  placeholder={t('auth.register.email')}
                   placeholderTextColor={TEXT_SECONDARY}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -260,7 +256,7 @@ export default function RegisterScreen() {
             {/* Password */}
             <View style={{ marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                {'סיסמה'}
+                {t('auth.register.password')}
               </Text>
               <View
                 style={{
@@ -279,7 +275,7 @@ export default function RegisterScreen() {
                   testID="password-input"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={'לפחות 8 תווים'}
+                  placeholder={t('auth.register.password')}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showPassword}
                   onFocus={() => setPasswordFocused(true)}
@@ -319,7 +315,7 @@ export default function RegisterScreen() {
             {/* Confirm Password */}
             <View style={{ marginBottom: 24 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                {'אישור סיסמה'}
+                {t('auth.register.confirm_password')}
               </Text>
               <View
                 style={{
@@ -338,7 +334,7 @@ export default function RegisterScreen() {
                   testID="confirm-password-input"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholder={'הכנס סיסמה שוב'}
+                  placeholder={t('auth.register.confirm_password')}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showConfirm}
                   onFocus={() => setConfirmFocused(true)}
@@ -391,7 +387,7 @@ export default function RegisterScreen() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" testID="loading-indicator" />
-                : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'הירשם'}</Text>
+                : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{t('auth.register.register_button')}</Text>
               }
             </Pressable>
 
@@ -399,8 +395,8 @@ export default function RegisterScreen() {
             <View style={{ alignItems: 'center' }}>
               <Pressable testID="go-to-login" onPress={() => router.back()}>
                 <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'center' }}>
-                  {'יש לך חשבון? '}
-                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'התחבר'}</Text>
+                  {t('auth.register.have_account')}{' '}
+                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{t('auth.register.login_link')}</Text>
                 </Text>
               </Pressable>
             </View>

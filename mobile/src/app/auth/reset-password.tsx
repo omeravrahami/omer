@@ -15,6 +15,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Eye, EyeOff, ChevronRight, Lock, CheckCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { resetPassword } from '@/lib/api/auth-api';
+import { useTranslation } from 'react-i18next';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -37,6 +38,7 @@ function getPasswordStrength(pw: string): { level: number; label: string; color:
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ token?: string }>();
 
   const [token, setToken] = useState<string>(params.token ?? '');
@@ -59,15 +61,15 @@ export default function ResetPasswordScreen() {
 
   const handleSubmit = async () => {
     if (!token.trim()) {
-      setError('נא להכניס את קוד האיפוס');
+      setError(t('errors.validation'));
       return;
     }
     if (newPassword.length < 8) {
-      setError('הסיסמה חייבת להכיל לפחות 8 תווים');
+      setError(t('auth.register.error_weak_password'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('הסיסמאות אינן תואמות');
+      setError(t('auth.register.error_password_mismatch'));
       return;
     }
     setError(null);
@@ -80,7 +82,7 @@ export default function ResetPasswordScreen() {
         router.replace('/auth/login' as any);
       }, 2500);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'שגיאה באיפוס הסיסמה';
+      const msg = e instanceof Error ? e.message : t('common.server_error');
       setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -108,10 +110,10 @@ export default function ResetPasswordScreen() {
             <CheckCircle size={40} color={SUCCESS_COLOR} />
           </View>
           <Text style={{ fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'center', marginBottom: 12 }}>
-            {'הסיסמה שונתה בהצלחה!'}
+            {t('auth.reset_password.success_message')}
           </Text>
           <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'center' }}>
-            {'מיד תועבר לדף הכניסה...'}
+            {t('auth.login.subtitle')}
           </Text>
         </Animated.View>
       </SafeAreaView>
@@ -136,7 +138,7 @@ export default function ResetPasswordScreen() {
               onPress={() => router.back()}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, opacity: pressed ? 0.6 : 1 })}
             >
-              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{'חזרה'}</Text>
+              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{t('common.back')}</Text>
               <ChevronRight size={20} color={ACCENT} />
             </Pressable>
           </Animated.View>
@@ -160,10 +162,10 @@ export default function ResetPasswordScreen() {
               <Lock size={28} color={ACCENT} />
             </View>
             <Text style={{ fontSize: 28, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right', letterSpacing: -0.5 }}>
-              {'סיסמה חדשה'}
+              {t('auth.reset_password.title')}
             </Text>
             <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 8 }}>
-              {'הגדר סיסמה חדשה לחשבונך'}
+              {t('auth.change_password.title')}
             </Text>
           </Animated.View>
 
@@ -182,7 +184,7 @@ export default function ResetPasswordScreen() {
             {!params.token ? (
               <View style={{ marginBottom: 20 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                  {'קוד איפוס'}
+                  {t('auth.reset_password.new_password')}
                 </Text>
                 <View
                   style={{
@@ -200,7 +202,7 @@ export default function ResetPasswordScreen() {
                     testID="token-input"
                     value={token}
                     onChangeText={setToken}
-                    placeholder={'הכנס את קוד האיפוס'}
+                    placeholder={t('auth.reset_password.new_password')}
                     placeholderTextColor={TEXT_SECONDARY}
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -217,7 +219,7 @@ export default function ResetPasswordScreen() {
             {/* New password */}
             <View style={{ marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                {'סיסמה חדשה'}
+                {t('auth.reset_password.new_password')}
               </Text>
               <View
                 style={{
@@ -236,7 +238,7 @@ export default function ResetPasswordScreen() {
                   testID="new-password-input"
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  placeholder={'לפחות 8 תווים'}
+                  placeholder={t('auth.reset_password.new_password')}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showNew}
                   onFocus={() => setNewFocused(true)}
@@ -276,7 +278,7 @@ export default function ResetPasswordScreen() {
             {/* Confirm password */}
             <View style={{ marginBottom: 24 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                {'אישור סיסמה חדשה'}
+                {t('auth.reset_password.confirm_password')}
               </Text>
               <View
                 style={{
@@ -295,7 +297,7 @@ export default function ResetPasswordScreen() {
                   testID="confirm-password-input"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  placeholder={'הכנס סיסמה שוב'}
+                  placeholder={t('auth.reset_password.confirm_password')}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showConfirm}
                   onFocus={() => setConfirmFocused(true)}
@@ -345,7 +347,7 @@ export default function ResetPasswordScreen() {
             >
               {loading
                 ? <ActivityIndicator color="#fff" testID="loading-indicator" />
-                : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'שמור סיסמה חדשה'}</Text>
+                : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{t('auth.reset_password.reset_button')}</Text>
               }
             </Pressable>
           </Animated.View>

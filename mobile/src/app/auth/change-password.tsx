@@ -16,6 +16,7 @@ import { Lock, Eye, EyeOff, ChevronRight, Check, AlertCircle } from 'lucide-reac
 import * as Haptics from 'expo-haptics';
 import { changePassword } from '@/lib/api/auth-api';
 import { useToastStore } from '@/lib/state/toast-store';
+import { useTranslation } from 'react-i18next';
 
 const BG = '#080E1A';
 const BG_CARD = '#0F1729';
@@ -112,6 +113,7 @@ function PasswordField({
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const showToast = useToastStore((s) => s.showToast);
 
   const [currentPassword, setCurrentPassword] = useState<string>('');

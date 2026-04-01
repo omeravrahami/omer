@@ -15,6 +15,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ChevronRight, Mail, CheckCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { forgotPassword } from '@/lib/api/auth-api';
+import { useTranslation } from 'react-i18next';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -29,6 +30,7 @@ const SUCCESS_COLOR = '#34D399';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState<string>('');
   const [emailFocused, setEmailFocused] = useState<boolean>(false);
@@ -40,11 +42,11 @@ export default function ForgotPasswordScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      setError('נא להכניס כתובת אימייל');
+      setError(t('errors.validation'));
       return;
     }
     if (!email.includes('@') || !email.includes('.')) {
-      setError('כתובת אימייל אינה תקינה');
+      setError(t('errors.validation'));
       return;
     }
     setError(null);
@@ -53,12 +55,12 @@ export default function ForgotPasswordScreen() {
       const result = await forgotPassword(email.trim().toLowerCase());
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSuccess(true);
-      setSuccessMessage(result.message ?? 'הוראות איפוס הסיסמה נשלחו לאימייל שלך');
+      setSuccessMessage(result.message ?? t('auth.forgot_password.success_message'));
       if (result.resetToken) {
         setDevResetToken(result.resetToken);
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'שגיאה בשליחת הבקשה';
+      const msg = e instanceof Error ? e.message : t('common.server_error');
       setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -84,7 +86,7 @@ export default function ForgotPasswordScreen() {
               onPress={() => router.back()}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, opacity: pressed ? 0.6 : 1 })}
             >
-              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{'חזרה לכניסה'}</Text>
+              <Text style={{ fontSize: 15, color: ACCENT, fontWeight: '500' }}>{t('auth.forgot_password.back_to_login')}</Text>
               <ChevronRight size={20} color={ACCENT} />
             </Pressable>
           </Animated.View>
@@ -108,7 +110,7 @@ export default function ForgotPasswordScreen() {
                 <CheckCircle size={40} color={SUCCESS_COLOR} />
               </View>
               <Text style={{ fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'center', marginBottom: 12 }}>
-                {'נשלח בהצלחה!'}
+                {t('common.success')}
               </Text>
               <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'center', lineHeight: 22, marginBottom: 32, paddingHorizontal: 8 }}>
                 {successMessage}
@@ -135,7 +137,7 @@ export default function ForgotPasswordScreen() {
               ) : null}
 
               <Pressable testID="back-to-login-success" onPress={() => router.replace('/auth/login' as any)}>
-                <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>{'חזרה לכניסה'}</Text>
+                <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>{t('auth.forgot_password.back_to_login')}</Text>
               </Pressable>
             </Animated.View>
           ) : (
@@ -159,10 +161,10 @@ export default function ForgotPasswordScreen() {
                   <Mail size={28} color={ACCENT} />
                 </View>
                 <Text style={{ fontSize: 28, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right', letterSpacing: -0.5 }}>
-                  {'שחזור סיסמה'}
+                  {t('auth.forgot_password.title')}
                 </Text>
                 <Text style={{ fontSize: 15, color: TEXT_SECONDARY, textAlign: 'right', marginTop: 8, lineHeight: 22 }}>
-                  {'הזן את כתובת האימייל שלך ונשלח לך הוראות לאיפוס הסיסמה'}
+                  {t('auth.forgot_password.subtitle')}
                 </Text>
               </Animated.View>
 
@@ -179,7 +181,7 @@ export default function ForgotPasswordScreen() {
               >
                 <View style={{ marginBottom: 20 }}>
                   <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 8 }}>
-                    {'כתובת אימייל'}
+                    {t('auth.forgot_password.email')}
                   </Text>
                   <View
                     style={{
@@ -197,7 +199,7 @@ export default function ForgotPasswordScreen() {
                       testID="email-input"
                       value={email}
                       onChangeText={setEmail}
-                      placeholder={'הכנס כתובת אימייל'}
+                      placeholder={t('auth.forgot_password.email')}
                       placeholderTextColor={TEXT_SECONDARY}
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -246,7 +248,7 @@ export default function ForgotPasswordScreen() {
                 >
                   {loading
                     ? <ActivityIndicator color="#fff" testID="loading-indicator" />
-                    : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{'שלח קישור איפוס'}</Text>
+                    : <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{t('auth.forgot_password.send_button')}</Text>
                   }
                 </Pressable>
               </Animated.View>

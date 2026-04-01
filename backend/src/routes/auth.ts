@@ -106,6 +106,9 @@ const userSettingsSchema = z.object({
   showSalaryOnDashboard: z.boolean().optional(),
   themeMode: z.string().optional(),
   onboardingCompleted: z.boolean().optional(),
+  language: z.string().optional(),
+  region: z.string().optional(),
+  taxCountry: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------

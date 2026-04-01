@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '@/lib/state/auth-store';
 import { login as loginApi } from '@/lib/api/auth-api';
 import { useToastStore } from '@/lib/state/toast-store';
+import { useTranslation } from 'react-i18next';
 
 const BG = '#0B1020';
 const BG_CARD = '#0F1729';
@@ -30,6 +31,7 @@ const ERROR_COLOR = '#F87171';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const setAuth = useAuthStore((s) => s.setAuth);
   const setGuest = useAuthStore((s) => s.setGuest);
   const showToast = useToastStore((s) => s.showToast);
@@ -46,7 +48,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password.trim()) {
-      setError('נא למלא אימייל/שם משתמש וסיסמה');
+      setError(t('errors.validation'));
       return;
     }
     setError(null);
@@ -55,25 +57,25 @@ export default function LoginScreen() {
       const result = await loginApi(identifier.trim(), password);
       if (result?.token && result?.user) {
         if (result.user.status === 'SUSPENDED') {
-          setError('החשבון שלך מושהה. פנה לתמיכה לפרטים.');
+          setError(t('auth.login.error_suspended'));
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           return;
         }
         if (result.user.status === 'DISABLED') {
-          setError('החשבון שלך מושבת. פנה לתמיכה לפרטים.');
+          setError(t('auth.login.error_disabled'));
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           return;
         }
         setAuth(result.token, result.user);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showToast('ברוך הבא!', 'success');
+        showToast(t('auth.login.subtitle'), 'success');
         router.replace('/(tabs)');
       } else {
-        setError('אימייל/שם משתמש או סיסמה שגויים');
+        setError(t('auth.login.error_invalid'));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'שגיאה בחיבור לשרת, נסה שוב';
+      const msg = e instanceof Error ? e.message : t('common.server_error');
       setError(msg);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -134,7 +136,7 @@ export default function LoginScreen() {
                 textAlign: 'center',
               }}
             >
-              {'ניהול שעות עבודה חכם'}
+              {t('onboarding.subtitle')}
             </Text>
           </Animated.View>
 
@@ -158,7 +160,7 @@ export default function LoginScreen() {
                 marginBottom: 24,
               }}
             >
-              {'כניסה לחשבון'}
+              {t('auth.login.title')}
             </Text>
 
             {/* Identifier input */}
@@ -172,7 +174,7 @@ export default function LoginScreen() {
                   marginBottom: 8,
                 }}
               >
-                {'אימייל או שם משתמש'}
+                {t('auth.login.email_or_username')}
               </Text>
               <View
                 style={{
@@ -190,7 +192,7 @@ export default function LoginScreen() {
                   testID="email-input"
                   value={identifier}
                   onChangeText={setIdentifier}
-                  placeholder={'הכנס אימייל או שם משתמש'}
+                  placeholder={t('auth.login.email_or_username')}
                   placeholderTextColor={TEXT_SECONDARY}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -219,7 +221,7 @@ export default function LoginScreen() {
                   marginBottom: 8,
                 }}
               >
-                {'סיסמה'}
+                {t('auth.login.password')}
               </Text>
               <View
                 style={{
@@ -238,7 +240,7 @@ export default function LoginScreen() {
                   testID="password-input"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={'הכנס סיסמה'}
+                  placeholder={t('auth.login.password')}
                   placeholderTextColor={TEXT_SECONDARY}
                   secureTextEntry={!showPassword}
                   onFocus={() => setPasswordFocused(true)}
@@ -272,7 +274,7 @@ export default function LoginScreen() {
                 onPress={() => router.push('/auth/forgot-password' as any)}
               >
                 <Text style={{ fontSize: 13, color: ACCENT, fontWeight: '500' }}>
-                  {'שכחתי סיסמה'}
+                  {t('auth.login.forgot_password')}
                 </Text>
               </Pressable>
             </View>
@@ -317,7 +319,7 @@ export default function LoginScreen() {
                 ? <ActivityIndicator color="#fff" testID="loading-indicator" />
                 : (
                   <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>
-                    {'התחבר'}
+                    {t('auth.login.login_button')}
                   </Text>
                 )
               }
@@ -326,7 +328,7 @@ export default function LoginScreen() {
             {/* Divider */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
               <View style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
-              <Text style={{ fontSize: 13, color: TEXT_SECONDARY, marginHorizontal: 12 }}>{'או'}</Text>
+              <Text style={{ fontSize: 13, color: TEXT_SECONDARY, marginHorizontal: 12 }}>{t('common.or')}</Text>
               <View style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
             </View>
 
@@ -337,8 +339,8 @@ export default function LoginScreen() {
                 onPress={() => router.push('/auth/register' as any)}
               >
                 <Text style={{ fontSize: 14, color: TEXT_SECONDARY, textAlign: 'center' }}>
-                  {'אין לך חשבון? '}
-                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{'הירשם'}</Text>
+                  {t('auth.login.no_account')}{' '}
+                  <Text style={{ color: ACCENT, fontWeight: '600' }}>{t('auth.login.register_link')}</Text>
                 </Text>
               </Pressable>
             </View>
@@ -359,7 +361,7 @@ export default function LoginScreen() {
               })}
             >
               <Text style={{ fontSize: 14, color: TEXT_SECONDARY, fontWeight: '500' }}>
-                {'המשך כאורח'}
+                {t('auth.login.continue_as_guest')}
               </Text>
             </Pressable>
           </Animated.View>

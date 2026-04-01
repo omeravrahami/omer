@@ -22,6 +22,8 @@ interface SettingsState {
   setHasHydrated: (val: boolean) => void;
   hourlyRate: number;
   currency: string;
+  language: string;
+  taxCountry: string;
   dailyGoalHours: number;
   weeklyGoalHours: number;
   defaultBreakMinutes: number;
@@ -61,6 +63,8 @@ export const useSettingsStore = create<SettingsState>()(
       setHasHydrated: (val) => set({ _hasHydrated: val }),
       hourlyRate: 50,
       currency: 'ILS',
+      language: 'he',
+      taxCountry: 'IL',
       dailyGoalHours: 8,
       weeklyGoalHours: 40,
       defaultBreakMinutes: 30,
