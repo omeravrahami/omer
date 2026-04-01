@@ -70,16 +70,19 @@ export interface SessionsResponse {
   isDataRestricted: boolean;
 }
 
-// Returns just the sessions array (backward-compatible); isDataRestricted is in the raw query below.
+// Returns just the sessions array (backward-compatible).
+// Key bumped to v3 to bust any stale cache from previous broken shape.
 export function useAuthSessions(token: string, month?: string) {
   return useQuery({
-    queryKey: ['user-sessions-v2', token, month ?? 'all'],
-    queryFn: async () => {
+    queryKey: ['user-sessions-v3', token, month ?? 'all'],
+    queryFn: async (): Promise<WorkSession[]> => {
       const params = month ? `?month=${month}` : '';
-      const result = await authRequest<SessionsResponse | WorkSession[]>('GET', `/api/user/sessions${params}`, token);
-      // Unwrap to plain array so all existing callers keep working
+      const result = await authRequest<{ sessions: WorkSession[]; isDataRestricted: boolean } | WorkSession[]>(
+        'GET', `/api/user/sessions${params}`, token
+      );
+      if (!result) return [];
       if (Array.isArray(result)) return result;
-      return result?.sessions ?? [];
+      return Array.isArray(result.sessions) ? result.sessions : [];
     },
     enabled: !!token,
     staleTime: 0,
@@ -90,12 +93,15 @@ export function useAuthSessions(token: string, month?: string) {
 // Returns the full { sessions, isDataRestricted } shape for components that need it.
 export function useAuthSessionsData(token: string, month?: string) {
   return useQuery({
-    queryKey: ['user-sessions-full-v2', token, month ?? 'all'],
-    queryFn: async () => {
+    queryKey: ['user-sessions-full-v3', token, month ?? 'all'],
+    queryFn: async (): Promise<SessionsResponse> => {
       const params = month ? `?month=${month}` : '';
-      const result = await authRequest<SessionsResponse | WorkSession[]>('GET', `/api/user/sessions${params}`, token);
-      if (Array.isArray(result)) return { sessions: result, isDataRestricted: false } as SessionsResponse;
-      return (result ?? { sessions: [], isDataRestricted: false }) as SessionsResponse;
+      const result = await authRequest<{ sessions: WorkSession[]; isDataRestricted: boolean } | WorkSession[]>(
+        'GET', `/api/user/sessions${params}`, token
+      );
+      if (!result) return { sessions: [], isDataRestricted: false };
+      if (Array.isArray(result)) return { sessions: result, isDataRestricted: false };
+      return { sessions: Array.isArray(result.sessions) ? result.sessions : [], isDataRestricted: result.isDataRestricted ?? false };
     },
     enabled: !!token,
     staleTime: 0,
@@ -119,7 +125,7 @@ export function useAuthStartWork(token: string) {
       authRequest<WorkSession>('POST', '/api/user/sessions', token, body ?? {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-active-session-v2', token] });
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
   });
@@ -135,7 +141,7 @@ export function useAuthEndWork(token: string, sessionId: string) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-active-session-v2', token] });
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
   });
@@ -148,7 +154,7 @@ export function useAuthStartBreak(token: string, sessionId: string) {
       authRequest<WorkSession>('POST', `/api/user/sessions/${sessionId}/breaks`, token, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-active-session-v2', token] });
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
     },
   });
 }
@@ -162,7 +168,7 @@ export function useAuthEndBreak(token: string, sessionId: string, breakId: strin
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['user-active-session-v2', token] });
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
     },
   });
 }
@@ -200,7 +206,7 @@ export function useAuthDeleteSession(token: string, sessionId: string) {
     mutationFn: () =>
       authRequest<void>('DELETE', `/api/user/sessions/${sessionId}`, token),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
   });
@@ -213,7 +219,7 @@ export function useAuthDeleteSessionById(token: string) {
     mutationFn: (sessionId: string) =>
       authRequest<void>('DELETE', `/api/user/sessions/${sessionId}`, token),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
   });
@@ -232,7 +238,7 @@ export function useAuthCreateSession(token: string) {
     }) => authRequest<WorkSession>('POST', '/api/user/sessions', token, body as Record<string, unknown>),
     onSuccess: (_, variables) => {
       const month = variables.date.slice(0, 7);
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
       void month;
     },
@@ -245,7 +251,7 @@ export function useAuthEditSession(token: string) {
     mutationFn: ({ sessionId, data }: { sessionId: string; data: EditSessionPayload }) =>
       authRequest<WorkSession>('PATCH', `/api/user/sessions/${sessionId}/edit`, token, data as unknown as Record<string, unknown>),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-active-session-v2', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
@@ -263,7 +269,7 @@ export function useAuthCreateDayRecord(token: string) {
       notes?: string;
     }) => authRequest<WorkSession>('POST', '/api/user/sessions', token, body as Record<string, unknown>),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['user-sessions-v2', token] });
+      qc.invalidateQueries({ queryKey: ['user-sessions-v3', token] });
       qc.invalidateQueries({ queryKey: ['user-stats-v2', token] });
     },
   });

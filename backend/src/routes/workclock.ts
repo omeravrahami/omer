@@ -131,7 +131,8 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
 
   const isPremium = userSettings?.isPremium ?? false;
 
-  let dateFilter: Record<string, unknown> = {};
+  // Retention enforcement for free users
+  let cutoffDateStr: string | null = null;
   if (!isPremium) {
     const retentionConfig = await db.appConfig.findUnique({
       where: { key: "retention_months_free" },
@@ -139,14 +140,24 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
     const retentionMonths = parseInt(retentionConfig?.value ?? "3", 10);
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - retentionMonths);
-    const cutoffDateStr = cutoffDate.toISOString().split("T")[0]; // YYYY-MM-DD
-    dateFilter = { date: { gte: cutoffDateStr } };
+    cutoffDateStr = cutoffDate.toISOString().split("T")[0] ?? ""; // YYYY-MM-DD
+
+    // If a specific month is requested and it's older than the cutoff, block it
+    if (month && month < (cutoffDateStr as string).slice(0, 7)) {
+      return c.json({ data: { sessions: [], isDataRestricted: true } });
+    }
   }
 
-  const where: Record<string, unknown> = { userId, ...dateFilter };
+  const where: Record<string, unknown> = { userId };
+
+  // Apply month filter
   if (month) {
     where.date = { startsWith: month };
+  } else if (cutoffDateStr) {
+    // No specific month requested — limit to retention window
+    where.date = { gte: cutoffDateStr };
   }
+
   if (status) {
     where.status = status;
   }
