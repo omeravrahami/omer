@@ -403,7 +403,7 @@ function MonthlySalaryCard({
   currency?: string;
 }) {
   const router = useRouter();
-  if (taxResult.taxableGross <= 0 && baseGross <= 0) return null;
+  if (baseGross <= 0) return null;
 
   const regularGross = taxResult.regularGross;
   const taxableGross = taxResult.taxableGross;
@@ -937,7 +937,7 @@ export default function DashboardScreen() {
           </View>
           {/* Right side: clock + net salary */}
           <View style={{ alignItems: 'flex-end' }}>
-            {homeTaxResult.finalTakeHome > 0 ? (
+            {baseMonthlyGross > 0 && homeTaxResult.finalTakeHome > 0 ? (
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, marginBottom: 2 }}>
                   {'\u05E0\u05D8\u05D5 \u05DC\u05E7\u05D1\u05DC\u05D4'}
@@ -994,7 +994,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Compact financial strip — show when there is monthly data */}
-        {dynamicMonthlyGross > 0 ? (
+        {baseMonthlyGross > 0 ? (
           <View style={{
             flexDirection: 'row-reverse',
             paddingHorizontal: 20,
