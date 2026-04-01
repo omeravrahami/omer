@@ -22,6 +22,8 @@ import { useAuthUpdateSettings, useSubscriptionStatus } from '@/lib/api/workcloc
 import { useToastStore } from '@/lib/state/toast-store';
 import { fetch } from 'expo/fetch';
 import { useTranslation } from 'react-i18next';
+import { Alert } from 'react-native';
+import i18next from 'i18next';
 
 // ─── Dark theme colors ────────────────────────────────────────────────────────
 
@@ -35,6 +37,13 @@ const ACCENT_BLUE = '#3B82F6';
 const ACCENT_GREEN = '#22C55E';
 
 const CURRENCIES = ['ILS', 'USD', 'EUR'];
+
+const REGIONS = [
+  { code: 'IL', label: 'ישראל', flag: '🇮🇱', currency: 'ILS' },
+  { code: 'US', label: 'United States', flag: '🇺🇸', currency: 'USD' },
+  { code: 'UK', label: 'United Kingdom', flag: '🇬🇧', currency: 'GBP' },
+  { code: 'EU', label: 'Europe', flag: '🇪🇺', currency: 'EUR' },
+];
 
 // ─── Quick-add presets ────────────────────────────────────────────────────────
 
@@ -937,6 +946,7 @@ export default function SettingsScreen() {
 
   const hourlyRate = useSettingsStore((s) => s.hourlyRate);
   const currency = useSettingsStore((s) => s.currency);
+  const region = useSettingsStore((s) => s.region);
   const dailyGoalHours = useSettingsStore((s) => s.dailyGoalHours);
   const weeklyGoalHours = useSettingsStore((s) => s.weeklyGoalHours);
   const defaultBreakMinutes = useSettingsStore((s) => s.defaultBreakMinutes);
@@ -963,7 +973,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (subStatus) {
       updateSettings({
-        isPremium: subStatus.isPremium,
+        isPremium: subStatus.isPremium || subStatus.subscriptionStatus === 'admin',
         subscriptionStatus: subStatus.subscriptionStatus,
         planType: subStatus.planType,
       });
@@ -1119,6 +1129,94 @@ export default function SettingsScreen() {
             </Pressable>
           </Animated.View>
         ) : null}
+
+        {/* Language & Region section */}
+        <Animated.View entering={FadeInDown.delay(40).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <SectionCard title={t('settings.language_section')}>
+
+            {/* Language */}
+            <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10 }}>
+                {t('settings.language')}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {(['he', 'en'] as const).map((lang) => (
+                  <Pressable
+                    key={lang}
+                    onPress={() => {
+                      if (lang === i18next.language) return;
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      Alert.alert(
+                        lang === 'en' ? 'Switch to English' : 'עבור לעברית',
+                        lang === 'en' ? 'The app will switch language. Some screens may need a reload.' : 'האפליקציה תעבור לעברית. ייתכן שחלק מהמסכים יצטרכו טעינה מחדש.',
+                        [
+                          { text: lang === 'en' ? 'Cancel' : 'ביטול', style: 'cancel' },
+                          {
+                            text: lang === 'en' ? 'Switch' : 'שנה',
+                            onPress: async () => {
+                              await i18next.changeLanguage(lang);
+                              save({ language: lang });
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: i18next.language === lang ? ACCENT_BLUE : BG_INPUT,
+                      borderRadius: 14,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: i18next.language === lang ? ACCENT_BLUE : BORDER,
+                    }}
+                    testID={`language-${lang}`}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: i18next.language === lang ? '#FFF' : TEXT_SECONDARY }}>
+                      {lang === 'he' ? '🇮🇱  עברית' : '🇬🇧  English'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Region */}
+            <View style={{ paddingTop: 12 }}>
+              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10 }}>
+                {t('settings.region')}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {REGIONS.map((r) => (
+                  <Pressable
+                    key={r.code}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      save({ region: r.code, currency: r.currency });
+                    }}
+                    style={{
+                      backgroundColor: region === r.code ? 'rgba(59,130,246,0.15)' : BG_INPUT,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      borderWidth: 1,
+                      borderColor: region === r.code ? ACCENT_BLUE : BORDER,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    testID={`region-${r.code}`}
+                  >
+                    <Text style={{ fontSize: 14 }}>{r.flag}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: region === r.code ? '#60A5FA' : TEXT_SECONDARY }}>
+                      {r.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+          </SectionCard>
+        </Animated.View>
 
         {/* Salary section */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)} style={{ marginHorizontal: 16, marginBottom: 12 }}>

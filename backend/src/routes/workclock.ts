@@ -123,17 +123,25 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
   const month = c.req.query("month");
   const status = c.req.query("status");
 
-  // Get user settings including premium status
-  const userSettings = await db.userSettings.findUnique({
-    where: { userId },
-    select: { isPremium: true, subscriptionStatus: true },
-  });
+  // Get user settings including premium status, and user role
+  const [userSettings, userRecord] = await Promise.all([
+    db.userSettings.findUnique({
+      where: { userId },
+      select: { isPremium: true, subscriptionStatus: true },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    }),
+  ]);
 
   const isPremium = userSettings?.isPremium ?? false;
+  const isAdmin = userRecord?.role === 'ADMIN';
+  const hasFullAccess = isPremium || isAdmin;
 
   // Retention enforcement for free users
   let cutoffDateStr: string | null = null;
-  if (!isPremium) {
+  if (!hasFullAccess) {
     const retentionConfig = await db.appConfig.findUnique({
       where: { key: "retention_months_free" },
     });
@@ -167,7 +175,7 @@ workclockRoutes.get("/api/user/sessions", authMiddleware, async (c) => {
     include: { breaks: true },
     orderBy: { startTime: "desc" },
   });
-  return c.json({ data: { sessions, isDataRestricted: !isPremium } });
+  return c.json({ data: { sessions, isDataRestricted: !hasFullAccess } });
 });
 
 // GET /api/user/sessions/active — get active session for authenticated user
@@ -646,6 +654,67 @@ workclockRoutes.get("/api/user/stats", authMiddleware, async (c) => {
       period,
       startDate: startStr,
       endDate: endStr,
+    },
+  });
+});
+
+// GET /api/subscription/status — get current user's subscription status
+workclockRoutes.get("/api/subscription/status", authMiddleware, async (c) => {
+  const userId = c.get("userId");
+
+  const [userSettings, userRecord] = await Promise.all([
+    db.userSettings.findUnique({
+      where: { userId },
+      select: {
+        isPremium: true,
+        subscriptionStatus: true,
+        subscriptionStartDate: true,
+        subscriptionEndDate: true,
+        planType: true,
+      },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    }),
+  ]);
+
+  const isAdmin = userRecord?.role === 'ADMIN';
+  const isPremium = isAdmin || (userSettings?.isPremium ?? false);
+
+  return c.json({
+    data: {
+      isPremium,
+      isAdmin,
+      subscriptionStatus: isAdmin ? 'admin' : (userSettings?.subscriptionStatus ?? 'free'),
+      subscriptionStartDate: userSettings?.subscriptionStartDate?.toISOString() ?? null,
+      subscriptionEndDate: userSettings?.subscriptionEndDate?.toISOString() ?? null,
+      planType: isAdmin ? 'admin' : (userSettings?.planType ?? 'free'),
+    },
+  });
+});
+
+// GET /api/subscription/config — public pricing configuration
+workclockRoutes.get("/api/subscription/config", async (c) => {
+  const configs = await db.appConfig.findMany({
+    where: {
+      key: {
+        in: ['premium_price_monthly', 'premium_enabled', 'retention_months_free', 'ads_enabled'],
+      },
+    },
+  });
+
+  const configMap: Record<string, string> = {};
+  for (const cfg of configs) {
+    configMap[cfg.key] = cfg.value;
+  }
+
+  return c.json({
+    data: {
+      premium_price_monthly: configMap['premium_price_monthly'] ?? '9.99',
+      premium_enabled: configMap['premium_enabled'] ?? 'true',
+      retention_months_free: configMap['retention_months_free'] ?? '3',
+      ads_enabled: configMap['ads_enabled'] ?? 'true',
     },
   });
 });

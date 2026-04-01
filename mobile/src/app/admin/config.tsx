@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Settings2, Check, Edit3 } from 'lucide-react-native';
+import { Settings2, Check, Edit3, Crown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getConfig, updateConfig, AdminConfig } from '@/lib/api/admin-api';
@@ -293,15 +293,60 @@ export default function AdminConfigScreen() {
             </Pressable>
           </Animated.View>
         ) : data && data.configs.length > 0 ? (
-          data.configs.map((config, index) => (
-            <Animated.View key={config.key} entering={FadeInDown.delay(index * 60).duration(350)}>
-              <ConfigRow
-                config={config}
-                onSave={handleSave}
-                isSaving={savingKey === config.key}
-              />
-            </Animated.View>
-          ))
+          <>
+            {/* Premium Pricing Card */}
+            {(() => {
+              const premiumKeys = ['premium_price_monthly', 'retention_months_free', 'premium_enabled'];
+              const premiumItems = premiumKeys.map((k) => data.configs.find((c) => c.key === k)).filter((c): c is AdminConfig => c !== undefined);
+              if (premiumItems.length === 0) return null;
+              return (
+                <Animated.View entering={FadeInDown.delay(0).duration(400)} style={{ marginBottom: 20 }}>
+                  <View style={{
+                    backgroundColor: 'rgba(245,158,11,0.06)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(245,158,11,0.25)',
+                    borderRadius: 18,
+                    padding: 16,
+                  }}>
+                    {/* Card header */}
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                      <View style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        backgroundColor: 'rgba(245,158,11,0.15)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Crown size={18} color="#F59E0B" />
+                      </View>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: '#F59E0B' }}>{'תמחור פרמיום'}</Text>
+                    </View>
+                    {/* Config rows */}
+                    {premiumItems.map((config) => (
+                      <ConfigRow
+                        key={config.key}
+                        config={config}
+                        onSave={handleSave}
+                        isSaving={savingKey === config.key}
+                      />
+                    ))}
+                  </View>
+                </Animated.View>
+              );
+            })()}
+
+            {/* All config rows */}
+            {data.configs.map((config, index) => (
+              <Animated.View key={config.key} entering={FadeInDown.delay(index * 60).duration(350)}>
+                <ConfigRow
+                  config={config}
+                  onSave={handleSave}
+                  isSaving={savingKey === config.key}
+                />
+              </Animated.View>
+            ))}
+          </>
         ) : (
           <View style={{ padding: 40, alignItems: 'center' }}>
             <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>{'אין הגדרות מערכת'}</Text>
