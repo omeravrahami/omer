@@ -2,13 +2,18 @@ import "@vibecodeapp/proxy"; // DO NOT REMOVE OTHERWISE VIBECODE PROXY WILL NOT 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { randomUUID } from "node:crypto";
-import "./env";
+import { env } from "./env";
+import { initSentry, captureException } from "./lib/sentry";
 import { workclockRoutes } from "./routes/workclock";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes, adminPublicRoutes } from "./routes/admin";
 import { legalRoutes } from "./routes/legal";
 import subscriptionRouter from "./routes/subscription";
-import { httpLogger, logger } from "./lib/logger";
+import { httpLogger, logger, setErrorReporter } from "./lib/logger";
+
+// Initialize Sentry error reporting before anything else
+initSentry();
+setErrorReporter(captureException);
 
 const app = new Hono();
 
@@ -23,10 +28,17 @@ const allowed = [
   /^https:\/\/vibecode\.dev$/,
 ];
 
+const extraOrigins = env.ALLOWED_ORIGINS
+  ? env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+  : [];
+
 app.use(
   "*",
   cors({
-    origin: (origin) => (origin && allowed.some((re) => re.test(origin)) ? origin : null),
+    origin: (origin) =>
+      origin && (allowed.some((re) => re.test(origin)) || extraOrigins.includes(origin))
+        ? origin
+        : null,
     credentials: true,
   })
 );
@@ -59,6 +71,10 @@ app.route("", legalRoutes);
 
 // Global unhandled error catcher
 app.onError((err, c) => {
+  captureException(err, {
+    method: c.req.method,
+    path: new URL(c.req.url).pathname,
+  });
   logger.error("unhandled error", {
     error: err,
     method: c.req.method,

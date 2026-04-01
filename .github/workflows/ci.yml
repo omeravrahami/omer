@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: backend
+        run: bun install
+
+      - name: Type check
+        working-directory: backend
+        run: bun tsc --noEmit
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: file:./test.db
+          SETUP_SECRET: test-secret
+        run: bun test src/tests/ --timeout 30000
+
+  backend-typecheck:
+    name: Backend TypeCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: backend
+        run: bun install
+
+      - name: Type check
+        working-directory: backend
+        run: bunx tsc --noEmit

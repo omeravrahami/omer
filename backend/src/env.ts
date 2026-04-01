@@ -21,6 +21,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).optional(),
   // Crash reporting — Sentry DSN (optional, enables error tracking)
   SENTRY_DSN: z.string().optional(),
+  // CORS — comma-separated list of extra allowed origins (e.g. https://myapp.com,https://admin.myapp.com)
+  ALLOWED_ORIGINS: z.string().optional().default(""),
 });
 
 /**
