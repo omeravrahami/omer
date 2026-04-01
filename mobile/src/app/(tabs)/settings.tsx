@@ -36,13 +36,12 @@ const TEXT_SECONDARY = 'rgba(255,255,255,0.5)';
 const ACCENT_BLUE = '#3B82F6';
 const ACCENT_GREEN = '#22C55E';
 
-const CURRENCIES = ['ILS', 'USD', 'EUR'];
+const CURRENCIES = ['ILS', 'USD', 'GBP'];
 
 const REGIONS = [
   { code: 'IL', label: 'ישראל', flag: '🇮🇱', currency: 'ILS' },
-  { code: 'US', label: 'United States', flag: '🇺🇸', currency: 'USD' },
-  { code: 'UK', label: 'United Kingdom', flag: '🇬🇧', currency: 'GBP' },
-  { code: 'EU', label: 'Europe', flag: '🇪🇺', currency: 'EUR' },
+  { code: 'US', label: 'ארה"ב', flag: '🇺🇸', currency: 'USD' },
+  { code: 'UK', label: 'לונדון', flag: '🇬🇧', currency: 'GBP' },
 ];
 
 // ─── Quick-add presets ────────────────────────────────────────────────────────

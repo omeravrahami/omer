@@ -104,27 +104,6 @@ function getRegionConfig(region: string): RegionConfig {
         ],
       };
 
-    case 'EU':
-      return {
-        title: 'EU Generic Tax Estimate',
-        subtitle: 'Average across major EU economies',
-        currency: '€',
-        isEstimate: true,
-        estimateNote: 'Generic EU estimate. Tax rates vary significantly by country. Select your specific country for accurate rates.',
-        brackets: [
-          { label: '20%', rate: 0.20, monthlyRange: 'Up to €833/mo', annualCeiling: 10_000, color: BRACKET_COLORS[0] },
-          { label: '30%', rate: 0.30, monthlyRange: '€834 – €2,500/mo', annualCeiling: 30_000, color: BRACKET_COLORS[2] },
-          { label: '40%', rate: 0.40, monthlyRange: '€2,501 – €5,000/mo', annualCeiling: 60_000, color: BRACKET_COLORS[4] },
-          { label: '47%', rate: 0.47, monthlyRange: 'Over €5,000/mo', annualCeiling: Infinity, color: BRACKET_COLORS[5] },
-        ],
-        additionalSections: [
-          {
-            title: 'Social Contributions',
-            content: 'Estimated 10% social security/health average.\nActual rates: Germany ~20%, France ~22%, Spain ~6.35%, Netherlands ~17%.',
-          },
-        ],
-      };
-
     case 'IL':
     default:
       return {
