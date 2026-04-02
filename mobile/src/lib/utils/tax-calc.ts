@@ -200,8 +200,13 @@ export function calcIsraeliTax(input: TaxInput): TaxResult {
   const pensionBase = monthlyGross + (input.oneTimePensionTotal ?? 0);
   const employerPension = pensionBase * empPensionRate;
 
-  // Effective hourly net
-  const effectiveHourlyNet = (totalHours && totalHours > 0) ? finalTakeHome / totalHours : 0;
+  // Effective hourly net — excludes car grossup (fixed monthly benefit unrelated to hours worked)
+  // Work-based net = proportional share of netPay attributable to work income + transport
+  const workIncome = monthlyGross + bonusTotal; // cash from actual work
+  const workBasedNet = regularGross > 0
+    ? netPay * (workIncome / regularGross) + transportationAllowance
+    : 0;
+  const effectiveHourlyNet = (totalHours && totalHours > 0) ? Math.max(0, workBasedNet) / totalHours : 0;
 
   // Net to gross ratio
   const netToGrossRatio = regularGross > 0 ? finalTakeHome / regularGross : 0;

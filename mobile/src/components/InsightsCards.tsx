@@ -258,13 +258,13 @@ export function InsightsCards({
       icon: <Percent size={14} color="#D97706" strokeWidth={2.2} />,
     };
 
-    // 4. נטו לשעה
+    // 4. נטו לשעה — uses taxResult.effectiveHourlyNet which excludes car grossup
     const hasHours = hoursWorkedThisMonth > 0;
-    const netPerHour = hasHours ? net / hoursWorkedThisMonth : 0;
+    const netPerHour = taxResult.effectiveHourlyNet;
     const card4: GridCard = {
       id: 'grid-hourly',
       title: 'נטו לשעה',
-      mainValue: hasHours ? formatCurrency(netPerHour) : '—',
+      mainValue: hasHours && netPerHour > 0 ? formatCurrency(netPerHour) : '—',
       subtitle: hasHours
         ? `${hoursWorkedThisMonth.toFixed(1)} שע׳ החודש`
         : 'אין שעות מדווחות',
