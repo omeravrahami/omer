@@ -1411,19 +1411,27 @@ export default function ReportsScreen() {
           maxMonthsBack={maxMonthsBack}
         />
 
-        {/* KPI Strip */}
-        <KpiStrip
-          finalTakeHome={taxResult.finalTakeHome}
-          regularGross={taxResult.regularGross}
-          taxableGross={taxResult.taxableGross}
-          netToGrossRatio={taxResult.netToGrossRatio}
-          effectiveHourlyNet={taxResult.effectiveHourlyNet}
-          totalHours={totalNetHours}
-        />
+        {/* KPI Strip — only when there's actual work data */}
+        {currentMonthlyGross > 0 && !isLoading && (
+          <KpiStrip
+            finalTakeHome={taxResult.finalTakeHome}
+            regularGross={taxResult.regularGross}
+            taxableGross={taxResult.taxableGross}
+            netToGrossRatio={taxResult.netToGrossRatio}
+            effectiveHourlyNet={taxResult.effectiveHourlyNet}
+            totalHours={totalNetHours}
+          />
+        )}
 
         {isLoading ? (
           <View style={{ padding: 48, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={ACCENT_CYAN} testID="loading-indicator" />
+          </View>
+        ) : currentMonthlyGross <= 0 ? (
+          <View style={{ padding: 48, alignItems: 'center', gap: 12 }}>
+            <Text style={{ fontSize: 40 }}>{'📊'}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'center' }}>{'אין נתוני עבודה'}</Text>
+            <Text style={{ fontSize: 13, color: TEXT_SECONDARY, textAlign: 'center', lineHeight: 20 }}>{'לא נמצאו משמרות בחודש זה.\nתחילת חישוב מס לאחר רישום משמרת.'}</Text>
           </View>
         ) : (
           <View style={{ paddingHorizontal: 16 }}>
