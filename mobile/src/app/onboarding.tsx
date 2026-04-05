@@ -6,7 +6,6 @@ import {
   Dimensions,
   TextInput,
   Switch,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -78,11 +77,11 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8FAFC' }} testID="onboarding-screen">
       {/* Logo */}
-      <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 4 }}>
-        <Image
-          source={require('@/assets/logo_transparent.png')}
-          style={{ width: 150, height: 50, resizeMode: 'contain' }}
-        />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, paddingBottom: 4, gap: 8 }}>
+        <Clock size={22} color="#0F172A" />
+        <Text style={{ fontSize: 22, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 }}>
+          {'clocker'}
+        </Text>
       </View>
       <PagerView
         ref={pagerRef}
