@@ -41,8 +41,6 @@ const CURRENCIES = ['ILS', 'USD', 'GBP'];
 
 const REGIONS = [
   { code: 'IL', label: 'ישראל', flag: '🇮🇱', currency: 'ILS' },
-  { code: 'US', label: 'ארה"ב', flag: '🇺🇸', currency: 'USD' },
-  { code: 'UK', label: 'לונדון', flag: '🇬🇧', currency: 'GBP' },
 ];
 
 // ─── Quick-add presets ────────────────────────────────────────────────────────
@@ -1241,40 +1239,42 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            {/* Region */}
-            <View style={{ paddingTop: 12 }}>
-              <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10 }}>
-                {t('settings.region')}
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {REGIONS.map((r) => (
-                  <Pressable
-                    key={r.code}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      save({ region: r.code, currency: r.currency });
-                    }}
-                    style={{
-                      backgroundColor: region === r.code ? 'rgba(59,130,246,0.15)' : BG_INPUT,
-                      borderRadius: 14,
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderWidth: 1,
-                      borderColor: region === r.code ? ACCENT_BLUE : BORDER,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                    testID={`region-${r.code}`}
-                  >
-                    <Text style={{ fontSize: 14 }}>{r.flag}</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: region === r.code ? '#60A5FA' : TEXT_SECONDARY }}>
-                      {r.label}
-                    </Text>
-                  </Pressable>
-                ))}
+            {/* Region — hidden when only one region is available */}
+            {REGIONS.length > 1 && (
+              <View style={{ paddingTop: 12 }}>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, textAlign: 'right', marginBottom: 10 }}>
+                  {t('settings.region')}
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {REGIONS.map((r) => (
+                    <Pressable
+                      key={r.code}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        save({ region: r.code, currency: r.currency });
+                      }}
+                      style={{
+                        backgroundColor: region === r.code ? 'rgba(59,130,246,0.15)' : BG_INPUT,
+                        borderRadius: 14,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderWidth: 1,
+                        borderColor: region === r.code ? ACCENT_BLUE : BORDER,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                      testID={`region-${r.code}`}
+                    >
+                      <Text style={{ fontSize: 14 }}>{r.flag}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: region === r.code ? '#60A5FA' : TEXT_SECONDARY }}>
+                        {r.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
 
           </SectionCard>
         </Animated.View>
