@@ -99,10 +99,10 @@ function WorkClockLogo({ size }: { size: 'small' | 'large' }) {
           fontSize,
           fontWeight: '800',
           letterSpacing: 0.3,
+          color: '#60A5FA',
         }}
       >
-        <Text style={{ color: '#60A5FA' }}>Work</Text>
-        <Text style={{ color: '#4ADE80' }}>Clock</Text>
+        {'clocker'}
       </Text>
     </View>
   );
