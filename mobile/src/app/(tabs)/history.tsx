@@ -191,7 +191,7 @@ export default function HistoryScreen() {
 
     lines.push('');
     lines.push('─'.repeat(32));
-    lines.push('נוצר על ידי WorkClock');
+    lines.push('נוצר על ידי clocker');
 
     await Share.share({ message: lines.join('\n'), title: `דוח שעות — ${monthLabel}` });
   }, [sessions, currentDate, showToast]);

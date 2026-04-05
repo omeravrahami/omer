@@ -1741,10 +1741,10 @@ export default function SettingsScreen() {
         </Modal>
         <Animated.View entering={FadeInDown.delay(450).duration(400)} style={{ marginHorizontal: 16, marginBottom: 16, alignItems: 'center', gap: 6 }}>
           <Text style={{ fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.3)' }}>
-            {'WorkClock v1.0.0'}
+            {'clocker v1.0.0'}
           </Text>
           <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)' }}>
-            {'מס 2026 | \u00A9 2026 WorkClock'}
+            {'מס 2026 | \u00A9 2026 clocker'}
           </Text>
           <View style={{ flexDirection: 'row-reverse', gap: 16, marginTop: 4 }}>
             <View style={{ alignItems: 'center', gap: 4 }}>

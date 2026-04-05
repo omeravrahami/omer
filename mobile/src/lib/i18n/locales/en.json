@@ -334,7 +334,7 @@
     "EUR": "Euro (€)"
   },
   "onboarding": {
-    "welcome": "Welcome to WorkClock",
+    "welcome": "Welcome to clocker",
     "subtitle": "Smart time tracking and pay calculation",
     "step1_title": "Set Your Hourly Rate",
     "step1_subtitle": "How much do you earn per hour?",
@@ -418,7 +418,7 @@
     "contact": "Contact Us"
   },
   "premium": {
-    "title": "WorkClock Premium",
+    "title": "clocker Premium",
     "subtitle": "Unlock the full experience",
     "badge": "Premium",
     "upgrade_button": "Upgrade to Premium",

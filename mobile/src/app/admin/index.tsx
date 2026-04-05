@@ -222,7 +222,7 @@ export default function AdminDashboard() {
         <Animated.View entering={FadeInDown.duration(400)} style={{ marginBottom: 20 }}>
           <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <Text style={{ fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'right' }}>
-              {'מערכת WorkClock — ניהול'}
+              {'מערכת clocker — ניהול'}
             </Text>
             <Pressable
               testID="back-to-app-button"

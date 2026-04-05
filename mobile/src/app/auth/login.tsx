@@ -126,7 +126,7 @@ export default function LoginScreen() {
                 textAlign: 'center',
               }}
             >
-              {'WorkClock'}
+              {'clocker'}
             </Text>
             <Text
               style={{

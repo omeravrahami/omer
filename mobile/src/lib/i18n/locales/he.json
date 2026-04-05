@@ -334,7 +334,7 @@
     "EUR": "יורו (€)"
   },
   "onboarding": {
-    "welcome": "ברוכים הבאים ל-WorkClock",
+    "welcome": "ברוכים הבאים ל-clocker",
     "subtitle": "מעקב שעות וחישוב שכר חכם",
     "step1_title": "הגדר שכר שעתי",
     "step1_subtitle": "כמה מרוויחים לשעה?",
@@ -418,7 +418,7 @@
     "contact": "יצירת קשר"
   },
   "premium": {
-    "title": "WorkClock פרימיום",
+    "title": "clocker פרימיום",
     "subtitle": "נעל את החוויה המלאה",
     "badge": "פרימיום",
     "upgrade_button": "שדרג לפרימיום",

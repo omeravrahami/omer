@@ -1,5 +1,5 @@
 /**
- * US Federal Tax Engine (2026 Estimates)
+ * US Federal Tax Engine — 2026 Tax Brackets (IRS Rev. Proc. 2025-32)
  * Note: This is a simplified federal-only estimate. Actual take-home may vary
  * based on state taxes, local taxes, FICA deductions, and personal circumstances.
  */
@@ -35,46 +35,46 @@ export interface USTaxResult {
   estimateNote: string;
 }
 
-// 2026 Federal Income Tax Brackets (Single filer)
+// 2026 Federal Income Tax Brackets (IRS Rev. Proc. 2025-32)
 const US_TAX_CONFIG = {
   single: [
-    { upTo: 11_600 * 12,  rate: 0.10 },
-    { upTo: 47_150 * 12,  rate: 0.12 },
-    { upTo: 100_525 * 12, rate: 0.22 },
-    { upTo: 191_950 * 12, rate: 0.24 },
-    { upTo: 243_725 * 12, rate: 0.32 },
-    { upTo: 609_350 * 12, rate: 0.35 },
-    { upTo: Infinity,     rate: 0.37 },
+    { upTo: 12_400,  rate: 0.10 },
+    { upTo: 50_400,  rate: 0.12 },
+    { upTo: 105_700, rate: 0.22 },
+    { upTo: 201_775, rate: 0.24 },
+    { upTo: 256_225, rate: 0.32 },
+    { upTo: 640_600, rate: 0.35 },
+    { upTo: Infinity, rate: 0.37 },
   ],
   married: [
-    { upTo: 23_200 * 12,  rate: 0.10 },
-    { upTo: 94_300 * 12,  rate: 0.12 },
-    { upTo: 201_050 * 12, rate: 0.22 },
-    { upTo: 383_900 * 12, rate: 0.24 },
-    { upTo: 487_450 * 12, rate: 0.32 },
-    { upTo: 731_200 * 12, rate: 0.35 },
-    { upTo: Infinity,     rate: 0.37 },
+    { upTo: 24_800,  rate: 0.10 },
+    { upTo: 100_800, rate: 0.12 },
+    { upTo: 211_400, rate: 0.22 },
+    { upTo: 403_550, rate: 0.24 },
+    { upTo: 512_450, rate: 0.32 },
+    { upTo: 768_700, rate: 0.35 },
+    { upTo: Infinity, rate: 0.37 },
   ],
   head_of_household: [
-    { upTo: 16_550 * 12,  rate: 0.10 },
-    { upTo: 63_100 * 12,  rate: 0.12 },
-    { upTo: 100_500 * 12, rate: 0.22 },
-    { upTo: 191_950 * 12, rate: 0.24 },
-    { upTo: 243_700 * 12, rate: 0.32 },
-    { upTo: 609_350 * 12, rate: 0.35 },
-    { upTo: Infinity,     rate: 0.37 },
+    { upTo: 17_700,  rate: 0.10 },
+    { upTo: 67_450,  rate: 0.12 },
+    { upTo: 105_700, rate: 0.22 },
+    { upTo: 201_750, rate: 0.24 },
+    { upTo: 256_200, rate: 0.32 },
+    { upTo: 640_600, rate: 0.35 },
+    { upTo: Infinity, rate: 0.37 },
   ],
   // FICA
-  socialSecurityRate: 0.062,   // 6.2% up to wage base
-  socialSecurityWageBase: 168_600, // 2026 annual wage base
-  medicareRate: 0.0145,        // 1.45%
-  additionalMedicareRate: 0.009, // 0.9% above $200k single
+  socialSecurityRate: 0.062,       // 6.2% up to wage base
+  socialSecurityWageBase: 176_100, // 2026 annual wage base
+  medicareRate: 0.0145,            // 1.45%
+  additionalMedicareRate: 0.009,   // 0.9% above $200k single
   additionalMedicareThreshold: 200_000,
-  // Standard deduction (annual)
+  // Standard deduction 2026 (annual)
   standardDeduction: {
-    single: 14_600,
-    married: 29_200,
-    head_of_household: 21_900,
+    single: 16_100,
+    married: 32_200,
+    head_of_household: 24_150,
   },
 };
 

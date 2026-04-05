@@ -24,8 +24,8 @@ export const TAX_CONFIG = {
   incomeTaxBrackets: [
     { upTo:   7_010 * 12, rate: 0.10, label: '10%' },
     { upTo:  10_060 * 12, rate: 0.14, label: '14%' },
-    { upTo:  16_150 * 12, rate: 0.20, label: '20%' },
-    { upTo:  22_440 * 12, rate: 0.31, label: '31%' },
+    { upTo:  19_000 * 12, rate: 0.20, label: '20%' },  // was 16_150 — Smotrich 2026 reform
+    { upTo:  25_100 * 12, rate: 0.31, label: '31%' },  // was 22_440 — Smotrich 2026 reform
     { upTo:  46_690 * 12, rate: 0.35, label: '35%' },
     { upTo:  60_130 * 12, rate: 0.47, label: '47%' },
     { upTo:  Infinity,    rate: 0.50, label: '50%' },
