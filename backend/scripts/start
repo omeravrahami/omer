@@ -34,3 +34,5 @@ else
   echo "Starting server in dev mode with hot reload..."
   exec bun --hot src/index.ts
 fi
+
+Fix production DB configuration (remove SQLite override)
