@@ -18,3 +18,5 @@ else
   echo "Starting in development mode..."
   export NODE_ENV="development"
 fi
+
+Fix production DB configuration (remove SQLite override)
